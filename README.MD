@@ -29,14 +29,17 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 5. Figure out how to sort class names using sorter array
 6. Replace old class names with new list of class names
 7. Save file
-8. Release
+8. Release via NPM
+    - [How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)
+    - [Trust Repo](https://github.com/japaric/trust)
+    - [Example](https://github.com/kennethlarsen/baelte-npm)
 
 ### Phase 2 (CLI)
 1. Add CLI parser
 2. Use CLI parser to choose directory or file to run on
-4. Add `--write` option which will change the files, change default to printing results to the terminal
-5. Add ability to exclude folders, or files using regex pattern
-6. Add argument for only searching in certain file types
+3. Add `--write` option which will change the files, change default to printing results to the terminal
+4. Add ability to exclude folders, or files using regex pattern
+5. Add argument for only searching in certain file types
 
 ### Phase 3 (Performance)
 1. Search and change files in parallel (parallel map?)
