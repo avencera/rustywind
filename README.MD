@@ -18,16 +18,22 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 ## The Plan
 
 ### MVP
+1. Run on current directory
+2. Order all classes in all files in directory (except for gitignored ones)
+
+#### Development Plan
 1. ~~Get a list of all files in current directory recursively.~~ [#1](https://github.com/avencera/rustywind/pull/1)
 2. ~~Ignore all files in .gitignore~~ [#1](https://github.com/avencera/rustywind/pull/1)
 3. ~~Get all contents from the list of files 1 by 1~~ [#2](https://github.com/avencera/rustywind/pull/2)
-4. Run regex on all file contents, and save files
-5. Release
+4. Run regex on all file contents and get all class names
+5. Figure out how to sort class names using sorter array
+6. Replace old class names with new list of class names
+7. Save file
+8. Release
 
 ### Phase 2 (CLI)
 1. Add CLI parser
 2. Use CLI parser to choose directory or file to run on
-3. Add `--dry-run` option that shows which files it will run on
 4. Add `--write` option which will change the files, change default to printing results to the terminal
 5. Add ability to exclude folders, or files using regex pattern
 6. Add argument for only searching in certain file types
