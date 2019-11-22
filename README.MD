@@ -2,7 +2,7 @@
 
 Inspired by [Ryan Heybourn's](https://github.com/heybourn) [headwind](https://github.com/heybourn/headwind)
 vscode plugin. This is a CLI tool that will look through your project and sort all [Tailwind CSS](https://tailwindcss.com) classes. It will also delete any
-duplicate classes it winds
+duplicate classes it finds
 
 ## Why?
 When Ryan released his vscode extension some people expressed an interest in having a CLI version. 
