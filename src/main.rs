@@ -1,3 +1,10 @@
+extern crate ignore;
+use ignore::WalkBuilder;
+
 fn main() {
-    println!("Hello, world!");
+    let walker = WalkBuilder::new("./").build();
+
+    for file in walker {
+        println!("{:?}", file.unwrap().path());
+    }
 }
