@@ -2,9 +2,8 @@ extern crate ignore;
 use ignore::WalkBuilder;
 
 fn main() {
-    let walker = WalkBuilder::new("./").build();
-
+    let walker = WalkBuilder::new("./").build().filter_map(Result::ok);
     for file in walker {
-        println!("{:?}", file.unwrap().path());
+        println!("{:?}", file.path());
     }
 }
