@@ -8,7 +8,7 @@ mod sorter;
 
 lazy_static! {
     static ref RE: Regex =
-        Regex::new(r#"\b(class(?:Name)*\s*=)\s*["']([_a-zA-Z0-9\s\-:]+)["']"#).unwrap();
+        Regex::new(r#"\b(class(?:Name)*\s*=)\s*["']([_a-zA-Z0-9\s\-:/]+)["']"#).unwrap();
 }
 
 pub fn run(dir: PathBuf) {
@@ -75,8 +75,8 @@ use pretty_assertions::assert_eq;
 #[test]
 fn test_collect_classes() {
     assert_eq!(
-        collect_classes(r#"<ul class='flex items-center md:pr-4 lg:pr-6'>"#.to_string()),
-        vec![vec!["flex", "items-center", "md:pr-4", "lg:pr-6"]]
+        collect_classes(r#"<ul class='flex items-center md:pr-4 lg:pr-6 w-1/2'>"#.to_string()),
+        vec![vec!["flex", "items-center", "md:pr-4", "lg:pr-6", "w-1/2"]]
     )
 }
 
