@@ -3,6 +3,7 @@ use regex::Regex;
 extern crate lazy_static;
 use regex::Captures;
 mod sorter;
+use itertools::Itertools;
 
 lazy_static! {
     static ref RE: Regex =
@@ -22,15 +23,16 @@ pub fn sort_file_contents(file_contents: String) -> String {
 
 fn sort_classes(class_string: &str) -> String {
     let classes_vec = collect_classes(class_string);
-    let sorted_classes = sort_classes_vec(classes_vec);
+    let sorted_classes_vec = sort_classes_vec(classes_vec);
 
-    sorted_classes.join(" ")
+    sorted_classes_vec.join(" ")
 }
 
 fn collect_classes(class_string: &str) -> Vec<String> {
     class_string
         .split(" ")
         .map(|string| string.to_string())
+        .unique()
         .collect()
 }
 
