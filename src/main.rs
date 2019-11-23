@@ -21,7 +21,15 @@ fn main() {
                     println!("\n\n--------------------------------------");
                     println!("Classes detected!");
                     println!("filename: {}\n", file_name.display());
-                    println!("{:?}\n", sorted_content);
+                    println!("saving file.....");
+
+                    match fs::write(file_name, sorted_content.as_bytes()) {
+                        Ok(_) => println!("file: ({}) has been saved!", file_name.display()),
+                        Err(err) => {
+                            println!("Error: {:?}", err);
+                            println!("Unable to to save file: {}", file_name.display());
+                        }
+                    }
                     println!("--------------------------------------\n\n");
                 } else {
                     println!("--------------------------------------");
