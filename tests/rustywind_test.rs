@@ -24,3 +24,21 @@ fn test_sort_file_contents() {
         expected_outcome
     )
 }
+
+#[test]
+fn test_returns_files_without_class_strings_as_is() {
+    let file_contents = r#"
+        This is to a represent any other normal file.
+    "#
+    .to_string();
+
+    let expected_outcome = r#"
+        This is to a represent any other normal file.
+    "#
+    .to_string();
+
+    assert_eq!(
+        rustywind::sort_file_contents(file_contents),
+        expected_outcome
+    )
+}
