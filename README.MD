@@ -28,7 +28,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 4. ~~Run regex on all file contents and get all class names~~ [#3](https://github.com/avencera/rustywind/pull/3)
 5. ~~Figure out how to sort class names using sorter array~~ [#4](https://github.com/avencera/rustywind/pull/4)
 6. ~~Replace old class names with new list of class names~~ [#5](https://github.com/avencera/rustywind/pull/5)
-7. Save file
+7. ~~Save file~~ [#6](https://github.com/avencera/rustywind/pull/6)
 8. Release via NPM
     - [How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)
     - [Trust Repo](https://github.com/japaric/trust)
