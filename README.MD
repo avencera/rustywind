@@ -1,3 +1,22 @@
+## Install
+
+Available via npm 
+
+`npm install -g rustywind`
+
+or
+
+`yarn global add rustywind`
+
+## Usage
+
+Running the command `rustywind` will reorganize all tailwind css classes in the
+current directory recursivly.
+
+Please note it currently defaults to changing all files in place
+
+When you run it you will get a list of files that were changed
+
 ## What
 
 Inspired by [Ryan Heybourn's](https://github.com/heybourn) [headwind](https://github.com/heybourn/headwind)
@@ -29,7 +48,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 5. ~~Figure out how to sort class names using sorter array~~ [#4](https://github.com/avencera/rustywind/pull/4)
 6. ~~Replace old class names with new list of class names~~ [#5](https://github.com/avencera/rustywind/pull/5)
 7. ~~Save file~~ [#6](https://github.com/avencera/rustywind/pull/6)
-8. Release via NPM
+8. ~~Release via NPM~~ (available via npm `npm install rustywind -g`)
     - [How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)
     - [Trust Repo](https://github.com/japaric/trust)
     - [Example](https://github.com/kennethlarsen/baelte-npm)
