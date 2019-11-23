@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cargo build --release;  
+rm  /usr/local/bin/rustywind; 
+ln -s "$(pwd)/target/release/rustywind" /usr/local/bin
