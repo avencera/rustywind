@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 lazy_static! {
-    static ref SORTER: HashMap<&'static str, usize> = vec![
+    pub static ref SORTER: HashMap<String, usize> = vec![
         "container",
         "static",
         "fixed",
@@ -1194,6 +1194,6 @@ lazy_static! {
     ]
     .into_iter()
     .enumerate()
-    .map(|(index, value)| (value, index))
+    .map(|(index, class)| (class.to_string(), index))
     .collect();
 }

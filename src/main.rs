@@ -52,7 +52,28 @@ fn collect_classes(string: String) -> Vec<Vec<String>> {
 }
 
 fn sort_classes(classes: Vec<String>) -> Vec<String> {
-    vec!["f".to_string()]
+    let enumerated_classes = classes
+        .into_iter()
+        .map(|class| (String::from(&class), sorter::SORTER.get(&class)));
+
+    let mut tailwind_classes: Vec<(String, &usize)> = vec![];
+    let mut custom_classes: Vec<String> = vec![];
+
+    for (class, maybe_size) in enumerated_classes {
+        match maybe_size {
+            Some(size) => tailwind_classes.push((class, size)),
+            None => custom_classes.push(class),
+        }
+    }
+
+    tailwind_classes.sort_by(|(_c1, i1), (_c2, i2)| i1.partial_cmp(i2).unwrap());
+
+    let sorted_tailwind_classes: Vec<String> = tailwind_classes
+        .into_iter()
+        .map(|(class, _index)| class)
+        .collect();
+
+    [&sorted_tailwind_classes[..], &custom_classes[..]].concat()
 }
 
 #[cfg(test)]
@@ -94,7 +115,7 @@ fn test_sort_classes() {
                 "inline",
                 "inline-block",
                 "random-class",
-                "justify-content",
+                "justify-end",
                 "flex"
             ]
             .into_iter()
@@ -103,10 +124,10 @@ fn test_sort_classes() {
         ),
         vec![
             "flex",
-            "inline",
+            "justify-end",
             "inline-block",
+            "inline",
             "random-class",
-            "justify-content"
         ]
     )
 }
