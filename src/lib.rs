@@ -9,6 +9,10 @@ lazy_static! {
         Regex::new(r#"\b(class(?:Name)*\s*=\s*["'])([_a-zA-Z0-9\s\-:/]+)(["'])"#).unwrap();
 }
 
+pub fn has_classes(file_contents: &str) -> bool {
+    RE.is_match(file_contents)
+}
+
 pub fn sort_file_contents(file_contents: String) -> String {
     RE.replace_all(&file_contents, |caps: &Captures| {
         format!("{}{}{}", &caps[1], sort_classes(&caps[2]), &caps[3])
