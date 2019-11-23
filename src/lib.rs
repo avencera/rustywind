@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 lazy_static! {
     static ref RE: Regex =
-        Regex::new(r#"\bclass(?:Name)*\s*=\s*["']([_a-zA-Z0-9\s\-:]+)["']"#).unwrap();
+        Regex::new(r#"\b(class(?:Name)*\s*=)\s*["']([_a-zA-Z0-9\s\-:]+)["']"#).unwrap();
 }
 
 pub fn run(dir: PathBuf) {
@@ -31,7 +31,7 @@ pub fn run(dir: PathBuf) {
 
 fn collect_classes(string: String) -> Vec<Vec<String>> {
     RE.captures_iter(&string)
-        .filter_map(|cap| match cap.get(1) {
+        .filter_map(|cap| match cap.get(2) {
             Some(capture) => Some(
                 capture
                     .as_str()
