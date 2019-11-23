@@ -25,7 +25,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 1. ~~Get a list of all files in current directory recursively.~~ [#1](https://github.com/avencera/rustywind/pull/1)
 2. ~~Ignore all files in .gitignore~~ [#1](https://github.com/avencera/rustywind/pull/1)
 3. ~~Get all contents from the list of files 1 by 1~~ [#2](https://github.com/avencera/rustywind/pull/2)
-4. Run regex on all file contents and get all class names
+4. ~~Run regex on all file contents and get all class names~~ [#3](https://github.com/avencera/rustywind/pull/3)
 5. Figure out how to sort class names using sorter array
 6. Replace old class names with new list of class names
 7. Save file
