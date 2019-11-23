@@ -6,13 +6,9 @@ language: rust
 services: docker
 sudo: required
 
-# TODO Rust builds on stable by default, this can be
-# overridden on a case by case basis down below.
-
 env:
   global:
-    # TODO Update this to match the name of your project.
-    - CRATE_NAME=trust
+    - CRATE_NAME=rustywind
 
 matrix:
   # TODO These are all the build jobs. Adjust as necessary. Comment out what you
@@ -75,13 +71,12 @@ matrix:
     # - env: TARGET=thumbv7em-none-eabi
     # - env: TARGET=thumbv7em-none-eabihf
     # - env: TARGET=thumbv7m-none-eabi
-
     # Testing other channels
-    - env: TARGET=x86_64-unknown-linux-gnu
-      rust: nightly
-    - env: TARGET=x86_64-apple-darwin
-      os: osx
-      rust: nightly
+    # - env: TARGET=x86_64-unknown-linux-gnu
+    #   rust: nightly
+    # - env: TARGET=x86_64-apple-darwin
+    #   os: osx
+    #   rust: nightly
 
 before_install:
   - set -e
@@ -105,7 +100,7 @@ deploy:
   # - Encrypt it: `travis encrypt 0123456789012345678901234567890123456789
   # - Paste the output down here
   api_key:
-    secure: A9v3PIzQQ4U08OHFmDPQzNXbNHEb7YHyLXCvMF+dXFuNSvhUNlmQYykxqUf3dvikhJL2/bsZ14umm7ni7fQh0tGwJ4+lPpNzYAcweGgNXnWvjTpY6ovuRbr3gs4/srkyxp/GBDmSW5L8wFN3hKCB+Lm0YnIPB9IA2afP8a30+8VTXT9nv7pNqGny4ilN41ycr4DZi3sQoXdbruy7ClN7gsWW/GUiudBccHVIjmTapOFKLwZHODaUl/1/RDWQzh+i+17e1ivXuJPktDSrqmHPTZ15OjklnHKd6t179ry6VkGRg4R/R/YukVIqGzeaXGWAwdAQ5gE8cjGZghJLVi2jkDBJ85z8MvT+zLZLyliiuhLc/X8y7mkE1n0FKFtXXzFVt0l7V1LaEKbIbiV6XX3jsir4qgkqWjPHBZqO5mkGNFS16Dmt30/ZtEPAzXiINFXbWuWrpQ/LZ4NSto8IMrRTcoyDbAga/KYxJiNIeVuCe1E9dbytDM7K0GLtxJTul/WnnSeI6r//EFyC4bxYjyHhCXaag4q14KM+ak4rB0QgxsYzyGuh2MqyCoVj8YJLjLdKnL/SV7W7LPD40xlxvI6VCYTVi2ILHwL6vCxpukXYteX0c5IAIWkISDKu6nNBEgmCHXXPSqYSrgE5g7/QoCQHI8++nR8iKe0s7TWxZRydby8=
+    secure: T6K/bSMz9QMbEdDuqwngeXUpSa5uFu2X9W22KQ+lR6WVB//RxgI1Sh/lxw1zEYHXl/aogNX+1VXctT0HyXtDCl6znajVhVIqvRsPWU0fYT4R3viye/19pQZant4Ggi3+hpuukHOcWX/cjORXC9zmL+B9HalMJUTUuVg8vIEWjwZ1V0aOj8hL7ztSoSBw/hX2dh5ObbQZ7IWhKdd61m7zNqin9y265rCJyQs2TjSZ9XlBhhftoWt9Dh6mlUGa0qwY9EvriWs3UwMdL5f5Dsn3uwHMB2StR1TgGSZOLKnwB7iBr6HmIYXZSGBylMwHAGTpmWhbvVJrOtE0gJwiLzF+39dymj2SRLtp9eSqyiRQiHVbuxi6czgtRSQeGsLuahGiz7lfOg7NFh6BNjcO9yKSwRQerxU1k8qrWIOBH/uh2+uj0vewYuv8yDK6FO/F8mC8VZUlRJVSwy0qE/9C4oMLlaQDOw+S/ajDafAlVwlXRckKVrXxWSakT0GC1l8J6ixGgfHiff9xxaGpXpqhFxCt+lOLS69Voizu9zEb8O4D6gLgBFYpcsOUtYQ9rWsXySAGkdKQjszfI9tQRkAJ8q7RxYTtM+ADuJ4bwqJklc3BqhlCazF7cru2q8dGsyvZLrahNFvy/GuKgz1AHmSr7368r//lKvBsaiqI6VRzJl9q3u0=
   file_glob: true
   file: $CRATE_NAME-$TRAVIS_TAG-$TARGET.*
   on:
