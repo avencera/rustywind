@@ -36,11 +36,11 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 
 ## The Plan
 
-### MVP
-1. Run on current directory
-2. Order all classes in all files in directory (except for gitignored ones)
+### ✅ ~~MVP~~
+1. ~~Run on current directory~~
+2. ~~Order all classes in all files in directory (except for gitignored ones)~~
 
-#### Development Plan
+#### ✅ ~~Development Plan~~
 1. ~~Get a list of all files in current directory recursively.~~ [#1](https://github.com/avencera/rustywind/pull/1)
 2. ~~Ignore all files in .gitignore~~ [#1](https://github.com/avencera/rustywind/pull/1)
 3. ~~Get all contents from the list of files 1 by 1~~ [#2](https://github.com/avencera/rustywind/pull/2)
@@ -48,10 +48,10 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 5. ~~Figure out how to sort class names using sorter array~~ [#4](https://github.com/avencera/rustywind/pull/4)
 6. ~~Replace old class names with new list of class names~~ [#5](https://github.com/avencera/rustywind/pull/5)
 7. ~~Save file~~ [#6](https://github.com/avencera/rustywind/pull/6)
-8. ~~Release via NPM~~ (available via npm `npm install rustywind -g`)
-    - [How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)
-    - [Trust Repo](https://github.com/japaric/trust)
-    - [Example](https://github.com/kennethlarsen/baelte-npm)
+8. ~~Release via NPM~~ (available via [npm](https://www.npmjs.com/package/rustywind)  `npm install rustywind -g`)
+    - ~~[How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)~~
+    - ~~[Trust Repo](https://github.com/japaric/trust)~~
+    - ~~[Example](https://github.com/kennethlarsen/baelte-npm)~~
 
 ### Phase 2 (CLI)
 1. Add CLI parser
