@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 lazy_static! {
     static ref RE: Regex =
-        Regex::new(r###"\bclass(?:Name)*\s*=\s*(["']([_a-zA-Z0-9\s\-:]+)["'])"###).unwrap();
+        Regex::new(r#"\bclass(?:Name)*\s*=\s*["']([_a-zA-Z0-9\s\-:]+)["']"#).unwrap();
 }
 
 pub fn run(dir: PathBuf) {
@@ -23,27 +23,54 @@ pub fn run(dir: PathBuf) {
         let contents =
             fs::read_to_string(file_name).expect("Something went wrong reading the file");
 
-        println!(
-            "FILENAME:{}\nWith text:\n\n{}\n\n--------------------------------------\n\n",
-            file_name.display(),
-            contents
-        );
+        let classes = collect_classes(contents);
+
+        println!("{:?}", classes)
     }
 }
 
-pub fn find_and_replace_classes(string: String) -> String {
-    "".to_string()
+fn collect_classes(string: String) -> Vec<Vec<String>> {
+    RE.captures_iter(&string)
+        .filter_map(|cap| match cap.get(1) {
+            Some(capture) => Some(
+                capture
+                    .as_str()
+                    .split(" ")
+                    .map(|string| string.to_string())
+                    .collect(),
+            ),
+            None => None,
+        })
+        .collect()
 }
 
-#[test]
-fn test_regex_matches() {
-    assert!(RE.is_match("<ul class=\"flex items-center md:pr-4 lg:pr-6\">"));
-}
+#[cfg(test)]
+use pretty_assertions::assert_eq;
 
 #[test]
-fn test_regex_doesnt_match_incorrect() {
+fn test_collect_classes() {
     assert_eq!(
-        RE.is_match("<ul clasSs=\"flex items-center md:pr-4 lg:pr-6\">"),
-        false
-    );
+        collect_classes(r#"<ul class='flex items-center md:pr-4 lg:pr-6'>"#.to_string()),
+        vec![vec!["flex", "items-center", "md:pr-4", "lg:pr-6"]]
+    )
+}
+
+#[test]
+fn test_collect_classes_on_multiple_elements() {
+    assert_eq!(
+        collect_classes(
+            r#"
+        <div>
+            <div class='inline inline-block random-class justify-content'>
+                <ul class='flex items-center md:pr-4 lg:pr-6'>
+            </div>
+        </div>
+        "#
+            .to_string()
+        ),
+        vec![
+            vec!["inline", "inline-block", "random-class", "justify-content"],
+            vec!["flex", "items-center", "md:pr-4", "lg:pr-6"]
+        ]
+    )
 }

@@ -10,3 +10,6 @@ edition = "2018"
 ignore = "0.4"
 regex = "1"
 lazy_static = "1.4.0"
+
+[dev-dependencies]
+pretty_assertions = "0.6"
