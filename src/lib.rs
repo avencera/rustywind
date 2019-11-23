@@ -3,12 +3,13 @@ use regex::Regex;
 use std::fs;
 #[macro_use]
 extern crate lazy_static;
+use regex::Captures;
 use std::path::PathBuf;
 mod sorter;
 
 lazy_static! {
     static ref RE: Regex =
-        Regex::new(r#"\b(class(?:Name)*\s*=)\s*["']([_a-zA-Z0-9\s\-:/]+)["']"#).unwrap();
+        Regex::new(r#"\b(class(?:Name)*\s*=\s*["'])([_a-zA-Z0-9\s\-:/]+)(["'])"#).unwrap();
 }
 
 pub fn run(dir: PathBuf) {
@@ -23,28 +24,34 @@ pub fn run(dir: PathBuf) {
         let contents =
             fs::read_to_string(file_name).expect("Something went wrong reading the file");
 
-        let classes = collect_classes(contents);
+        let sorted_content = sort_file_contents(contents);
 
-        println!("{:?}", classes)
+        println!("{:?}", sorted_content)
     }
 }
 
-fn collect_classes(string: String) -> Vec<Vec<String>> {
-    RE.captures_iter(&string)
-        .filter_map(|cap| match cap.get(2) {
-            Some(capture) => Some(
-                capture
-                    .as_str()
-                    .split(" ")
-                    .map(|string| string.to_string())
-                    .collect(),
-            ),
-            None => None,
-        })
+pub fn sort_file_contents(file_contents: String) -> String {
+    RE.replace_all(&file_contents, |caps: &Captures| {
+        format!("{}{}{}", &caps[1], sort_classes(&caps[2]), &caps[3])
+    })
+    .to_string()
+}
+
+fn sort_classes(class_string: &str) -> String {
+    let classes_vec = collect_classes(class_string);
+    let sorted_classes = sort_classes_vec(classes_vec);
+
+    sorted_classes.join(" ")
+}
+
+fn collect_classes(class_string: &str) -> Vec<String> {
+    class_string
+        .split(" ")
+        .map(|string| string.to_string())
         .collect()
 }
 
-fn sort_classes(classes: Vec<String>) -> Vec<String> {
+fn sort_classes_vec(classes: Vec<String>) -> Vec<String> {
     let enumerated_classes = classes
         .into_iter()
         .map(|class| (String::from(&class), sorter::SORTER.get(&class)));
@@ -73,37 +80,9 @@ fn sort_classes(classes: Vec<String>) -> Vec<String> {
 use pretty_assertions::assert_eq;
 
 #[test]
-fn test_collect_classes() {
+fn test_sort_classes_vec() {
     assert_eq!(
-        collect_classes(r#"<ul class='flex items-center md:pr-4 lg:pr-6 w-1/2'>"#.to_string()),
-        vec![vec!["flex", "items-center", "md:pr-4", "lg:pr-6", "w-1/2"]]
-    )
-}
-
-#[test]
-fn test_collect_classes_on_multiple_elements() {
-    assert_eq!(
-        collect_classes(
-            r#"
-        <div>
-            <div class='inline inline-block random-class justify-content'>
-                <ul class='flex items-center md:pr-4 lg:pr-6'>
-            </div>
-        </div>
-        "#
-            .to_string()
-        ),
-        vec![
-            vec!["inline", "inline-block", "random-class", "justify-content"],
-            vec!["flex", "items-center", "md:pr-4", "lg:pr-6"]
-        ]
-    )
-}
-
-#[test]
-fn test_sort_classes() {
-    assert_eq!(
-        sort_classes(
+        sort_classes_vec(
             vec![
                 "inline",
                 "inline-block",
