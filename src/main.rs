@@ -1,12 +1,30 @@
+use clap::{App, Arg};
 use ignore::WalkBuilder;
-use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 fn main() {
-    let current_dir = env::current_dir().expect("Connot run in current directory");
+    let matches = App::new("Rusty Wind")
+        .version("0.1.0")
+        .author("Praveen Perera <praveen@avencera.com>")
+        .about("Organize all your tailwind classes")
+        .arg(
+            Arg::with_name("file_or_dir")
+                .value_name("PATH")
+                .help("A file or directory to run on")
+                .index(1)
+                .required(true)
+                .takes_value(true),
+        )
+        .get_matches();
 
-    let walker = WalkBuilder::new(&current_dir)
+    let file_or_dir = Path::new(
+        matches
+            .value_of("file_or_dir")
+            .expect("Invalid PATH provided"),
+    );
+
+    let walker = WalkBuilder::new(&file_or_dir)
         .build()
         .filter_map(Result::ok)
         .filter_map(|f| if f.path().is_dir() { None } else { Some(f) });
@@ -20,12 +38,12 @@ fn main() {
                     let sorted_content = rustywind::sort_file_contents(contents);
 
                     match fs::write(file_path, sorted_content.as_bytes()) {
-                        Ok(_) => println!(" * {}", get_file_name(file_path, &current_dir)),
+                        Ok(_) => println!(" * {}", get_file_name(file_path, file_or_dir)),
                         Err(err) => {
                             println!("\nError: {:?}", err);
                             println!(
                                 "Unable to to save file: {}",
-                                get_file_name(file_path, &current_dir)
+                                get_file_name(file_path, file_or_dir)
                             );
                         }
                     }
@@ -36,7 +54,7 @@ fn main() {
     }
 }
 
-fn get_file_name(file_path: &Path, dir: &PathBuf) -> String {
+fn get_file_name(file_path: &Path, dir: &Path) -> String {
     file_path
         .strip_prefix(dir)
         .unwrap_or(file_path)
