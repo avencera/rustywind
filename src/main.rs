@@ -37,12 +37,9 @@ fn main() {
 }
 
 fn get_file_name(file_path: &Path, dir: &PathBuf) -> String {
-    match (file_path.to_str(), dir.to_str()) {
-        (Some(file_path_str), Some(dir_str)) => file_path_str
-            .replace(dir_str, "")
-            .replacen("/", "", 1)
-            .to_string(),
-
-        _ => file_path.display().to_string(),
-    }
+    file_path
+        .strip_prefix(dir)
+        .unwrap_or(file_path)
+        .display()
+        .to_string()
 }
