@@ -1,5 +1,6 @@
 use clap::{App, AppSettings, Arg};
 use ignore::WalkBuilder;
+use indoc::indoc;
 use std::fs;
 use std::path::Path;
 
@@ -8,7 +9,8 @@ fn main() {
         .version(clap::crate_version!())
         .setting(AppSettings::ArgRequiredElseHelp)
         .author("Praveen Perera <praveen@avencera.com>")
-        .about("Organize all your tailwind classes")
+        .about("\nOrganize all your tailwind classes")
+        .usage("Run rustywind with a path to get a list of files that will be changed:\n      - rustywind .\n\n    If you want to reorganize all classes in place, and change the files run with the `--write` flag\n      - rustywind --write .\n\n    rustywind [FLAGS] <PATH>")
         .arg(
             Arg::with_name("file_or_dir")
                 .value_name("PATH")
