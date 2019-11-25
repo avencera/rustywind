@@ -58,9 +58,9 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 
 ### ✅ ~~Phase 2 (CLI)~~
 
-1. ~~Add CLI parser~~
-2. ~~Use CLI parser to choose directory or file to run on~~
-3. ~~Add `--write` option which will change the files, change default to printing results to the terminal~~
+1. ~~Add CLI parser~~ [#8](https://github.com/avencera/rustywind/pull/8)
+2. ~~Use CLI parser to choose directory or file to run on~~ [#8](https://github.com/avencera/rustywind/pull/8)
+3. ~~Add `--write` option which will change the files, change default to printing results to the terminal~~ [#8](https://github.com/avencera/rustywind/pull/8)
 
 ### Phase 3 (More CLI)
 
