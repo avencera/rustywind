@@ -5,7 +5,7 @@ use std::path::Path;
 
 fn main() {
     let matches = App::new("Rusty Wind")
-        .version("0.1.0")
+        .version(clap::crate_version!())
         .setting(AppSettings::ArgRequiredElseHelp)
         .author("Praveen Perera <praveen@avencera.com>")
         .about("Organize all your tailwind classes")
