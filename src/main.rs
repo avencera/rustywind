@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{App, AppSettings, Arg};
 use ignore::WalkBuilder;
 use std::fs;
 use std::path::Path;
@@ -6,6 +6,7 @@ use std::path::Path;
 fn main() {
     let matches = App::new("Rusty Wind")
         .version("0.1.0")
+        .setting(AppSettings::ArgRequiredElseHelp)
         .author("Praveen Perera <praveen@avencera.com>")
         .about("Organize all your tailwind classes")
         .arg(
