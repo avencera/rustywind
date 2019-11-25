@@ -29,6 +29,14 @@ fn main() {
             .expect("Invalid PATH provided"),
     );
 
+    if matches.is_present("write") {
+        println!("\nwrite mode is active the following files are being saved:")
+    } else {
+        println!(
+            "\nIf you want to change the classes please run again in write mode with the --write flag \n\nClasses were detected in the following files:"
+        )
+    }
+
     let walker = WalkBuilder::new(&file_or_dir)
         .build()
         .filter_map(Result::ok)
@@ -41,7 +49,11 @@ fn main() {
             Ok(contents) => {
                 if rustywind::has_classes(&contents) {
                     let sorted_content = rustywind::sort_file_contents(contents);
-                    write_to_file(file_path, file_or_dir, sorted_content);
+                    if matches.is_present("write") {
+                        write_to_file(file_path, file_or_dir, sorted_content)
+                    } else {
+                        print_file_name(file_path, file_or_dir)
+                    }
                 }
             }
             Err(_error) => (),
@@ -51,7 +63,7 @@ fn main() {
 
 fn write_to_file(file_path: &Path, file_or_dir: &Path, sorted_contents: String) {
     match fs::write(file_path, sorted_contents.as_bytes()) {
-        Ok(_) => println!(" * {}", get_file_name(file_path, file_or_dir)),
+        Ok(_) => print_file_name(file_path, file_or_dir),
         Err(err) => {
             println!("\nError: {:?}", err);
             println!(
@@ -60,6 +72,10 @@ fn write_to_file(file_path: &Path, file_or_dir: &Path, sorted_contents: String) 
             );
         }
     }
+}
+
+fn print_file_name(file_path: &Path, file_or_dir: &Path) {
+    println!("  * {}", get_file_name(file_path, file_or_dir))
 }
 
 fn get_file_name(file_path: &Path, dir: &Path) -> String {
