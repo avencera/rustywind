@@ -1,3 +1,5 @@
+# RustyWind [![Build Status](https://travis-ci.org/avencera/rustywind.svg?branch=master)](https://travis-ci.org/avencera/rustywind)
+
 ## Install
 
 Available via npm
