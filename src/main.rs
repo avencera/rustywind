@@ -16,6 +16,11 @@ fn main() {
                 .required(true)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("write")
+                .long("write")
+                .help("Changes the files in place with the reorganized classes"),
+        )
         .get_matches();
 
     let file_or_dir = Path::new(
@@ -36,20 +41,23 @@ fn main() {
             Ok(contents) => {
                 if rustywind::has_classes(&contents) {
                     let sorted_content = rustywind::sort_file_contents(contents);
-
-                    match fs::write(file_path, sorted_content.as_bytes()) {
-                        Ok(_) => println!(" * {}", get_file_name(file_path, file_or_dir)),
-                        Err(err) => {
-                            println!("\nError: {:?}", err);
-                            println!(
-                                "Unable to to save file: {}",
-                                get_file_name(file_path, file_or_dir)
-                            );
-                        }
-                    }
+                    write_to_file(file_path, file_or_dir, sorted_content);
                 }
             }
             Err(_error) => (),
+        }
+    }
+}
+
+fn write_to_file(file_path: &Path, file_or_dir: &Path, sorted_contents: String) {
+    match fs::write(file_path, sorted_contents.as_bytes()) {
+        Ok(_) => println!(" * {}", get_file_name(file_path, file_or_dir)),
+        Err(err) => {
+            println!("\nError: {:?}", err);
+            println!(
+                "Unable to to save file: {}",
+                get_file_name(file_path, file_or_dir)
+            );
         }
     }
 }
