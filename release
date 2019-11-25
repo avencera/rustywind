@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cargo build --release;  
-rm  /usr/local/bin/rustywind; 
-ln -s "$(pwd)/target/release/rustywind" /usr/local/bin
+TAG=v$(cargo pkgid | cut -d"#" -f2 | cut -d: -f2)
+git tag -a $TAG -m $TAG
+git push --tags
