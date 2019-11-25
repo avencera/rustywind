@@ -11,6 +11,7 @@ ignore = "0.4"
 regex = "1"
 lazy_static = "1.4.0"
 itertools = "0.8"
+indoc = "0.3"
 clap = "2.33"
 
 

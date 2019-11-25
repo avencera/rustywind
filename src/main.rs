@@ -10,7 +10,14 @@ fn main() {
         .setting(AppSettings::ArgRequiredElseHelp)
         .author("Praveen Perera <praveen@avencera.com>")
         .about("\nOrganize all your tailwind classes")
-        .usage("Run rustywind with a path to get a list of files that will be changed:\n      - rustywind .\n\n    If you want to reorganize all classes in place, and change the files run with the `--write` flag\n      - rustywind --write .\n\n    rustywind [FLAGS] <PATH>")
+        .usage(indoc!("
+        Run rustywind with a path to get a list of files that will be changed
+              rustywind .
+
+            If you want to reorganize all classes in place, and change the files run with the `--write` flag
+              rustywind --write .
+                         
+            rustywind [FLAGS] <PATH>"))
         .arg(
             Arg::with_name("file_or_dir")
                 .value_name("PATH")
@@ -36,7 +43,8 @@ fn main() {
         println!("\nwrite mode is active the following files are being saved:")
     } else {
         println!(
-            "\nIf you want to change the classes please run again in write mode with the --write flag \n\nClasses were detected in the following files:"
+            "\nIf you want to change the classes please run again in write mode with the --write flag \n\n\
+            Classes were detected in the following files:"
         )
     }
 
