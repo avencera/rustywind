@@ -64,9 +64,8 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 
 ### Phase 3 (More CLI)
 
-1. Add `--dry-run` option to print out all changes to console
-2. Add ability to exclude folders, or files using regex pattern
-3. Add argument for only searching in certain file types
+1.  Add `--allow-duplicates` to allow duplicate class name
+2.  Add `--dry-run` option to print out all changes to console
 
 ### Phase 4 (Performance)
 
@@ -76,3 +75,5 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 
 - Add ability to add custom sorter
 - Derive sorter from evaluation generated CSS from tailwind config file
+- Add ability to exclude folders, or files using regex pattern
+- Add argument for only searching in certain file types
