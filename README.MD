@@ -1,6 +1,6 @@
 ## Install
 
-Available via npm 
+Available via npm
 
 `npm install -g rustywind`
 
@@ -10,12 +10,12 @@ or
 
 ## Usage
 
-Running the command `rustywind` will reorganize all tailwind css classes in the
-current directory recursivly.
+- Run rustywind with a path to get a list of files that will be changed:
 
-Please note it currently defaults to changing all files in place
+  - `rustywind .`
 
-When you run it you will get a list of files that were changed
+- If you want to reorganize all classes in place, and change the files run with the `--write` flag
+  - `rustywind --write .`
 
 ## What
 
@@ -24,10 +24,11 @@ vscode plugin. This is a CLI tool that will look through your project and sort a
 duplicate classes it finds
 
 ## Why?
-When Ryan released his vscode extension some people expressed an interest in having a CLI version. 
+
+When Ryan released his vscode extension some people expressed an interest in having a CLI version.
 
 In addition, I've had an interest in learning rust. I usually learn by doing. I thought this would be
-the perfect opportunity to make a small useful tool while learning rust. 
+the perfect opportunity to make a small useful tool while learning rust.
 
 Keep in mind this is my first rust project. My code here is most likely going to be ugly and not idiomatic rust.
 If you are a rust expert you're help in making the code nicer and more idiomatic will be greatly appreciated.
@@ -37,10 +38,12 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 ## The Plan
 
 ### ✅ ~~MVP~~
+
 1. ~~Run on current directory~~
 2. ~~Order all classes in all files in directory (except for gitignored ones)~~
 
 #### ✅ ~~Development Plan~~
+
 1. ~~Get a list of all files in current directory recursively.~~ [#1](https://github.com/avencera/rustywind/pull/1)
 2. ~~Ignore all files in .gitignore~~ [#1](https://github.com/avencera/rustywind/pull/1)
 3. ~~Get all contents from the list of files 1 by 1~~ [#2](https://github.com/avencera/rustywind/pull/2)
@@ -48,21 +51,28 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 5. ~~Figure out how to sort class names using sorter array~~ [#4](https://github.com/avencera/rustywind/pull/4)
 6. ~~Replace old class names with new list of class names~~ [#5](https://github.com/avencera/rustywind/pull/5)
 7. ~~Save file~~ [#6](https://github.com/avencera/rustywind/pull/6)
-8. ~~Release via NPM~~ (available via [npm](https://www.npmjs.com/package/rustywind)  `npm install rustywind -g`)
-    - ~~[How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)~~
-    - ~~[Trust Repo](https://github.com/japaric/trust)~~
-    - ~~[Example](https://github.com/kennethlarsen/baelte-npm)~~
+8. ~~Release via NPM~~ (available via [npm](https://www.npmjs.com/package/rustywind) `npm install rustywind -g`)
+   - ~~[How to Distribute a Rust Binary on NPM](https://dev.to/kennethlarsen/how-to-distribute-a-rust-binary-on-npm-75n)~~
+   - ~~[Trust Repo](https://github.com/japaric/trust)~~
+   - ~~[Example](https://github.com/kennethlarsen/baelte-npm)~~
 
-### Phase 2 (CLI)
-1. Add CLI parser
-2. Use CLI parser to choose directory or file to run on
-3. Add `--write` option which will change the files, change default to printing results to the terminal
-4. Add ability to exclude folders, or files using regex pattern
-5. Add argument for only searching in certain file types
+### ✅ ~~Phase 2 (CLI)~~
 
-### Phase 3 (Performance)
+1. ~~Add CLI parser~~
+2. ~~Use CLI parser to choose directory or file to run on~~
+3. ~~Add `--write` option which will change the files, change default to printing results to the terminal~~
+
+### Phase 3 (More CLI)
+
+1. Add `--dry-run` option to print out all changes to console
+2. Add ability to exclude folders, or files using regex pattern
+3. Add argument for only searching in certain file types
+
+### Phase 4 (Performance)
+
 1. Search and change files in parallel (parallel map?)
 
 ### Later Possibilities...
-* Add ability to add custom sorter
-* Derive sorter from evaluation generated CSS from tailwind config file
+
+- Add ability to add custom sorter
+- Derive sorter from evaluation generated CSS from tailwind config file
