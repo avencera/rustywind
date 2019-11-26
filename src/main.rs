@@ -31,6 +31,11 @@ fn main() {
                 .long("write")
                 .help("Changes the files in place with the reorganized classes"),
         )
+        .arg(
+            Arg::with_name("dry_run")
+                .long("dry-run")
+                .help("Prints out the new file content with the sorted classes to the terminal"),
+        )
         .get_matches();
 
     let file_or_dir = Path::new(
@@ -60,10 +65,11 @@ fn main() {
             Ok(contents) => {
                 if rustywind::has_classes(&contents) {
                     let sorted_content = rustywind::sort_file_contents(contents);
-                    if matches.is_present("write") {
-                        write_to_file(file_path, file_or_dir, sorted_content)
-                    } else {
-                        print_file_name(file_path, file_or_dir)
+
+                    match (matches.is_present("write"), matches.is_present("dry_run")) {
+                        (_, true) => print_file_contents(&sorted_content),
+                        (true, false) => write_to_file(file_path, file_or_dir, &sorted_content),
+                        _ => print_file_name(file_path, file_or_dir),
                     }
                 }
             }
@@ -72,7 +78,7 @@ fn main() {
     }
 }
 
-fn write_to_file(file_path: &Path, file_or_dir: &Path, sorted_contents: String) {
+fn write_to_file(file_path: &Path, file_or_dir: &Path, sorted_contents: &str) {
     match fs::write(file_path, sorted_contents.as_bytes()) {
         Ok(_) => print_file_name(file_path, file_or_dir),
         Err(err) => {
@@ -95,4 +101,8 @@ fn get_file_name(file_path: &Path, dir: &Path) -> String {
         .unwrap_or(file_path)
         .display()
         .to_string()
+}
+
+fn print_file_contents(file_contents: &str) {
+    println!("\n\n{}\n\n", file_contents)
 }
