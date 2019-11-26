@@ -126,4 +126,4 @@ branches:
 
 notifications:
   email:
-    on_success: change
+    on_success: always
