@@ -1,5 +1,5 @@
 #!/bin/bash
 
 TAG=v$(cargo pkgid | cut -d"#" -f2 | cut -d: -f2)
-git tag -a $TAG -m $TAG
+git tag -a $TAG
 git push --tags

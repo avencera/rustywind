@@ -19,6 +19,9 @@ or
 - If you want to reorganize all classes in place, and change the files run with the `--write` flag
   - `rustywind --write .`
 
+- For more options run help 
+  - `rustywind --help`
+
 ## What
 
 Inspired by [Ryan Heybourn's](https://github.com/heybourn) [headwind](https://github.com/heybourn/headwind)
@@ -68,7 +71,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 ### Phase 3 (More CLI)
 
 1.  Add `--allow-duplicates` to allow duplicate class name
-2.  Add `--dry-run` option to print out all changes to console
+2.  ~~Add `--dry-run` option to print out all changes to console~~ [c975d1](https://github.com/avencera/rustywind/commit/c975d1f041f95b45e15760ccded24dbf62bf1f6f)
 
 ### Phase 4 (Performance)
 
