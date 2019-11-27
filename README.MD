@@ -4,22 +4,31 @@
 
 Available via npm
 
-`npm install -g rustywind`
+`yarn global add rustywind`
 
 or
 
-`yarn global add rustywind`
+`npm install -g rustywind`
+
+or 
+
+Install from a github release:
+
+`curl -LSfs https://avencera.github.io/rustywind/install.sh | sh -s -- --git avencera/rustywind`
+
+or 
+
+Download a release directly from github: github.com/avencera/rustywind/releases
 
 ## Usage
 
-- Run rustywind with a path to get a list of files that will be changed:
-
+Run rustywind with a path to get a list of files that will be changed:
   - `rustywind .`
 
-- If you want to reorganize all classes in place, and change the files run with the `--write` flag
+If you want to reorganize all classes in place, and change the files run with the `--write` flag
   - `rustywind --write .`
 
-- For more options run help 
+For more options run help 
   - `rustywind --help`
 
 ## What
