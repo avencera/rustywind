@@ -18,7 +18,7 @@ Install from a github release:
 
 or 
 
-Download a release directly from github: github.com/avencera/rustywind/releases
+Download a release directly from github: [github.com/avencera/rustywind/releases](https://github.com/avencera/rustywind/releases)
 
 ## Usage
 
