@@ -44,13 +44,17 @@ fn main() {
             .expect("Invalid PATH provided"),
     );
 
-    if matches.is_present("write") {
-        println!("\nwrite mode is active the following files are being saved:")
-    } else {
-        println!(
-            "\nIf you want to change the classes please run again in write mode with the --write flag \n\n\
-            Classes were detected in the following files:"
-        )
+    match (matches.is_present("write"), matches.is_present("dry_run")) {
+        (_, true) => println!(
+            "\ndry run mode activated: here is a list of files that \
+             would be changed when you run with the --write flag"
+        ),
+
+        (true, false) => println!("\nwrite mode is active the following files are being saved:"),
+
+        _ => println!(
+            "\nprinting file contents to console, run with --write to save changes to files:"
+        ),
     }
 
     let walker = WalkBuilder::new(&file_or_dir)
@@ -67,9 +71,9 @@ fn main() {
                     let sorted_content = rustywind::sort_file_contents(contents);
 
                     match (matches.is_present("write"), matches.is_present("dry_run")) {
-                        (_, true) => print_file_contents(&sorted_content),
+                        (_, true) => print_file_name(file_path, file_or_dir),
                         (true, false) => write_to_file(file_path, file_or_dir, &sorted_content),
-                        _ => print_file_name(file_path, file_or_dir),
+                        _ => print_file_contents(&sorted_content),
                     }
                 }
             }
