@@ -12,7 +12,7 @@ fn main() {
         .about("\nOrganize all your tailwind classes")
         .usage(indoc!("
         Run rustywind with a path to get a list of files that will be changed
-              rustywind .
+              rustywind . --dry-run
 
             If you want to reorganize all classes in place, and change the files run with the `--write` flag
               rustywind --write .
