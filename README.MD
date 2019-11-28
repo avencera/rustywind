@@ -22,7 +22,7 @@ Download a release directly from github: [github.com/avencera/rustywind/releases
 
 ## Usage
 
-Run rustywind with a path to output updated file contents to the console:
+Run rustywind with a path to output updated file contents to the terminal:
   - `rustywind .`
 
 If you want to reorganize all classes in place, and change the files run with the `--write` flag
