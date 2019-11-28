@@ -60,7 +60,7 @@ fn main() {
     let walker = WalkBuilder::new(&file_or_dir)
         .build()
         .filter_map(Result::ok)
-        .filter_map(|f| if f.path().is_dir() { None } else { Some(f) });
+        .filter(|f| f.path().is_file());
 
     for file in walker {
         let file_path = file.path();
