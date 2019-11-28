@@ -22,11 +22,14 @@ Download a release directly from github: [github.com/avencera/rustywind/releases
 
 ## Usage
 
-Run rustywind with a path to get a list of files that will be changed:
+Run rustywind with a path to output updated file contents to the console:
   - `rustywind .`
 
 If you want to reorganize all classes in place, and change the files run with the `--write` flag
   - `rustywind --write .`
+
+Run rustywind with a path and the `--dry-run` to get a list of files that will be changed:
+-  `rustywind --dry-run .`
 
 For more options run help 
   - `rustywind --help`
