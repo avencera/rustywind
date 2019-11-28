@@ -30,7 +30,7 @@ fn sort_classes(class_string: &str) -> String {
 
 fn collect_classes(class_string: &str) -> Vec<String> {
     class_string
-        .split(" ")
+        .split(' ')
         .map(|string| string.to_string())
         .unique()
         .collect()
