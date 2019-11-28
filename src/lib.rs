@@ -1,9 +1,9 @@
-use regex::Regex;
-#[macro_use]
-extern crate lazy_static;
-use regex::Captures;
-mod sorter;
 use itertools::Itertools;
+use lazy_static::lazy_static;
+use regex::Captures;
+use regex::Regex;
+
+mod sorter;
 
 lazy_static! {
     static ref RE: Regex =
