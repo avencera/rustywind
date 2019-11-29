@@ -16,6 +16,9 @@ pub fn has_classes(file_contents: &str) -> bool {
 
 pub fn sort_file_contents(file_contents: String, allow_duplicates: bool) -> String {
     RE.replace_all(&file_contents, |caps: &Captures| {
+        // caps[1] is class' or className"
+        // caps[2] is the class list as a string
+        // caps[3] is the last ' or ""
         format!(
             "{}{}{}",
             &caps[1],
