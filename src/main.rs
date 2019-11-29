@@ -1,7 +1,8 @@
-use clap::{App, AppSettings, Arg, ArgMatches};
+use clap::{App, AppSettings, Arg};
 use ignore::WalkBuilder;
 use indoc::indoc;
 use rayon::prelude::*;
+use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -44,27 +45,26 @@ fn main() {
         )
         .get_matches();
 
-    let file_or_dir = Path::new(
-        matches
-            .value_of("file_or_dir")
-            .expect("Invalid PATH provided"),
-    );
+    let options = Options::new_from_matches(&matches);
+    let file_or_dir = &options.path;
 
-    match (matches.is_present("write"), matches.is_present("dry_run")) {
-        (_, true) => println!(
+    match &options.write_mode {
+        WriteMode::DryRun => println!(
             "\ndry run mode activated: here is a list of files that \
              would be changed when you run with the --write flag"
         ),
 
-        (true, false) => println!("\nwrite mode is active the following files are being saved:"),
+        WriteMode::ToFile => {
+            println!("\nwrite mode is active the following files are being saved:")
+        }
 
-        _ => println!(
+        WriteMode::ToConsole => println!(
             "\nprinting file contents to console, run with --write to save changes to files:"
         ),
     }
 
     let mut file_paths: Vec<PathBuf> = vec![];
-    WalkBuilder::new(&file_or_dir)
+    WalkBuilder::new(&options.path)
         .build()
         .filter_map(Result::ok)
         .filter(|f| f.path().is_file())
@@ -72,21 +72,21 @@ fn main() {
 
     file_paths
         .par_iter()
-        .for_each(|file_path| run_on_file_paths(&file_path, &matches, file_or_dir))
+        .for_each(|file_path| run_on_file_paths(&file_path, &options))
 }
 
-fn run_on_file_paths(file_path: &Path, matches: &ArgMatches, file_or_dir: &Path) {
+fn run_on_file_paths(file_path: &Path, options: &Options) {
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind::has_classes(&contents) {
                 let sorted_content =
                     // create and pass options struct if need to pass more options other than allow-duplicates
-                    rustywind::sort_file_contents(contents, matches.is_present("allow-duplicates"));
+                    rustywind::sort_file_contents(contents, options);
 
-                match (matches.is_present("write"), matches.is_present("dry_run")) {
-                    (_, true) => print_file_name(file_path, file_or_dir),
-                    (true, false) => write_to_file(file_path, file_or_dir, &sorted_content),
-                    _ => print_file_contents(&sorted_content),
+                match &options.write_mode {
+                    WriteMode::DryRun => print_file_name(file_path, options),
+                    WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
+                    WriteMode::ToConsole => print_file_contents(&sorted_content),
                 }
             }
         }
@@ -94,21 +94,21 @@ fn run_on_file_paths(file_path: &Path, matches: &ArgMatches, file_or_dir: &Path)
     }
 }
 
-fn write_to_file(file_path: &Path, file_or_dir: &Path, sorted_contents: &str) {
+fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
     match fs::write(file_path, sorted_contents.as_bytes()) {
-        Ok(_) => print_file_name(file_path, file_or_dir),
+        Ok(_) => print_file_name(file_path, options),
         Err(err) => {
             println!("\nError: {:?}", err);
             println!(
                 "Unable to to save file: {}",
-                get_file_name(file_path, file_or_dir)
+                get_file_name(file_path, &options.path)
             );
         }
     }
 }
 
-fn print_file_name(file_path: &Path, file_or_dir: &Path) {
-    println!("  * {}", get_file_name(file_path, file_or_dir))
+fn print_file_name(file_path: &Path, options: &Options) {
+    println!("  * {}", get_file_name(file_path, &options.path))
 }
 
 fn get_file_name(file_path: &Path, dir: &Path) -> String {

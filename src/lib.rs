@@ -1,20 +1,17 @@
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use regex::Captures;
-use regex::Regex;
 
-mod sorter;
+pub mod defaults;
+pub mod options;
 
-lazy_static! {
-    static ref RE: Regex =
-        Regex::new(r#"\b(class(?:Name)*\s*=\s*["'])([_a-zA-Z0-9\s\-:/]+)(["'])"#).unwrap();
-}
+use defaults::{RE, SORTER};
+use options::Options;
 
 pub fn has_classes(file_contents: &str) -> bool {
     RE.is_match(file_contents)
 }
 
-pub fn sort_file_contents(file_contents: String, allow_duplicates: bool) -> String {
+pub fn sort_file_contents(file_contents: String, options: &Options) -> String {
     RE.replace_all(&file_contents, |caps: &Captures| {
         // caps[1] is class' or className"
         // caps[2] is the class list as a string
@@ -22,24 +19,24 @@ pub fn sort_file_contents(file_contents: String, allow_duplicates: bool) -> Stri
         format!(
             "{}{}{}",
             &caps[1],
-            sort_classes(&caps[2], allow_duplicates),
+            sort_classes(&caps[2], options),
             &caps[3]
         )
     })
     .to_string()
 }
 
-fn sort_classes(class_string: &str, allow_duplicates: bool) -> String {
-    let classes_vec = collect_classes(class_string, allow_duplicates);
+fn sort_classes(class_string: &str, options: &Options) -> String {
+    let classes_vec = collect_classes(class_string, options);
     let sorted_classes_vec = sort_classes_vec(classes_vec);
 
     sorted_classes_vec.join(" ")
 }
 
-fn collect_classes(class_string: &str, allow_duplicates: bool) -> Vec<String> {
+fn collect_classes(class_string: &str, options: &Options) -> Vec<String> {
     let classes = class_string.split(' ').map(|string| string.to_string());
 
-    if allow_duplicates {
+    if options.allow_duplicates {
         classes.collect()
     } else {
         classes.unique().collect()
@@ -49,7 +46,7 @@ fn collect_classes(class_string: &str, allow_duplicates: bool) -> Vec<String> {
 fn sort_classes_vec(classes: Vec<String>) -> Vec<String> {
     let enumerated_classes = classes
         .into_iter()
-        .map(|class| (String::from(&class), sorter::SORTER.get(&class)));
+        .map(|class| (String::from(&class), SORTER.get(&class)));
 
     let mut tailwind_classes: Vec<(String, &usize)> = vec![];
     let mut custom_classes: Vec<String> = vec![];
