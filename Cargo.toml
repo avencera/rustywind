@@ -1,6 +1,6 @@
 [package]
 name = "rustywind"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Praveen Perera <praveen@avencera.com>"]
 edition = "2018"
 
