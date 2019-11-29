@@ -83,7 +83,11 @@ branches:
 
 notifications:
   - provider: Email
+    to:
+      - ppraveen25@gmail.com
     on_build_success: true
+    on_build_failure: true
+    on_build_status_changed: true
 
 # Building is done in the test phase, so we disable Appveyor's build phase.
 build: false
