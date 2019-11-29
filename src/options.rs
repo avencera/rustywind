@@ -27,21 +27,13 @@ pub struct Options {
     pub allow_duplicates: bool,
 }
 
-impl Options {
-    pub fn new_from_matches(matches: &ArgMatches) -> Options {
-        Options {
-            write_mode: get_write_mode_from_matches(matches),
-            regex: FinderRegex::DefaultRegex,
-            sorter: Sorter::DefaultSorter,
-            path: Path::new(
-                matches
-                    .value_of("file_or_dir")
-                    .expect("Invalid PATH provided"),
-            )
-            .to_owned(),
-            allow_duplicates: matches.is_present("allow-duplicates"),
-        }
-    }
+fn get_path_from_matches(matches: &ArgMatches) -> PathBuf {
+    Path::new(
+        matches
+            .value_of("file_or_dir")
+            .expect("Invalid PATH provided"),
+    )
+    .to_owned()
 }
 
 fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
@@ -49,5 +41,17 @@ fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
         (_, true) => WriteMode::DryRun,
         (true, false) => WriteMode::ToFile,
         _ => WriteMode::ToConsole,
+    }
+}
+
+impl Options {
+    pub fn new_from_matches(matches: &ArgMatches) -> Options {
+        Options {
+            write_mode: get_write_mode_from_matches(matches),
+            regex: FinderRegex::DefaultRegex,
+            sorter: Sorter::DefaultSorter,
+            path: get_path_from_matches(matches),
+            allow_duplicates: matches.is_present("allow-duplicates"),
+        }
     }
 }

@@ -46,7 +46,6 @@ fn main() {
         .get_matches();
 
     let options = Options::new_from_matches(&matches);
-    let file_or_dir = &options.path;
 
     match &options.write_mode {
         WriteMode::DryRun => println!(
