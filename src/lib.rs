@@ -14,26 +14,33 @@ pub fn has_classes(file_contents: &str) -> bool {
     RE.is_match(file_contents)
 }
 
-pub fn sort_file_contents(file_contents: String) -> String {
+pub fn sort_file_contents(file_contents: String, allow_duplicates: bool) -> String {
     RE.replace_all(&file_contents, |caps: &Captures| {
-        format!("{}{}{}", &caps[1], sort_classes(&caps[2]), &caps[3])
+        format!(
+            "{}{}{}",
+            &caps[1],
+            sort_classes(&caps[2], allow_duplicates),
+            &caps[3]
+        )
     })
     .to_string()
 }
 
-fn sort_classes(class_string: &str) -> String {
-    let classes_vec = collect_classes(class_string);
+fn sort_classes(class_string: &str, allow_duplicates: bool) -> String {
+    let classes_vec = collect_classes(class_string, allow_duplicates);
     let sorted_classes_vec = sort_classes_vec(classes_vec);
 
     sorted_classes_vec.join(" ")
 }
 
-fn collect_classes(class_string: &str) -> Vec<String> {
-    class_string
-        .split(' ')
-        .map(|string| string.to_string())
-        .unique()
-        .collect()
+fn collect_classes(class_string: &str, allow_duplicates: bool) -> Vec<String> {
+    let classes = class_string.split(' ').map(|string| string.to_string());
+
+    if allow_duplicates {
+        classes.collect()
+    } else {
+        classes.unique().collect()
+    }
 }
 
 fn sort_classes_vec(classes: Vec<String>) -> Vec<String> {
