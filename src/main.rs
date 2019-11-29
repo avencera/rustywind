@@ -78,9 +78,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind::has_classes(&contents) {
-                let sorted_content =
-                    // create and pass options struct if need to pass more options other than allow-duplicates
-                    rustywind::sort_file_contents(contents, options);
+                let sorted_content = rustywind::sort_file_contents(contents, options);
 
                 match &options.write_mode {
                     WriteMode::DryRun => print_file_name(file_path, options),
