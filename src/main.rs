@@ -1,8 +1,9 @@
-use clap::{App, AppSettings, Arg};
+use clap::{App, AppSettings, Arg, ArgMatches};
 use ignore::WalkBuilder;
 use indoc::indoc;
+use rayon::prelude::*;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn main() {
     let matches = App::new("Rusty Wind")
@@ -57,28 +58,32 @@ fn main() {
         ),
     }
 
-    let walker = WalkBuilder::new(&file_or_dir)
+    let mut file_paths: Vec<PathBuf> = vec![];
+    WalkBuilder::new(&file_or_dir)
         .build()
         .filter_map(Result::ok)
-        .filter(|f| f.path().is_file());
+        .filter(|f| f.path().is_file())
+        .for_each(|file| file_paths.push(file.path().to_owned()));
 
-    for file in walker {
-        let file_path = file.path();
+    file_paths
+        .par_iter()
+        .for_each(|file_path| run_on_file_paths(&file_path, &matches, file_or_dir))
+}
 
-        match fs::read_to_string(file_path) {
-            Ok(contents) => {
-                if rustywind::has_classes(&contents) {
-                    let sorted_content = rustywind::sort_file_contents(contents);
+fn run_on_file_paths(file_path: &Path, matches: &ArgMatches, file_or_dir: &Path) {
+    match fs::read_to_string(file_path) {
+        Ok(contents) => {
+            if rustywind::has_classes(&contents) {
+                let sorted_content = rustywind::sort_file_contents(contents);
 
-                    match (matches.is_present("write"), matches.is_present("dry_run")) {
-                        (_, true) => print_file_name(file_path, file_or_dir),
-                        (true, false) => write_to_file(file_path, file_or_dir, &sorted_content),
-                        _ => print_file_contents(&sorted_content),
-                    }
+                match (matches.is_present("write"), matches.is_present("dry_run")) {
+                    (_, true) => print_file_name(file_path, file_or_dir),
+                    (true, false) => write_to_file(file_path, file_or_dir, &sorted_content),
+                    _ => print_file_contents(&sorted_content),
                 }
             }
-            Err(_error) => (),
         }
+        Err(_error) => (),
     }
 }
 
