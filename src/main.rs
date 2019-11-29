@@ -37,6 +37,11 @@ fn main() {
                 .long("dry-run")
                 .help("Prints out the new file content with the sorted classes to the terminal"),
         )
+        .arg(
+            Arg::with_name("allow-duplicates")
+                .long("allow-duplicates")
+                .help("When set, rustywind will not delete duplicated classes"),
+        )
         .get_matches();
 
     let file_or_dir = Path::new(
@@ -74,7 +79,9 @@ fn run_on_file_paths(file_path: &Path, matches: &ArgMatches, file_or_dir: &Path)
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind::has_classes(&contents) {
-                let sorted_content = rustywind::sort_file_contents(contents);
+                let sorted_content =
+                    // create and pass options struct if need to pass more options other than allow-duplicates
+                    rustywind::sort_file_contents(contents, matches.is_present("allow-duplicates"));
 
                 match (matches.is_present("write"), matches.is_present("dry_run")) {
                     (_, true) => print_file_name(file_path, file_or_dir),
