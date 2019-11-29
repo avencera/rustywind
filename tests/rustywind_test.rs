@@ -1,5 +1,18 @@
 use pretty_assertions::assert_eq;
 use rustywind;
+use rustywind::options::Options;
+use rustywind::options::{FinderRegex, Sorter, WriteMode};
+use std::path::Path;
+
+fn default_options_for_test() -> Options {
+    Options {
+        write_mode: WriteMode::ToConsole,
+        regex: FinderRegex::DefaultRegex,
+        sorter: Sorter::DefaultSorter,
+        path: Path::new(".").to_owned(),
+        allow_duplicates: false,
+    }
+}
 
 #[test]
 fn test_sort_file_contents() {
@@ -20,7 +33,7 @@ fn test_sort_file_contents() {
     "#.to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, false),
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -44,7 +57,7 @@ fn test_sort_file_contents_with_duplicates() {
     "#.to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, false),
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -68,7 +81,13 @@ fn test_does_not_remove_duplicates_if_bool_set() {
     "#.to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, true),
+        rustywind::sort_file_contents(
+            file_contents,
+            &Options {
+                allow_duplicates: true,
+                ..default_options_for_test()
+            }
+        ),
         expected_outcome
     )
 }
@@ -86,7 +105,7 @@ fn test_returns_files_without_class_strings_as_is() {
     .to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, false),
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }

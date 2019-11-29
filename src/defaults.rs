@@ -1,5 +1,11 @@
 use lazy_static::lazy_static;
+use regex::Regex;
 use std::collections::HashMap;
+
+lazy_static! {
+    pub static ref RE: Regex =
+        Regex::new(r#"\b(class(?:Name)*\s*=\s*["'])([_a-zA-Z0-9\s\-:/]+)(["'])"#).unwrap();
+}
 
 lazy_static! {
     pub static ref SORTER: HashMap<String, usize> = vec![
