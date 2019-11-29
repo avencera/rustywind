@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn main() {
-    let matches = App::new("Rusty Wind")
+    let matches = App::new("RustyWind")
         .version(clap::crate_version!())
         .setting(AppSettings::ArgRequiredElseHelp)
         .author("Praveen Perera <praveen@avencera.com>")
