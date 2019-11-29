@@ -14,18 +14,18 @@ environment:
   # don't need
   matrix:
     # MinGW
-    - TARGET: i686-pc-windows-gnu
-    - TARGET: x86_64-pc-windows-gnu
+    # - TARGET: i686-pc-windows-gnu
+    # - TARGET: x86_64-pc-windows-gnu
 
     # MSVC
     - TARGET: i686-pc-windows-msvc
     - TARGET: x86_64-pc-windows-msvc
 
     # Testing other channels
-    - TARGET: x86_64-pc-windows-gnu
-      RUST_VERSION: nightly
-    - TARGET: x86_64-pc-windows-msvc
-      RUST_VERSION: nightly
+    # - TARGET: x86_64-pc-windows-gnu
+    #   RUST_VERSION: nightly
+    # - TARGET: x86_64-pc-windows-msvc
+    #   RUST_VERSION: nightly
 
 install:
   - ps: >-
@@ -64,13 +64,9 @@ deploy:
   # - Encrypt it. Go to https://ci.appveyor.com/tools/encrypt
   # - Paste the output down here
   auth_token:
-    secure: GY1WnK6A9ds4wib9293iPLSdGuJ5BNwqMQGn9YGNys2z0Jdl1KLcqK/4zJIQ1iYR
+    secure: RdyLVCKEi3VLNgQhEO9+ACiC5UCCfQK8L+wok6c3b6Qke8+/3y/4184yaTvEjBU0
   description: ""
   on:
-    # TODO Here you can pick which targets will generate binary releases
-    # In this example, there are some targets that are tested using the stable
-    # and nightly channels. This condition makes sure there is only one release
-    # for such targets and that's generated using the stable channel
     RUST_VERSION: stable
     appveyor_repo_tag: true
   provider: GitHub
@@ -87,7 +83,7 @@ branches:
 
 notifications:
   - provider: Email
-    on_build_success: false
+    on_build_success: true
 
 # Building is done in the test phase, so we disable Appveyor's build phase.
 build: false
