@@ -85,9 +85,9 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 1.  Add `--allow-duplicates` to allow duplicate class name
 2.  ~~Add `--dry-run` option to print out all changes to console~~ [c975d1](https://github.com/avencera/rustywind/commit/c975d1f041f95b45e15760ccded24dbf62bf1f6f)
 
-### Phase 4 (Performance)
+### ✅~~Phase 4 (Performance)~~
 
-1. Search and change files in parallel (parallel map?)
+1. ~~Search and change files in parallel (parallel map?)~~ [#9](https://github.com/avencera/rustywind/pull/9)
 
 ### Later Possibilities...
 
