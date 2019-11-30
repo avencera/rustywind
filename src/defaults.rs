@@ -7,6 +7,13 @@ lazy_static! {
 }
 
 lazy_static! {
+    pub static ref MEDIA_QUERIES: Regex = Regex::new(
+        r#"(@media\([^)]*\))\{(\.[^{\{]*\{[a-zA-Z\d\-:.\\;]*}\.[^{\{]*\{[a-zA-Z\d\-:.\\;]*)}}"#
+    )
+    .unwrap();
+}
+
+lazy_static! {
     pub static ref RE: Regex =
         Regex::new(r#"\b(class(?:Name)*\s*=\s*["'])([_a-zA-Z0-9\s\-:/]+)(["'])"#).unwrap();
 }
