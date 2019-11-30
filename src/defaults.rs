@@ -3,6 +3,10 @@ use regex::Regex;
 use std::collections::HashMap;
 
 lazy_static! {
+    pub static ref WHITESPACE: Regex = Regex::new(r#"\s|\t|\n"#).unwrap();
+}
+
+lazy_static! {
     pub static ref CSS: Regex = Regex::new(r#"(\.[A-Za-z0-9-_:\\]*)\s*\{([^\}]*)\}"#).unwrap();
 }
 
