@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use regex::Captures;
 
+pub mod css;
 pub mod defaults;
 pub mod options;
 

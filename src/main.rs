@@ -1,6 +1,7 @@
 use clap::{App, AppSettings, Arg};
 use indoc::indoc;
 use rayon::prelude::*;
+use rustywind::defaults::CSS;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::Path;
@@ -43,6 +44,13 @@ fn main() {
                 .help("When set, rustywind will not delete duplicated classes"),
         )
         .get_matches();
+
+    let css_string = rustywind::css::CSS.to_string().replace("\n", "");
+
+    for caps in CSS.captures_iter(&css_string) {
+        println!("Class Name: {:?}", &caps[1]);
+        println!("CSS Properties: {:?}", &caps[2]);
+    }
 
     let options = Options::new_from_matches(&matches);
 
