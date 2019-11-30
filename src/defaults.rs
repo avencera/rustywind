@@ -3,7 +3,7 @@ use regex::Regex;
 use std::collections::HashMap;
 
 lazy_static! {
-    pub static ref CSS: Regex = Regex::new(r#"\s*(\.[A-Za-z0-9-_]*)\s*\{"#).unwrap();
+    pub static ref CSS: Regex = Regex::new(r#"\s*(\.[A-Za-z0-9-_]*)\s*\{([^\}]*)\}"#).unwrap();
 }
 
 lazy_static! {
