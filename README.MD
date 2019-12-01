@@ -1,4 +1,4 @@
-# RustyWind [![Build Status Travis](https://travis-ci.org/avencera/rustywind.svg?branch=master)](https://travis-ci.org/avencera/rustywind) [![Build Status Appveyor](https://ci.appveyor.com/api/projects/status/at89lbs7n35wqy96?svg=true)](https://ci.appveyor.com/project/praveenperera/rustywind)
+# RustyWind [![Build Status Travis](https://travis-ci.org/avencera/rustywind.svg?branch=master)](https://travis-ci.org/avencera/rustywind) [![Build Status Appveyor](https://ci.appveyor.com/api/projects/status/at89lbs7n35wqy96?svg=true)](https://ci.appveyor.com/project/praveenperera/rustywind) [![npm version](https://badge.fury.io/js/rustywind.svg)](https://badge.fury.io/js/rustywind)
 
 
 ## Install
