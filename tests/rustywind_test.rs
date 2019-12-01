@@ -9,7 +9,8 @@ fn default_options_for_test() -> Options {
         write_mode: WriteMode::ToConsole,
         regex: FinderRegex::DefaultRegex,
         sorter: Sorter::DefaultSorter,
-        path: Path::new(".").to_owned(),
+        starting_path: Path::new(".").to_owned(),
+        search_paths: vec![Path::new(".").to_owned()],
         allow_duplicates: false,
     }
 }

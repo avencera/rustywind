@@ -1,10 +1,9 @@
 use clap::{App, AppSettings, Arg};
-use ignore::WalkBuilder;
 use indoc::indoc;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 fn main() {
     let matches = App::new("RustyWind")
@@ -62,16 +61,10 @@ fn main() {
         ),
     }
 
-    let mut file_paths: Vec<PathBuf> = vec![];
-    WalkBuilder::new(&options.path)
-        .build()
-        .filter_map(Result::ok)
-        .filter(|f| f.path().is_file())
-        .for_each(|file| file_paths.push(file.path().to_owned()));
-
-    file_paths
+    &options
+        .search_paths
         .par_iter()
-        .for_each(|file_path| run_on_file_paths(&file_path, &options))
+        .for_each(|file_path| run_on_file_paths(&file_path, &options));
 }
 
 fn run_on_file_paths(file_path: &Path, options: &Options) {
@@ -98,14 +91,14 @@ fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
             println!("\nError: {:?}", err);
             println!(
                 "Unable to to save file: {}",
-                get_file_name(file_path, &options.path)
+                get_file_name(file_path, &options.starting_path)
             );
         }
     }
 }
 
 fn print_file_name(file_path: &Path, options: &Options) {
-    println!("  * {}", get_file_name(file_path, &options.path))
+    println!("  * {}", get_file_name(file_path, &options.starting_path))
 }
 
 fn get_file_name(file_path: &Path, dir: &Path) -> String {

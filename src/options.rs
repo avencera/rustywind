@@ -1,4 +1,5 @@
 use clap::ArgMatches;
+use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -23,11 +24,27 @@ pub struct Options {
     pub write_mode: WriteMode,
     pub regex: FinderRegex,
     pub sorter: Sorter,
-    pub path: PathBuf,
+    pub starting_path: PathBuf,
     pub allow_duplicates: bool,
+    pub search_paths: Vec<PathBuf>,
 }
 
-fn get_path_from_matches(matches: &ArgMatches) -> PathBuf {
+impl Options {
+    pub fn new_from_matches(matches: &ArgMatches) -> Options {
+        let starting_path = get_starting_path_from_matches(matches);
+
+        Options {
+            write_mode: get_write_mode_from_matches(matches),
+            regex: FinderRegex::DefaultRegex,
+            sorter: Sorter::DefaultSorter,
+            starting_path: starting_path.to_owned(),
+            allow_duplicates: matches.is_present("allow-duplicates"),
+            search_paths: get_search_paths_from_starting_path(&starting_path),
+        }
+    }
+}
+
+fn get_starting_path_from_matches(matches: &ArgMatches) -> PathBuf {
     Path::new(
         matches
             .value_of("file_or_dir")
@@ -44,14 +61,13 @@ fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
     }
 }
 
-impl Options {
-    pub fn new_from_matches(matches: &ArgMatches) -> Options {
-        Options {
-            write_mode: get_write_mode_from_matches(matches),
-            regex: FinderRegex::DefaultRegex,
-            sorter: Sorter::DefaultSorter,
-            path: get_path_from_matches(matches),
-            allow_duplicates: matches.is_present("allow-duplicates"),
-        }
-    }
+fn get_search_paths_from_starting_path(starting_path: &Path) -> Vec<PathBuf> {
+    let mut file_paths: Vec<PathBuf> = vec![];
+    WalkBuilder::new(starting_path)
+        .build()
+        .filter_map(Result::ok)
+        .filter(|f| f.path().is_file())
+        .for_each(|file| file_paths.push(file.path().to_owned()));
+
+    file_paths
 }
