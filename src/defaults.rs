@@ -3,6 +3,12 @@ use regex::Regex;
 use std::collections::HashMap;
 
 lazy_static! {
+    pub static ref CSS_WITH_MEDIA: Regex =
+        Regex::new(r#"(@media\([^)]*\)\{([^}]*)\}\})|(\.[A-Za-z0-9-_:\\]*)\s*\{([^\}]*)\}"#)
+            .unwrap();
+}
+
+lazy_static! {
     pub static ref WHITESPACE: Regex = Regex::new(r#"\s|\t|\n"#).unwrap();
 }
 

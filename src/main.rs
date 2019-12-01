@@ -1,7 +1,7 @@
 use clap::{App, AppSettings, Arg};
 use indoc::indoc;
 use rayon::prelude::*;
-use rustywind::defaults::{CSS, WHITESPACE};
+use rustywind::defaults::{CSS_WITH_MEDIA, WHITESPACE};
 use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::Path;
@@ -49,8 +49,12 @@ fn main() {
 
     let mut css_classnames: Vec<(String, String)> = vec![];
 
-    for caps in CSS.captures_iter(&css_string) {
-        css_classnames.push((caps[1].to_string(), caps[2].to_string()))
+    for caps in CSS_WITH_MEDIA.captures_iter(&css_string) {
+        println!("------------------------------------------");
+        println!("{:?}", &caps);
+        println!("------------------------------------------");
+
+        // css_classnames.push((caps[1].to_string(), caps[2].to_string()))
     }
 
     println!("{:?}", css_classnames.len());
