@@ -81,14 +81,17 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 2. ~~Use CLI parser to choose directory or file to run on~~ [#8](https://github.com/avencera/rustywind/pull/8)
 3. ~~Add `--write` option which will change the files, change default to printing results to the terminal~~ [#8](https://github.com/avencera/rustywind/pull/8)
 
-### Phase 3 (More CLI)
-
-1.  Add `--allow-duplicates` to allow duplicate class name
+### ✅ ~~Phase 3 (More CLI)~~
+1.  ~~Add `--allow-duplicates` to allow duplicate class name~~ [#10](https://github.com/avencera/rustywind/pull/10)
 2.  ~~Add `--dry-run` option to print out all changes to console~~ [c975d1](https://github.com/avencera/rustywind/commit/c975d1f041f95b45e15760ccded24dbf62bf1f6f)
 
 ### ✅~~Phase 4 (Performance)~~
 
 1. ~~Search and change files in parallel (parallel map?)~~ [#9](https://github.com/avencera/rustywind/pull/9)
+
+### Phase 5 (Match Headwind Features)
+1. Add custom sorter via CLI args `--customer-sorter=...`
+2. Add custom regex via CLI args `--custom-regex=...`
 
 ### Later Possibilities...
 
