@@ -30,11 +30,13 @@ fn main() {
         .arg(
             Arg::with_name("write")
                 .long("write")
+                .conflicts_with("dry-run")
                 .help("Changes the files in place with the reorganized classes"),
         )
         .arg(
             Arg::with_name("dry_run")
                 .long("dry-run")
+                .conflicts_with("write")
                 .help("Prints out the new file content with the sorted classes to the terminal"),
         )
         .arg(
