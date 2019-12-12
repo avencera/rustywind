@@ -342,7 +342,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind"
-version = "0.6.1"
+version = "0.6.4"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ignore 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
