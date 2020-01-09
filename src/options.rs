@@ -62,12 +62,10 @@ fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
 }
 
 fn get_search_paths_from_starting_path(starting_path: &Path) -> Vec<PathBuf> {
-    let mut file_paths: Vec<PathBuf> = vec![];
     WalkBuilder::new(starting_path)
         .build()
         .filter_map(Result::ok)
         .filter(|f| f.path().is_file())
-        .for_each(|file| file_paths.push(file.path().to_owned()));
-
-    file_paths
+        .map(|file| file.path().to_owned())
+        .collect()
 }
