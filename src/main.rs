@@ -44,11 +44,21 @@ fn main() {
                 .long("allow-duplicates")
                 .help("When set, rustywind will not delete duplicated classes"),
         )
+        .arg(
+            Arg::with_name("generate-sorter")
+                .long("generate-sorter")
+                .conflicts_with_all(&["write", "dry-run", "allow-duplicates"])
+                .help("Generate the sorter array from the tailwind.css config file")
+        )
         .get_matches();
 
     let options = Options::new_from_matches(&matches);
 
     match &options.write_mode {
+        WriteMode::GenerateSorter => {
+            println!("\ngenerating sorting array from current tailwind config file")
+        }
+
         WriteMode::DryRun => println!(
             "\ndry run mode activated: here is a list of files that \
              would be changed when you run with the --write flag"
@@ -76,6 +86,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                 let sorted_content = rustywind::sort_file_contents(contents, options);
 
                 match &options.write_mode {
+                    WriteMode::GenerateSorter => generate_sorter(file_path, options),
                     WriteMode::DryRun => print_file_name(file_path, options),
                     WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
                     WriteMode::ToConsole => print_file_contents(&sorted_content),
@@ -113,4 +124,16 @@ fn get_file_name(file_path: &Path, dir: &Path) -> String {
 
 fn print_file_contents(file_contents: &str) {
     println!("\n\n{}\n\n", file_contents)
+}
+
+fn generate_sorter(file_path: &Path, options: &Options) {
+    let tailwind_config_path = options
+        .search_paths
+        .iter()
+        .find(|p| p.ends_with("tailwind.config.js"));
+
+    match tailwind_config_path {
+        None => println!("Unable to find tailwind config file in: {:#?}", file_path),
+        Some(path) => println!("Found!: {:?}", path),
+    }
 }
