@@ -2,7 +2,7 @@ use clap::ArgMatches;
 use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum WriteMode {
     ToFile,
     DryRun,

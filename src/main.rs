@@ -6,6 +6,7 @@ use rustywind::defaults::CSS;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 fn main() {
     let matches = App::new("RustyWind")
@@ -57,9 +58,7 @@ fn main() {
     let options = Options::new_from_matches(&matches);
 
     match &options.write_mode {
-        WriteMode::GenerateSorter => {
-            println!("\ngenerating sorting array from current tailwind config file")
-        }
+        WriteMode::GenerateSorter => (),
 
         WriteMode::DryRun => println!(
             "\ndry run mode activated: here is a list of files that \
@@ -75,6 +74,11 @@ fn main() {
         ),
     }
 
+    // HACK - refactor into own command
+    if options.write_mode == WriteMode::GenerateSorter {
+        generate_sorter(&options)
+    }
+
     options
         .search_paths
         .par_iter()
@@ -88,7 +92,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                 let sorted_content = rustywind::sort_file_contents(contents, options);
 
                 match &options.write_mode {
-                    WriteMode::GenerateSorter => generate_sorter(file_path, options),
+                    WriteMode::GenerateSorter => (),
                     WriteMode::DryRun => print_file_name(file_path, options),
                     WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
                     WriteMode::ToConsole => print_file_contents(&sorted_content),
@@ -128,27 +132,41 @@ fn print_file_contents(file_contents: &str) {
     println!("\n\n{}\n\n", file_contents)
 }
 
-fn generate_sorter(file_path: &Path, options: &Options) {
+fn generate_sorter(options: &Options) {
     let tailwind_config_path = options
         .search_paths
         .iter()
         .find(|p| p.ends_with("tailwind.config.js"));
 
     match tailwind_config_path {
-        None => println!("Unable to find tailwind config file in: {:#?}", file_path),
-        Some(_path) => match fs::read_to_string("./tests/tailwind_example/tailwind.css") {
-            Ok(contents) => {
+        None => println!(
+            "Unable to find tailwind config file in: {:#?}",
+            &options.starting_path
+        ),
+        Some(path) => match Command::new("npx")
+            .args(&[
+                "tailwindcss",
+                "build",
+                "/Users/praveen/code/rustywind/rustywind-cli/src/data/input.css",
+                "-c",
+                path.to_str().unwrap(),
+            ])
+            .output()
+        {
+            Ok(output) => {
+                let contents = String::from_utf8_lossy(&output.stdout);
+
                 let classes: Vec<String> = CSS
                     .captures_iter(&contents)
-                    .map(|caps| format!("{}", &caps[1]))
+                    .map(|caps| caps[1].to_string())
                     .unique()
                     .map(|class| class.replace(".", ""))
                     .map(|class| class.replace("\\", ""))
                     .collect();
 
-                println!("{:?}", classes);
+                println!("{:?}", classes)
             }
-            Err(_error) => (),
+            Err(error) => println!("ERROR: {}", error),
         },
     }
 }
