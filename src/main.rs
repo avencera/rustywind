@@ -1,6 +1,8 @@
 use clap::{App, AppSettings, Arg};
 use indoc::indoc;
+use itertools::Itertools;
 use rayon::prelude::*;
+use rustywind::defaults::CSS;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::Path;
@@ -134,6 +136,19 @@ fn generate_sorter(file_path: &Path, options: &Options) {
 
     match tailwind_config_path {
         None => println!("Unable to find tailwind config file in: {:#?}", file_path),
-        Some(path) => println!("Found!: {:?}", path),
+        Some(_path) => match fs::read_to_string("./tests/tailwind_example/tailwind.css") {
+            Ok(contents) => {
+                let classes: Vec<String> = CSS
+                    .captures_iter(&contents)
+                    .map(|caps| format!("{}", &caps[1]))
+                    .unique()
+                    .map(|class| class.replace(".", ""))
+                    .map(|class| class.replace("\\", ""))
+                    .collect();
+
+                println!("{:?}", classes);
+            }
+            Err(_error) => (),
+        },
     }
 }
