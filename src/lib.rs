@@ -87,10 +87,10 @@ fn test_sort_classes_vec() {
             .collect()
         ),
         vec![
-            "flex",
-            "justify-end",
             "inline-block",
             "inline",
+            "flex",
+            "justify-end",
             "random-class",
         ]
     )

@@ -19,7 +19,7 @@ fn default_options_for_test() -> Options {
 fn test_sort_file_contents() {
     let file_contents = r#"
     <div>
-        <div class='absolute relative flex inline-block inline random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
@@ -27,7 +27,7 @@ fn test_sort_file_contents() {
 
     let expected_outcome = r#"
     <div>
-        <div class='absolute relative flex inline-block inline random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
@@ -43,7 +43,7 @@ fn test_sort_file_contents() {
 fn test_sort_file_contents_with_duplicates() {
     let file_contents = r#"
     <div>
-        <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
@@ -51,7 +51,7 @@ fn test_sort_file_contents_with_duplicates() {
 
     let expected_outcome = r#"
     <div>
-        <div class='absolute relative flex inline-block inline random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
@@ -67,7 +67,7 @@ fn test_sort_file_contents_with_duplicates() {
 fn test_does_not_remove_duplicates_if_bool_set() {
     let file_contents = r#"
     <div>
-        <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
@@ -75,7 +75,7 @@ fn test_does_not_remove_duplicates_if_bool_set() {
 
     let expected_outcome = r#"
     <div>
-        <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
