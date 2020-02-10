@@ -145,10 +145,7 @@ fn generate_sorter(options: &Options) {
         ),
         Some(path) => match Command::new("npx")
             .args(&[
-                "tailwindcss",
-                "build",
-                "/Users/praveen/code/rustywind/rustywind-cli/src/data/input.css",
-                "-c",
+                "https://gist.github.com/praveenperera/702e8852089733c024202bf6eb5c9126",
                 path.to_str().unwrap(),
             ])
             .output()
