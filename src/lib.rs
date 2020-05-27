@@ -27,18 +27,11 @@ pub fn sort_file_contents(file_contents: String, options: &Options) -> String {
 }
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
-    let classes_vec = collect_classes(class_string);
-    let sorted_classes_vec = sort_classes_vec(classes_vec);
-
     if options.allow_duplicates {
-        sorted_classes_vec.join(" ")
+        sort_classes_vec(class_string.split(' ')).join(" ")
     } else {
-        sorted_classes_vec.into_iter().unique().join(" ")
+        sort_classes_vec(class_string.split(' ').unique()).join(" ")
     }
-}
-
-fn collect_classes<'a>(class_string: &'a str) -> impl Iterator<Item = &'a str> + 'a {
-    class_string.split(' ')
 }
 
 fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<String> {
