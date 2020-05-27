@@ -1,6 +1,6 @@
 [package]
 name = "rustywind"
-version = "0.6.4"
+version = "0.6.5"
 authors = ["Praveen Perera <praveen@avencera.com>"]
 edition = "2018"
 
@@ -10,10 +10,10 @@ edition = "2018"
 ignore = "0.4"
 regex = "1"
 lazy_static = "1.4.0"
-itertools = "0.8"
+itertools = "0.9"
 indoc = "0.3"
 clap = "2.33"
-rayon = "1.2"
+rayon = "1.3"
 
 
 [dev-dependencies]
