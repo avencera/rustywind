@@ -1,6 +1,13 @@
 use clap::ArgMatches;
+use crossbeam_channel as channel;
 use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
+
+#[derive(Debug)]
+enum Message {
+    FoundPath(Result<ignore::DirEntry, ignore::Error>),
+    DoneScanning,
+}
 
 #[derive(Debug)]
 pub enum WriteMode {
@@ -62,9 +69,31 @@ fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
 }
 
 fn get_search_paths_from_starting_path(starting_path: &Path) -> Vec<PathBuf> {
-    WalkBuilder::new(starting_path)
-        .build()
-        .filter_map(Result::ok)
+    let (tx, rx) = channel::unbounded();
+    let mut paths: Vec<ignore::DirEntry> = vec![];
+
+    WalkBuilder::new(starting_path).build_parallel().run(|| {
+        let tx = tx.clone();
+        Box::new(move |result| {
+            use ignore::WalkState::*;
+
+            tx.send(Message::FoundPath(result)).unwrap();
+            Continue
+        })
+    });
+
+    tx.send(Message::DoneScanning).unwrap();
+
+    loop {
+        match rx.recv() {
+            Ok(Message::DoneScanning) => break,
+            Ok(Message::FoundPath(Ok(path))) => paths.push(path),
+            _ => (),
+        }
+    }
+
+    paths
+        .iter()
         .filter(|f| f.path().is_file())
         .map(|file| file.path().to_owned())
         .collect()
