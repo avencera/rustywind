@@ -27,26 +27,22 @@ pub fn sort_file_contents(file_contents: String, options: &Options) -> String {
 }
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
-    let classes_vec = collect_classes(class_string, options);
+    let classes_vec = collect_classes(class_string);
     let sorted_classes_vec = sort_classes_vec(classes_vec);
 
-    sorted_classes_vec.join(" ")
-}
-
-fn collect_classes(class_string: &str, options: &Options) -> Vec<String> {
-    let classes = class_string.split(' ').map(|string| string.to_string());
-
     if options.allow_duplicates {
-        classes.collect()
+        sorted_classes_vec.join(" ")
     } else {
-        classes.unique().collect()
+        sorted_classes_vec.into_iter().unique().join(" ")
     }
 }
 
-fn sort_classes_vec(classes: Vec<String>) -> Vec<String> {
-    let enumerated_classes = classes
-        .into_iter()
-        .map(|class| (String::from(&class), SORTER.get(&class)));
+fn collect_classes<'a>(class_string: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+    class_string.split(' ')
+}
+
+fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<String> {
+    let enumerated_classes = classes.map(|class| ((class.to_string()), SORTER.get(class)));
 
     let mut tailwind_classes: Vec<(String, &usize)> = vec![];
     let mut custom_classes: Vec<String> = vec![];
@@ -83,8 +79,6 @@ fn test_sort_classes_vec() {
                 "flex"
             ]
             .into_iter()
-            .map(|s| s.to_string())
-            .collect()
         ),
         vec![
             "flex",
