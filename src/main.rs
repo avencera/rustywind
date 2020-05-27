@@ -90,8 +90,8 @@ fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
     match fs::write(file_path, sorted_contents.as_bytes()) {
         Ok(_) => print_file_name(file_path, options),
         Err(err) => {
-            println!("\nError: {:?}", err);
-            println!(
+            eprintln!("\nError: {:?}", err);
+            eprintln!(
                 "Unable to to save file: {}",
                 get_file_name(file_path, &options.starting_path)
             );
