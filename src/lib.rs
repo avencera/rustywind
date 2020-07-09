@@ -13,15 +13,10 @@ pub fn has_classes(file_contents: &str) -> bool {
 
 pub fn sort_file_contents(file_contents: String, options: &Options) -> String {
     RE.replace_all(&file_contents, |caps: &Captures| {
-        // caps[1] is class' or className"
-        // caps[2] is the class list as a string
-        // caps[3] is the last ' or ""
-        format!(
-            "{}{}{}",
-            &caps[1],
-            sort_classes(&caps[2], options),
-            &caps[3]
-        )
+        let classes = &caps[1];
+        let sorted_classes = &sort_classes(classes, options);
+
+        format!("{}", &caps[0].replace(classes, sorted_classes))
     })
     .to_string()
 }
