@@ -1,0 +1,29 @@
+{
+  "name": "rustywind",
+  "version": "0.6.6",
+  "description": "CLI for organizing Tailwind CSS classes",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "install": "node ./lib/postinstall.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
+  "keywords": [
+    "tailwind",
+    "tailwind css",
+    "headwind",
+    "headwind cli"
+  ],
+  "postinstall": "node ./lib/postinstall.js",
+  "bin": "./bin/rustywind",
+  "author": "Praveen Perera",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/avencera/rustywind/issues"
+  },
+  "homepage": "https://github.com/avencera/rustywind#readme",
+  "dependencies": {}
+}
