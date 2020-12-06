@@ -1,6 +1,6 @@
 {
   "name": "rustywind",
-  "version": "0.6.7",
+  "version": "0.7.0",
   "description": "CLI for organizing Tailwind CSS classes",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -18,7 +18,9 @@
     "headwind cli"
   ],
   "postinstall": "node ./lib/postinstall.js",
-  "bin": "./bin/rustywind",
+  "bin": {
+    "rustywind": "bin/rustywind"
+  },
   "author": "Praveen Perera",
   "license": "MIT",
   "bugs": {
