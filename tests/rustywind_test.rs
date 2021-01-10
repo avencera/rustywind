@@ -6,6 +6,7 @@ use std::path::Path;
 
 fn default_options_for_test() -> Options {
     Options {
+        stdin: None,
         write_mode: WriteMode::ToConsole,
         regex: FinderRegex::DefaultRegex,
         sorter: Sorter::DefaultSorter,

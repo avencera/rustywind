@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `--stdin` flag sort contents in STDIN and print out sorted contents to STDOUT
+
 ## [0.7.1] – 2021-01-09
 
 ### Fixed
