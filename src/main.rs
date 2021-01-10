@@ -3,6 +3,7 @@ use indoc::indoc;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 
 fn main() {
@@ -23,20 +24,28 @@ fn main() {
             Arg::with_name("file_or_dir")
                 .value_name("PATH")
                 .help("A file or directory to run on")
+                .conflicts_with("stdin")
                 .index(1)
-                .required(true)
+                .required_unless("stdin")
                 .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("stdin")
+                .long("stdin")
+                .conflicts_with_all(&["write", "file_or_dir", "dry-run"])
+                .required_unless("file_or_dir")
+                .help("Uses stdin instead of a file or folder")
         )
         .arg(
             Arg::with_name("write")
                 .long("write")
-                .conflicts_with("dry-run")
+                .conflicts_with_all(&["stdin", "dry-run"])
                 .help("Changes the files in place with the reorganized classes"),
         )
         .arg(
             Arg::with_name("dry_run")
                 .long("dry-run")
-                .conflicts_with("write")
+                .conflicts_with_all(&["stdin", "write"])
                 .help("Prints out the new file content with the sorted classes to the terminal"),
         )
         .arg(
@@ -49,6 +58,14 @@ fn main() {
     let options = Options::new_from_matches(&matches);
 
     match &options.write_mode {
+        WriteMode::ToStdOut => {
+            let mut buffer = String::new();
+            let mut stdin = std::io::stdin(); // We get `Stdin` here.
+            stdin.read_to_string(&mut buffer).unwrap();
+
+            println!("STDIN: {:#?}", &buffer);
+        }
+
         WriteMode::DryRun => println!(
             "\ndry run mode activated: here is a list of files that \
              would be changed when you run with the --write flag"
@@ -76,6 +93,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                 let sorted_content = rustywind::sort_file_contents(contents, options);
 
                 match &options.write_mode {
+                    WriteMode::ToStdOut => (),
                     WriteMode::DryRun => print_file_name(file_path, options),
                     WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
                     WriteMode::ToConsole => print_file_contents(&sorted_content),

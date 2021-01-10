@@ -7,6 +7,7 @@ pub enum WriteMode {
     ToFile,
     DryRun,
     ToConsole,
+    ToStdOut,
 }
 
 #[derive(Debug)]
@@ -31,15 +32,27 @@ pub struct Options {
 
 impl Options {
     pub fn new_from_matches(matches: &ArgMatches) -> Options {
-        let starting_path = get_starting_path_from_matches(matches);
+        match matches.is_present("stdin") {
+            true => Options {
+                write_mode: WriteMode::ToStdOut,
+                regex: FinderRegex::DefaultRegex,
+                sorter: Sorter::DefaultSorter,
+                starting_path: PathBuf::new(),
+                allow_duplicates: matches.is_present("allow-duplicates"),
+                search_paths: vec![],
+            },
+            false => {
+                let starting_path = get_starting_path_from_matches(matches);
 
-        Options {
-            write_mode: get_write_mode_from_matches(matches),
-            regex: FinderRegex::DefaultRegex,
-            sorter: Sorter::DefaultSorter,
-            starting_path: starting_path.to_owned(),
-            allow_duplicates: matches.is_present("allow-duplicates"),
-            search_paths: get_search_paths_from_starting_path(&starting_path),
+                Options {
+                    write_mode: get_write_mode_from_matches(matches),
+                    regex: FinderRegex::DefaultRegex,
+                    sorter: Sorter::DefaultSorter,
+                    starting_path: starting_path.to_owned(),
+                    allow_duplicates: matches.is_present("allow-duplicates"),
+                    search_paths: get_search_paths_from_starting_path(&starting_path),
+                }
+            }
         }
     }
 }
