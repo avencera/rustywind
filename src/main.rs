@@ -3,7 +3,6 @@ use indoc::indoc;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
-use std::io::Read;
 use std::path::Path;
 
 fn main() {
@@ -58,14 +57,7 @@ fn main() {
     let options = Options::new_from_matches(&matches);
 
     match &options.write_mode {
-        WriteMode::ToStdOut => {
-            let mut buffer = String::new();
-            let mut stdin = std::io::stdin(); // We get `Stdin` here.
-            stdin.read_to_string(&mut buffer).unwrap();
-
-            println!("STDIN: {:#?}", &buffer);
-        }
-
+        WriteMode::ToStdOut => (),
         WriteMode::DryRun => println!(
             "\ndry run mode activated: here is a list of files that \
              would be changed when you run with the --write flag"
@@ -80,10 +72,20 @@ fn main() {
         ),
     }
 
-    options
-        .search_paths
-        .par_iter()
-        .for_each(|file_path| run_on_file_paths(&file_path, &options))
+    match &options.write_mode {
+        WriteMode::ToStdOut => {
+            let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
+
+            if rustywind::has_classes(&contents) {
+                let sorted_content = rustywind::sort_file_contents(contents, &options);
+                println!("{}", sorted_content)
+            }
+        }
+        _ => options
+            .search_paths
+            .par_iter()
+            .for_each(|file_path| run_on_file_paths(&file_path, &options)),
+    }
 }
 
 fn run_on_file_paths(file_path: &Path, options: &Options) {

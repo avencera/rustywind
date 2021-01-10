@@ -1,5 +1,6 @@
 use clap::ArgMatches;
 use ignore::WalkBuilder;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
@@ -22,6 +23,7 @@ pub enum Sorter {
 
 #[derive(Debug)]
 pub struct Options {
+    pub stdin: Option<String>,
     pub write_mode: WriteMode,
     pub regex: FinderRegex,
     pub sorter: Sorter,
@@ -33,18 +35,26 @@ pub struct Options {
 impl Options {
     pub fn new_from_matches(matches: &ArgMatches) -> Options {
         match matches.is_present("stdin") {
-            true => Options {
-                write_mode: WriteMode::ToStdOut,
-                regex: FinderRegex::DefaultRegex,
-                sorter: Sorter::DefaultSorter,
-                starting_path: PathBuf::new(),
-                allow_duplicates: matches.is_present("allow-duplicates"),
-                search_paths: vec![],
-            },
+            true => {
+                let mut buffer = String::new();
+                let mut stdin = std::io::stdin(); // We get `Stdin` here.
+                stdin.read_to_string(&mut buffer).unwrap();
+
+                Options {
+                    stdin: Some(buffer),
+                    write_mode: WriteMode::ToStdOut,
+                    regex: FinderRegex::DefaultRegex,
+                    sorter: Sorter::DefaultSorter,
+                    starting_path: PathBuf::new(),
+                    allow_duplicates: matches.is_present("allow-duplicates"),
+                    search_paths: vec![],
+                }
+            }
             false => {
                 let starting_path = get_starting_path_from_matches(matches);
 
                 Options {
+                    stdin: None,
                     write_mode: get_write_mode_from_matches(matches),
                     regex: FinderRegex::DefaultRegex,
                     sorter: Sorter::DefaultSorter,
