@@ -41,7 +41,7 @@ impl Options {
                 stdin.read_to_string(&mut buffer).unwrap();
 
                 Options {
-                    stdin: Some(buffer),
+                    stdin: Some(buffer.trim().to_string()),
                     write_mode: WriteMode::ToStdOut,
                     regex: FinderRegex::DefaultRegex,
                     sorter: Sorter::DefaultSorter,
