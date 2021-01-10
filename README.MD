@@ -1,6 +1,5 @@
 # RustyWind [![Build Status Travis](https://travis-ci.org/avencera/rustywind.svg?branch=master)](https://travis-ci.org/avencera/rustywind) [![Build Status Appveyor](https://ci.appveyor.com/api/projects/status/at89lbs7n35wqy96?svg=true)](https://ci.appveyor.com/project/praveenperera/rustywind) [![npm version](https://badge.fury.io/js/rustywind.svg)](https://badge.fury.io/js/rustywind)
 
-
 ## Install
 
 Available via npm
@@ -11,29 +10,37 @@ or
 
 `npm install -g rustywind`
 
-or 
+or
 
 Install from a github release:
 
 `curl -LSfs https://avencera.github.io/rustywind/install.sh | sh -s -- --git avencera/rustywind`
 
-or 
+or
 
 Download a release directly from github: [github.com/avencera/rustywind/releases](https://github.com/avencera/rustywind/releases)
 
 ## Usage
 
 Run rustywind with a path to output updated file contents to the terminal:
-  - `rustywind .`
+
+- `rustywind .`
 
 If you want to reorganize all classes in place, and change the files run with the `--write` flag
-  - `rustywind --write .`
+
+- `rustywind --write .`
 
 Run rustywind with a path and the `--dry-run` to get a list of files that will be changed:
--  `rustywind --dry-run .`
 
-For more options run help 
-  - `rustywind --help`
+- `rustywind --dry-run .`
+
+Run rustywind on your STDIN:
+
+- `echo "<FILE CONTENTS>" | rustywind --stdin`
+
+For more options run help
+
+- `rustywind --help`
 
 ## What
 
@@ -82,6 +89,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 3. ~~Add `--write` option which will change the files, change default to printing results to the terminal~~ [#8](https://github.com/avencera/rustywind/pull/8)
 
 ### ✅ ~~Phase 3 (More CLI)~~
+
 1.  ~~Add `--allow-duplicates` to allow duplicate class name~~ [#10](https://github.com/avencera/rustywind/pull/10)
 2.  ~~Add `--dry-run` option to print out all changes to console~~ [c975d1](https://github.com/avencera/rustywind/commit/c975d1f041f95b45e15760ccded24dbf62bf1f6f)
 
@@ -90,6 +98,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 1. ~~Search and change files in parallel (parallel map?)~~ [#9](https://github.com/avencera/rustywind/pull/9)
 
 ### Phase 5 (Match Headwind Features)
+
 1. Add custom sorter via CLI args `--customer-sorter=...`
 2. Add custom regex via CLI args `--custom-regex=...`
 

@@ -17,6 +17,9 @@ fn main() {
 
             If you want to reorganize all classes in place, and change the files run with the `--write` flag
               rustywind --write .
+
+            If you want to run it on your STDIN, you can do:
+              echo \"<FILE CONTENTS>\" | rustywind --stdin
                          
             rustywind [FLAGS] <PATH>"))
         .arg(
