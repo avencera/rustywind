@@ -82,6 +82,9 @@ fn main() {
             if rustywind::has_classes(&contents) {
                 let sorted_content = rustywind::sort_file_contents(contents, &options);
                 println!("{}", sorted_content)
+            } else {
+                eprintln!("[ERROR] No classes were found in STDIN");
+                std::process::exit(2)
             }
         }
         _ => options
