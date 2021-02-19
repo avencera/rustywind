@@ -63,7 +63,9 @@ fn test_sort_classes_vec() {
                 "inline",
                 "inline-block",
                 "random-class",
+                "py-2",
                 "justify-end",
+                "px-2",
                 "flex"
             ]
             .into_iter()
@@ -73,6 +75,8 @@ fn test_sort_classes_vec() {
             "inline",
             "flex",
             "justify-end",
+            "py-2",
+            "px-2",
             "random-class",
         ]
     )
