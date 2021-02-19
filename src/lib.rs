@@ -29,11 +29,11 @@ fn sort_classes(class_string: &str, options: &Options) -> String {
     }
 }
 
-fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<String> {
-    let enumerated_classes = classes.map(|class| ((class.to_string()), SORTER.get(class)));
+fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+    let enumerated_classes = classes.map(|class| ((class), SORTER.get(class)));
 
-    let mut tailwind_classes: Vec<(String, &usize)> = vec![];
-    let mut custom_classes: Vec<String> = vec![];
+    let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
+    let mut custom_classes: Vec<&str> = vec![];
 
     for (class, maybe_size) in enumerated_classes {
         match maybe_size {
@@ -44,7 +44,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<String> {
 
     tailwind_classes.sort_by(|(_c1, i1), (_c2, i2)| i1.partial_cmp(i2).unwrap());
 
-    let sorted_tailwind_classes: Vec<String> = tailwind_classes
+    let sorted_tailwind_classes: Vec<&str> = tailwind_classes
         .into_iter()
         .map(|(class, _index)| class)
         .collect();
