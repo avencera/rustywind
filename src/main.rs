@@ -80,7 +80,7 @@ fn main() {
             let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
 
             if rustywind::has_classes(&contents) {
-                let sorted_content = rustywind::sort_file_contents(contents, &options);
+                let sorted_content = rustywind::sort_file_contents(&contents, &options);
                 print!("{}", sorted_content)
             } else {
                 print!("{}", contents);
@@ -99,7 +99,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind::has_classes(&contents) {
-                let sorted_content = rustywind::sort_file_contents(contents, options);
+                let sorted_content = rustywind::sort_file_contents(&contents, options);
 
                 match &options.write_mode {
                     WriteMode::ToStdOut => (),

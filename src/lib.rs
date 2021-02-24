@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use itertools::Itertools;
 use regex::Captures;
 
@@ -11,22 +13,31 @@ pub fn has_classes(file_contents: &str) -> bool {
     RE.is_match(file_contents)
 }
 
-pub fn sort_file_contents(file_contents: String, options: &Options) -> String {
-    RE.replace_all(&file_contents, |caps: &Captures| {
+pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<'a, str> {
+    RE.replace_all(file_contents, |caps: &Captures| {
         let classes = &caps[1];
-        let sorted_classes = &sort_classes(classes, options);
+        let sorted_classes = sort_classes(classes, options);
 
-        format!("{}", &caps[0].replace(classes, sorted_classes))
+        caps[0].replace(classes, &sorted_classes)
     })
-    .to_string()
 }
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
-    if options.allow_duplicates {
-        sort_classes_vec(class_string.split(' ')).join(" ")
+    let str_vec = if options.allow_duplicates {
+        sort_classes_vec(class_string.split(' '))
     } else {
-        sort_classes_vec(class_string.split(' ').unique()).join(" ")
+        sort_classes_vec(class_string.split(' ').unique())
+    };
+
+    let mut string = String::with_capacity(str_vec.len() * 2);
+
+    for str in str_vec {
+        string.push_str(str);
+        string.push(' ')
     }
+
+    string.pop();
+    string
 }
 
 fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
