@@ -24,7 +24,7 @@ fn test_sort_file_contents() {
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
-    "#.to_string();
+    "#;
 
     let expected_outcome = r#"
     <div>
@@ -48,7 +48,7 @@ fn test_sort_file_contents_with_duplicates() {
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
-    "#.to_string();
+    "#;
 
     let expected_outcome = r#"
     <div>
@@ -72,7 +72,7 @@ fn test_does_not_remove_duplicates_if_bool_set() {
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
-    "#.to_string();
+    "#;
 
     let expected_outcome = r#"
     <div>
@@ -98,8 +98,7 @@ fn test_does_not_remove_duplicates_if_bool_set() {
 fn test_returns_files_without_class_strings_as_is() {
     let file_contents = r#"
         This is to a represent any other normal file.
-    "#
-    .to_string();
+    "#;
 
     let expected_outcome = r#"
         This is to a represent any other normal file.
