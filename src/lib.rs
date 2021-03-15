@@ -53,7 +53,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
         }
     }
 
-    tailwind_classes.sort_by(|(_c1, i1), (_c2, i2)| i1.partial_cmp(i2).unwrap());
+    tailwind_classes.sort_by_key(|&(_class, class_placement)| class_placement);
 
     let sorted_tailwind_classes: Vec<&str> = tailwind_classes
         .into_iter()
