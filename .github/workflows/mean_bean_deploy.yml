@@ -47,6 +47,10 @@ jobs:
           # - i686-pc-windows-gnu
           # - x86_64-pc-windows-gnu
     steps:
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+
       - uses: actions/checkout@v2
       - run: bash ci/set_rust_version.bash stable ${{ matrix.target }}
       - run: bash ci/build.bash cargo ${{ matrix.target }} RELEASE
@@ -75,7 +79,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.zip
-          asset_name: ${{ env.BIN }}-${GITHUB_REF##*/}-${{ matrix.target }}.zip
+          asset_name: ${{ env.BIN }}-${{steps.tag.outputs.tag}}-${{ matrix.target }}.zip
           asset_content_type: application/zip
 
   macos:
@@ -93,6 +97,10 @@ jobs:
           # - i386-apple-ios
           # - x86_64-apple-ios
     steps:
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+
       - name: Setup | Checkout
         uses: actions/checkout@v2
 
@@ -140,7 +148,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.tar.gz
-          asset_name: ${{ env.BIN }}-${{ matrix.target }}.tar.gz
+          asset_name: ${{ env.BIN }}-${{steps.tag.outputs.tag}}-${{ matrix.target }}.tar.gz
           asset_content_type: application/gzip
 
   linux:
@@ -191,6 +199,10 @@ jobs:
           # - thumbv7em-none-eabihf
           # - thumbv7m-none-eabi
     steps:
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v1
         with:
@@ -218,5 +230,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.tar.gz
-          asset_name: ${{ env.BIN }}-${GITHUB_REF##*/}-${{ matrix.target }}.tar.gz
+          asset_name: ${{ env.BIN }}-${{steps.tag.outputs.tag}}-${{ matrix.target }}.tar.gz
           asset_content_type: application/gzip
