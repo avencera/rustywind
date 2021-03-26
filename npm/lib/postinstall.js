@@ -28,7 +28,7 @@ function getTarget() {
 
   switch (os.platform()) {
     case "darwin":
-      return "x86_64-apple-darwin";
+      return arch == "x64" ? "x86_64-apple-darwin" : "aarch64-apple-darwin";
     case "win32":
       return arch === "x64" ? "x86_64-pc-windows-msvc" : "i686-pc-windows-msvc";
     case "linux":
