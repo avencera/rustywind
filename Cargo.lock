@@ -346,7 +346,7 @@ checksum = "24d5f089152e60f62d28b835fbff2cd2e8dc0baf1ac13343bef92ab7eed84548"
 
 [[package]]
 name = "rustywind"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "clap",
  "ignore",
