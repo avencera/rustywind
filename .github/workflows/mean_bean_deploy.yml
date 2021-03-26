@@ -75,7 +75,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.zip
-          asset_name: ${{ env.BIN }}-${{ matrix.target }}.zip
+          asset_name: ${{ env.BIN }}-${{ github.ref }}-${{ matrix.target }}.zip
           asset_content_type: application/zip
 
   macos:
@@ -100,7 +100,6 @@ jobs:
           name: cross-apple-darwin
           path: /usr/local/bin/
       - run: chmod +x /usr/local/bin/cross
-
       - run: ci/set_rust_version.bash stable ${{ matrix.target }}
       - run: ci/build.bash cross ${{ matrix.target }} RELEASE
       - run: tar -czvf ${{ env.BIN }}.tar.gz --directory=target/${{ matrix.target }}/release ${{ env.BIN }}
@@ -197,5 +196,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.tar.gz
-          asset_name: ${{ env.BIN }}-${{ matrix.target }}.tar.gz
+          asset_name: ${{ env.BIN }}-${{ github.ref }}-${{ matrix.target }}.tar.gz
           asset_content_type: application/gzip
