@@ -75,18 +75,17 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.zip
-          asset_name: ${{ env.BIN }}-${{ github.ref }}-${{ matrix.target }}.zip
+          asset_name: ${{ env.BIN }}-${GITHUB_REF##*/}-${{ matrix.target }}.zip
           asset_content_type: application/zip
 
   macos:
     runs-on: macos-latest
-    needs: install-cross
     strategy:
       matrix:
         target:
           # macOS
           - x86_64-apple-darwin
-          # - aarch64-apple-darwin
+          - aarch64-apple-darwin
           # iOS
           # - aarch64-apple-ios
           # - armv7-apple-ios
@@ -94,14 +93,36 @@ jobs:
           # - i386-apple-ios
           # - x86_64-apple-ios
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v1
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+
+      # Cache files between builds
+      - name: Setup | Cache Cargo
+        uses: actions/cache@v2
         with:
-          name: cross-apple-darwin
-          path: /usr/local/bin/
-      - run: chmod +x /usr/local/bin/cross
-      - run: ci/set_rust_version.bash stable ${{ matrix.target }}
-      - run: ci/build.bash cross ${{ matrix.target }} RELEASE
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: Build | Build
+        uses: actions-rs/cargo@v1
+        # TODO: Remove this once it's the default
+        env:
+          SDKROOT: /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+          use-cross: ${{ matrix.os == 'ubuntu-latest' }}
+
       - run: tar -czvf ${{ env.BIN }}.tar.gz --directory=target/${{ matrix.target }}/release ${{ env.BIN }}
       - uses: XAMPPRocky/create-release@v1.0.2
         id: create_release
@@ -112,6 +133,7 @@ jobs:
           release_name: ${{ github.ref }}
           draft: false
           prerelease: false
+
       - uses: actions/upload-release-asset@v1
         id: upload-release-asset
         env:
@@ -197,5 +219,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ env.BIN }}.tar.gz
-          asset_name: ${{ env.BIN }}-${{ github.ref }}-${{ matrix.target }}.tar.gz
+          asset_name: ${{ env.BIN }}-${GITHUB_REF##*/}-${{ matrix.target }}.tar.gz
           asset_content_type: application/gzip
