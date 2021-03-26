@@ -32,7 +32,7 @@ jobs:
           path: ${{ steps.cross.outputs.install_path }}
     strategy:
       matrix:
-        platform: [linux-musl, apple-darwin]
+        platform: [linux-musl]
 
   windows:
     runs-on: windows-latest
@@ -115,7 +115,6 @@ jobs:
 
       - name: Build | Build
         uses: actions-rs/cargo@v1
-        # TODO: Remove this once it's the default
         env:
           SDKROOT: /Library/Developer/CommandLineTools/SDKs/MacOSX11.1.sdk
         with:
