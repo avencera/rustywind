@@ -131,7 +131,7 @@ fi
 case "$(uname -s)" in
 "Darwin")
   case "$(uname -m)" in
-    "Darwin")
+    "x86_64")
       target="x86_64-apple-darwin"
       ;;
     "arm64")
