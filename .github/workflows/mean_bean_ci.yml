@@ -62,35 +62,23 @@ jobs:
 
   macos:
     runs-on: macos-latest
-    needs: install-cross
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          depth: 50
-
-      - uses: actions/download-artifact@v1
-        with:
-          name: cross-apple-darwin
-          path: /usr/local/bin/
-
-      - run: chmod +x /usr/local/bin/cross
-
-      - run: ci/set_rust_version.bash ${{ matrix.channel }} ${{ matrix.target }}
-      - run: ci/build.bash cross ${{ matrix.target }}
-        # Only test on macOS platforms since we can't simulate the others.
-      - run: ci/test.bash cross ${{ matrix.target }}
-        if: matrix.target == 'x86_64-apple-darwin'
-
     strategy:
-      fail-fast: true
       matrix:
-        channel: [stable, beta, nightly]
         target:
-          # macOS
           - x86_64-apple-darwin
-          # iOS
-          # - aarch64-apple-ios
-          # - x86_64-apple-ios
+          - aarch64-apple-darwin
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - name: Setup | Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          target: ${{ matrix.target }}
+      - run: cargo clippy --target ${{ matrix.target }}
+      - run: cargo test --target ${{ matrix.target }} --all-features
 
   linux:
     runs-on: ubuntu-latest
