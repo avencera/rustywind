@@ -3,10 +3,6 @@ name: Mean Bean CI
 on: [push, pull_request]
 
 jobs:
-  # This job downloads and stores `cross` as an artifact, so that it can be
-  # redownloaded across all of the jobs. Currently this copied pasted between
-  # `ci.yml` and `deploy.yml`. Make sure to update both places when making
-  # changes.
   install-cross:
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +22,7 @@ jobs:
           path: ${{ steps.cross.outputs.install_path }}
     strategy:
       matrix:
-        platform: [linux-musl, apple-darwin]
+        platform: [linux-musl]
 
   windows:
     runs-on: windows-latest
