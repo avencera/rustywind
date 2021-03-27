@@ -130,14 +130,20 @@ fi
 
 case "$(uname -s)" in
 "Darwin")
-  platform="apple-darwin"
+  case "$(uname -m)" in
+    "Darwin")
+      target="x86_64-apple-darwin"
+      ;;
+    "arm64")
+      target="aarch64-apple-darwin"
+      ;;
+  esac
   ;;
 "Linux")
   platform="unknown-linux-musl"
+  target="$(uname -m)-$platform"
   ;;
 esac
-
-target="$(uname -m)-$platform"
 
 say_err "Target: $target"
 
