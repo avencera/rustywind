@@ -63,7 +63,9 @@ jobs:
   macos:
     runs-on: macos-latest
     strategy:
+      fail-fast: true
       matrix:
+        channel: [stable, beta, nightly]
         target:
           - x86_64-apple-darwin
           - aarch64-apple-darwin
@@ -77,6 +79,7 @@ jobs:
           override: true
           profile: minimal
           target: ${{ matrix.target }}
+      - run: ci/set_rust_version.bash ${{ matrix.channel }} ${{ matrix.target }}
       - run: cargo clippy --target ${{ matrix.target }}
       - run: cargo test --target ${{ matrix.target }} --all-features
 
