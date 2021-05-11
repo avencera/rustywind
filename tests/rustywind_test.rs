@@ -110,3 +110,108 @@ fn test_returns_files_without_class_strings_as_is() {
         expected_outcome
     )
 }
+
+#[test]
+fn test_multi_line_class_list() {
+    let file_contents = r#"
+    <div
+      class="
+        grid
+        border
+        fixed
+        top-0
+        right-0
+        z-20
+        grid-flow-col
+        gap-2
+        justify-start
+        my-12
+        mx-8
+        text-red-800
+        bg-red-50
+        rounded
+        border-red-100
+        shadow-2xl
+      "
+    >
+      <!-- ... -->
+    </div>
+    "#;
+
+    let expected_outcome = r#"
+    <div
+      class="grid fixed top-0 right-0 z-20 grid-flow-col gap-2 justify-start my-12 mx-8 text-red-800 bg-red-50 rounded border border-red-100 shadow-2xl"
+    >
+      <!-- ... -->
+    </div>
+    "#
+    .to_string();
+
+    assert_eq!(
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        expected_outcome
+    )
+}
+
+#[test]
+fn test_sort_file_contents_with_space_and_newline_separated_class_lists() {
+    let file_contents = r#"
+    <div
+      class="
+        grid border fixed
+        top-0
+        right-0
+        z-20
+        grid-flow-col
+        gap-2
+        justify-start
+        my-12 mx-8 text-red-800
+        bg-red-50
+        rounded
+        border-red-100
+        shadow-2xl
+      "
+    >
+      <!-- ... -->
+    </div>
+    "#;
+
+    let expected_outcome = r#"
+    <div
+      class="grid fixed top-0 right-0 z-20 grid-flow-col gap-2 justify-start my-12 mx-8 text-red-800 bg-red-50 rounded border border-red-100 shadow-2xl"
+    >
+      <!-- ... -->
+    </div>
+    "#
+    .to_string();
+
+    assert_eq!(
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        expected_outcome
+    )
+}
+
+#[test]
+fn test_sort_file_contents_with_spaces_newlines_and_custom_classes() {
+    // Note the intentionally poor spacing. Rustywind isn't concerned so much about formatting, but
+    // due to how whitespace is handled, it all ends up on one line as a side effect. This makes it
+    // easier for formatters like Prettier to do their job.
+    let file_contents = r#"
+    <div class="m-2 grid-cols-4
+            gap-1 foo
+        border  theres-a-tab-here:	bar border-red-600
+            ">
+    </div>
+    "#;
+
+    let expected_outcome = r#"
+    <div class="grid-cols-4 gap-1 m-2 border border-red-600 foo theres-a-tab-here: bar">
+    </div>
+    "#
+    .to_string();
+
+    assert_eq!(
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        expected_outcome
+    )
+}
