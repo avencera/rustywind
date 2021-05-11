@@ -24,9 +24,9 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
     let str_vec = if options.allow_duplicates {
-        sort_classes_vec(class_string.split(' '))
+        sort_classes_vec(class_string.split_ascii_whitespace())
     } else {
-        sort_classes_vec(class_string.split(' ').unique())
+        sort_classes_vec(class_string.split_ascii_whitespace().unique())
     };
 
     let mut string = String::with_capacity(str_vec.len() * 2);
