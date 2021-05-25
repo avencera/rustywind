@@ -18,7 +18,9 @@ fn default_options_for_test() -> Options {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use rustywind::options::Options;
+
+    use crate::default_options_for_test;
 
     #[test]
     fn test_sort_file_contents() {
