@@ -16,9 +16,13 @@ fn default_options_for_test() -> Options {
     }
 }
 
-#[test]
-fn test_sort_file_contents() {
-    let file_contents = r#"
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sort_file_contents() {
+        let file_contents = r#"
     <div>
         <div class='absolute relative flex inline-block inline random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
@@ -26,7 +30,7 @@ fn test_sort_file_contents() {
     </div>
     "#;
 
-    let expected_outcome = r#"
+        let expected_outcome = r#"
     <div>
         <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
@@ -34,15 +38,15 @@ fn test_sort_file_contents() {
     </div>
     "#.to_string();
 
-    assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
-        expected_outcome
-    )
-}
+        assert_eq!(
+            rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+            expected_outcome
+        )
+    }
 
-#[test]
-fn test_sort_file_contents_with_duplicates() {
-    let file_contents = r#"
+    #[test]
+    fn test_sort_file_contents_with_duplicates() {
+        let file_contents = r#"
     <div>
         <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
@@ -50,7 +54,7 @@ fn test_sort_file_contents_with_duplicates() {
     </div>
     "#;
 
-    let expected_outcome = r#"
+        let expected_outcome = r#"
     <div>
         <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
@@ -58,15 +62,15 @@ fn test_sort_file_contents_with_duplicates() {
     </div>
     "#.to_string();
 
-    assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
-        expected_outcome
-    )
-}
+        assert_eq!(
+            rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+            expected_outcome
+        )
+    }
 
-#[test]
-fn test_does_not_remove_duplicates_if_bool_set() {
-    let file_contents = r#"
+    #[test]
+    fn test_does_not_remove_duplicates_if_bool_set() {
+        let file_contents = r#"
     <div>
         <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
@@ -74,7 +78,7 @@ fn test_does_not_remove_duplicates_if_bool_set() {
     </div>
     "#;
 
-    let expected_outcome = r#"
+        let expected_outcome = r#"
     <div>
         <div class='inline-block inline flex flex flex flex absolute relative random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
@@ -82,33 +86,34 @@ fn test_does_not_remove_duplicates_if_bool_set() {
     </div>
     "#.to_string();
 
-    assert_eq!(
-        rustywind::sort_file_contents(
-            file_contents,
-            &Options {
-                allow_duplicates: true,
-                ..default_options_for_test()
-            }
-        ),
-        expected_outcome
-    )
-}
+        assert_eq!(
+            rustywind::sort_file_contents(
+                file_contents,
+                &Options {
+                    allow_duplicates: true,
+                    ..default_options_for_test()
+                }
+            ),
+            expected_outcome
+        )
+    }
 
-#[test]
-fn test_returns_files_without_class_strings_as_is() {
-    let file_contents = r#"
+    #[test]
+    fn test_returns_files_without_class_strings_as_is() {
+        let file_contents = r#"
         This is to a represent any other normal file.
     "#;
 
-    let expected_outcome = r#"
+        let expected_outcome = r#"
         This is to a represent any other normal file.
     "#
-    .to_string();
+        .to_string();
 
-    assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
-        expected_outcome
-    )
+        assert_eq!(
+            rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+            expected_outcome
+        )
+    }
 }
 
 #[test]
