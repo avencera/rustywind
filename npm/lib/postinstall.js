@@ -48,11 +48,6 @@ function getTarget() {
 
 async function main() {
   const binExists = await fsExists(BIN_PATH);
-  //   if (!forceInstall && binExists) {
-  //     console.log("bin/ folder already exists, exiting");
-  //     process.exit(0);
-  //   }
-
   if (!binExists) {
     await mkdir(BIN_PATH);
   }

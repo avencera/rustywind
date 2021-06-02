@@ -27,5 +27,8 @@
     "url": "https://github.com/avencera/rustywind/issues"
   },
   "homepage": "https://github.com/avencera/rustywind#readme",
-  "dependencies": {}
+  "dependencies": {
+    "https-proxy-agent": "^4.0.0",
+    "proxy-from-env": "^1.1.0"
+  }
 }
