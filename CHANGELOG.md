@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.9.1] – 2021-06-09
+
+- Report correct version number
+
 ## [0.9.0] – 2021-06-02
 
 - Split classes by all ASCII whitespace characters (will now separate classes by spaces or new lines) - thanks [@mklein994](https://github.com/mklein994)
