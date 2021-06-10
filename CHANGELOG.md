@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- Run on multiple files or folders
+
+```shell
+rustywind --write abc.js efg.js
+
+rustywind --write abc/templates efg/templates
+```
+
 ## [0.9.1] – 2021-06-09
 
 - Report correct version number
