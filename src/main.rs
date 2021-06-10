@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 
 fn main() {
     let matches = App::new("RustyWind")
@@ -120,22 +121,28 @@ fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
             eprintln!("\nError: {:?}", err);
             eprintln!(
                 "Unable to to save file: {}",
-                get_file_name(file_path, &options.starting_path)
+                get_file_name(file_path, &options.starting_paths)
             );
         }
     }
 }
 
 fn print_file_name(file_path: &Path, options: &Options) {
-    println!("  * {}", get_file_name(file_path, &options.starting_path))
+    println!("  * {}", get_file_name(file_path, &options.starting_paths))
 }
 
-fn get_file_name(file_path: &Path, dir: &Path) -> String {
-    file_path
-        .strip_prefix(dir)
-        .unwrap_or(file_path)
-        .display()
-        .to_string()
+fn get_file_name(file_path: &Path, starting_paths: &[PathBuf]) -> String {
+    for starting_path in starting_paths {
+        if file_path.starts_with(starting_path) {
+            return file_path
+                .strip_prefix(starting_path)
+                .unwrap_or(file_path)
+                .display()
+                .to_string();
+        }
+    }
+
+    file_path.display().to_string()
 }
 
 fn print_file_contents(file_contents: &str) {

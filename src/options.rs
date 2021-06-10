@@ -27,7 +27,7 @@ pub struct Options {
     pub write_mode: WriteMode,
     pub regex: FinderRegex,
     pub sorter: Sorter,
-    pub starting_path: PathBuf,
+    pub starting_paths: Vec<PathBuf>,
     pub allow_duplicates: bool,
     pub search_paths: Vec<PathBuf>,
 }
@@ -45,35 +45,35 @@ impl Options {
                     write_mode: WriteMode::ToStdOut,
                     regex: FinderRegex::DefaultRegex,
                     sorter: Sorter::DefaultSorter,
-                    starting_path: PathBuf::new(),
+                    starting_paths: vec![PathBuf::new()],
                     allow_duplicates: matches.is_present("allow-duplicates"),
                     search_paths: vec![],
                 }
             }
             false => {
-                let starting_path = get_starting_path_from_matches(matches);
+                let starting_paths = get_starting_path_from_matches(matches);
+                let search_paths = get_search_paths_from_starting_paths(&starting_paths);
 
                 Options {
                     stdin: None,
+                    starting_paths,
+                    search_paths,
                     write_mode: get_write_mode_from_matches(matches),
                     regex: FinderRegex::DefaultRegex,
                     sorter: Sorter::DefaultSorter,
-                    starting_path: starting_path.to_owned(),
                     allow_duplicates: matches.is_present("allow-duplicates"),
-                    search_paths: get_search_paths_from_starting_path(&starting_path),
                 }
             }
         }
     }
 }
 
-fn get_starting_path_from_matches(matches: &ArgMatches) -> PathBuf {
-    Path::new(
-        matches
-            .value_of("file_or_dir")
-            .expect("Invalid PATH provided"),
-    )
-    .to_owned()
+fn get_starting_path_from_matches(matches: &ArgMatches) -> Vec<PathBuf> {
+    matches
+        .values_of("file_or_dir")
+        .expect("Invalid PATH provided")
+        .map(|path| Path::new(path).to_owned())
+        .collect()
 }
 
 fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
@@ -84,11 +84,15 @@ fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
     }
 }
 
-fn get_search_paths_from_starting_path(starting_path: &Path) -> Vec<PathBuf> {
-    WalkBuilder::new(starting_path)
-        .build()
-        .filter_map(Result::ok)
-        .filter(|f| f.path().is_file())
-        .map(|file| file.path().to_owned())
+fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathBuf> {
+    starting_paths
+        .iter()
+        .flat_map(|starting_path| {
+            WalkBuilder::new(starting_path)
+                .build()
+                .filter_map(Result::ok)
+                .filter(|f| f.path().is_file())
+                .map(|file| file.path().to_owned())
+        })
         .collect()
 }
