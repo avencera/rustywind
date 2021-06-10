@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2021-06-10
+
 - Run on multiple files or folders
 
 ```shell
