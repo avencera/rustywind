@@ -1,5 +1,6 @@
 use clap::ArgMatches;
 use ignore::WalkBuilder;
+use itertools::Itertools;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -94,5 +95,6 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
                 .filter(|f| f.path().is_file())
                 .map(|file| file.path().to_owned())
         })
+        .unique()
         .collect()
 }

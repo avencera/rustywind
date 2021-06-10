@@ -30,6 +30,7 @@ fn main() {
                 .conflicts_with("stdin")
                 .index(1)
                 .required_unless("stdin")
+                .multiple(true)
                 .takes_value(true),
         )
         .arg(
@@ -133,9 +134,11 @@ fn print_file_name(file_path: &Path, options: &Options) {
 
 fn get_file_name(file_path: &Path, starting_paths: &[PathBuf]) -> String {
     for starting_path in starting_paths {
-        if file_path.starts_with(starting_path) {
+        if starting_path.is_dir() && file_path.starts_with(starting_path) {
+            let dir = starting_path.parent().unwrap_or(starting_path);
+
             return file_path
-                .strip_prefix(starting_path)
+                .strip_prefix(dir)
                 .unwrap_or(file_path)
                 .display()
                 .to_string();
