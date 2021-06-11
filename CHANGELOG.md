@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2021-06-11
+
+- Sorts responsive classes with the same default sorter [#28](https://github.com/avencera/rustywind/issues/28)
+
 ## [0.10.0] - 2021-06-10
 
 - Run on multiple files or folders
