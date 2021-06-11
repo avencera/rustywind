@@ -228,7 +228,7 @@ fn test_sort_file_contents_with_responsive_classes() {
     let file_contents = r#"
 <div>
     <div class='4xl:inline-block absolute xl:relative relative flex inline-block xl:absolute sm:relative sm:flex inline random-class justify-items another-random-class
-    sm:absolute 4xl:flex sm:inline-block'>
+    sm:absolute 4xl:flex xl:random-class sm:inline-block'>
         <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
     </div>
 </div>
@@ -236,7 +236,7 @@ fn test_sort_file_contents_with_responsive_classes() {
 
     let expected_outcome = r#"
 <div>
-    <div class='inline-block inline flex absolute relative sm:inline-block sm:flex sm:absolute sm:relative xl:absolute xl:relative 4xl:inline-block 4xl:flex random-class justify-items another-random-class'>
+    <div class='inline-block inline flex absolute relative sm:inline-block sm:flex sm:absolute sm:relative xl:absolute xl:relative 4xl:inline-block 4xl:flex random-class justify-items another-random-class xl:random-class'>
         <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
     </div>
 </div>

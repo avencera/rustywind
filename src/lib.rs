@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use itertools::Itertools;
 use regex::Captures;
@@ -45,29 +45,27 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
 
     let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
     let mut custom_classes: Vec<&str> = vec![];
-    let mut classes_sm = vec![];
-    let mut classes_md = vec![];
-    let mut classes_lg = vec![];
-    let mut classes_xl = vec![];
-    let mut classes_2xl = vec![];
-    let mut classes_3xl = vec![];
-    let mut classes_4xl = vec![];
-    let mut classes_5xl = vec![];
-    let mut classes_6xl = vec![];
+
+    let responsive_sizes = vec!["sm", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl"];
+
+    let mut responsive: HashMap<&str, Vec<&str>> = responsive_sizes
+        .iter()
+        .map(|size| (*size, vec![]))
+        .collect();
 
     for (class, maybe_size) in enumerated_classes {
         match maybe_size {
             Some(size) => tailwind_classes.push((class, size)),
             None => match class.as_bytes() {
-                [b's', b'm', b':', ..] => classes_sm.push(class),
-                [b'm', b'd', b':', ..] => classes_md.push(class),
-                [b'l', b'g', b':', ..] => classes_lg.push(class),
-                [b'x', b'l', b':', ..] => classes_xl.push(class),
-                [b'2', b'x', b'l', b':', ..] => classes_2xl.push(class),
-                [b'3', b'x', b'l', b':', ..] => classes_3xl.push(class),
-                [b'4', b'x', b'l', b':', ..] => classes_4xl.push(class),
-                [b'5', b'x', b'l', b':', ..] => classes_5xl.push(class),
-                [b'6', b'x', b'l', b':', ..] => classes_6xl.push(class),
+                [b's', b'm', b':', ..] => responsive.get_mut("sm").unwrap().push(class),
+                [b'm', b'd', b':', ..] => responsive.get_mut("md").unwrap().push(class),
+                [b'l', b'g', b':', ..] => responsive.get_mut("lg").unwrap().push(class),
+                [b'x', b'l', b':', ..] => responsive.get_mut("xl").unwrap().push(class),
+                [b'2', b'x', b'l', b':', ..] => responsive.get_mut("2xl").unwrap().push(class),
+                [b'3', b'x', b'l', b':', ..] => responsive.get_mut("3xl").unwrap().push(class),
+                [b'4', b'x', b'l', b':', ..] => responsive.get_mut("4xl").unwrap().push(class),
+                [b'5', b'x', b'l', b':', ..] => responsive.get_mut("5xl").unwrap().push(class),
+                [b'6', b'x', b'l', b':', ..] => responsive.get_mut("6xl").unwrap().push(class),
                 _ => custom_classes.push(class),
             },
         }
@@ -80,44 +78,22 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
         .map(|(class, _index)| class)
         .collect();
 
-    let (sorted_sm_classes, custom_classes) =
-        sort_responsive_classes(classes_sm, custom_classes, 3);
+    let mut sorted_responsive_classes = vec![];
 
-    let (sorted_md_classes, custom_classes) =
-        sort_responsive_classes(classes_md, custom_classes, 3);
+    for key in responsive_sizes {
+        let (mut sorted_classes, new_custom_classes) = sort_responsive_classes(
+            responsive.remove(key).unwrap(),
+            custom_classes,
+            key.len() + 1,
+        );
 
-    let (sorted_lg_classes, custom_classes) =
-        sort_responsive_classes(classes_lg, custom_classes, 3);
-
-    let (sorted_xl_classes, custom_classes) =
-        sort_responsive_classes(classes_xl, custom_classes, 3);
-
-    let (sorted_2xl_classes, custom_classes) =
-        sort_responsive_classes(classes_2xl, custom_classes, 4);
-
-    let (sorted_3xl_classes, custom_classes) =
-        sort_responsive_classes(classes_3xl, custom_classes, 4);
-
-    let (sorted_4xl_classes, custom_classes) =
-        sort_responsive_classes(classes_4xl, custom_classes, 4);
-
-    let (sorted_5xl_classes, custom_classes) =
-        sort_responsive_classes(classes_5xl, custom_classes, 4);
-
-    let (sorted_6xl_classes, custom_classes) =
-        sort_responsive_classes(classes_6xl, custom_classes, 4);
+        sorted_responsive_classes.append(&mut sorted_classes);
+        custom_classes = new_custom_classes
+    }
 
     [
         &sorted_tailwind_classes[..],
-        &sorted_sm_classes[..],
-        &sorted_md_classes[..],
-        &sorted_lg_classes[..],
-        &sorted_xl_classes[..],
-        &sorted_2xl_classes[..],
-        &sorted_3xl_classes[..],
-        &sorted_4xl_classes[..],
-        &sorted_5xl_classes[..],
-        &sorted_6xl_classes[..],
+        &sorted_responsive_classes[..],
         &custom_classes[..],
     ]
     .concat()

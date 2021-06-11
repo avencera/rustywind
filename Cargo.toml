@@ -7,13 +7,20 @@ version = "0.10.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# cli
 clap = "2.33"
-ignore = "0.4"
 indoc = "1.0"
+
+# files
+ignore = "0.4"
+
+# utils
 itertools = "0.10"
 lazy_static = "1.4.0"
-rayon = "1.5"
 regex = "1"
+
+# parrelel
+rayon = "1.5"
 
 [dev-dependencies]
 pretty_assertions = "0.7"
