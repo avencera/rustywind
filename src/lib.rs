@@ -1,11 +1,13 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use itertools::Itertools;
 use regex::Captures;
 
+pub mod consts;
 pub mod defaults;
 pub mod options;
 
+use consts::RESPONSIVE_SIZES;
 use defaults::{RE, SORTER};
 use options::Options;
 
@@ -45,22 +47,108 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
 
     let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
     let mut custom_classes: Vec<&str> = vec![];
+    let mut responsive: HashMap<&str, Vec<&str>> = HashMap::new();
 
     for (class, maybe_size) in enumerated_classes {
         match maybe_size {
             Some(size) => tailwind_classes.push((class, size)),
-            None => custom_classes.push(class),
+            None => match class.as_bytes() {
+                [b's', b'm', b':', ..] => {
+                    responsive.entry("sm").or_insert_with(|| vec![]).push(class)
+                }
+
+                [b'm', b'd', b':', ..] => {
+                    responsive.entry("md").or_insert_with(|| vec![]).push(class)
+                }
+
+                [b'l', b'g', b':', ..] => {
+                    responsive.entry("lg").or_insert_with(|| vec![]).push(class)
+                }
+
+                [b'x', b'l', b':', ..] => {
+                    responsive.entry("xl").or_insert_with(|| vec![]).push(class)
+                }
+
+                [b'2', b'x', b'l', b':', ..] => responsive
+                    .entry("2xl")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'3', b'x', b'l', b':', ..] => responsive
+                    .entry("3xl")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'4', b'x', b'l', b':', ..] => responsive
+                    .entry("4xl")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'5', b'x', b'l', b':', ..] => responsive
+                    .entry("5xl")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'6', b'x', b'l', b':', ..] => responsive
+                    .entry("6xl")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                _ => custom_classes.push(class),
+            },
         }
     }
 
     tailwind_classes.sort_by_key(|&(_class, class_placement)| class_placement);
 
     let sorted_tailwind_classes: Vec<&str> = tailwind_classes
-        .into_iter()
-        .map(|(class, _index)| class)
+        .iter()
+        .map(|(class, _index)| *class)
         .collect();
 
-    [&sorted_tailwind_classes[..], &custom_classes[..]].concat()
+    let mut sorted_responsive_classes = vec![];
+
+    for key in RESPONSIVE_SIZES.iter() {
+        let (mut sorted_classes, new_custom_classes) = sort_responsive_classes(
+            responsive.remove(key).unwrap_or_else(|| vec![]),
+            custom_classes,
+            key.len() + 1,
+        );
+
+        sorted_responsive_classes.append(&mut sorted_classes);
+        custom_classes = new_custom_classes
+    }
+
+    [
+        &sorted_tailwind_classes[..],
+        &sorted_responsive_classes[..],
+        &custom_classes[..],
+    ]
+    .concat()
+}
+
+fn sort_responsive_classes<'a>(
+    classes: Vec<&'a str>,
+    mut custom_classes: Vec<&'a str>,
+    class_after: usize,
+) -> (Vec<&'a str>, Vec<&'a str>) {
+    let mut tailwind_classes = Vec::with_capacity(classes.len());
+
+    for class in classes {
+        match SORTER.get(&class[class_after..]) {
+            Some(class_placement) => tailwind_classes.push((class, class_placement)),
+            None => custom_classes.push(class),
+        }
+    }
+
+    tailwind_classes.sort_by_key(|&(_class, class_placement)| class_placement);
+
+    let sorted_classes = tailwind_classes
+        .iter()
+        .map(|(class, _index)| *class)
+        .collect();
+
+    (sorted_classes, custom_classes)
 }
 
 #[cfg(test)]
