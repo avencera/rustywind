@@ -102,7 +102,7 @@ fn sort_responsive_classes<'a>(
     let mut tailwind_classes = Vec::with_capacity(classes.len());
 
     for class in classes {
-        match SORTER.get(&class[class_after..]) {
+        match class.get(class_after..).and_then(|class| SORTER.get(class)) {
             Some(class_placement) => tailwind_classes.push((class, class_placement)),
             None => custom_classes.push(class),
         }
