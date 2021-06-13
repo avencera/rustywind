@@ -55,7 +55,10 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
             None => match VARIANT_SEARCHER.find(&class) {
                 Some(prefix_match) => {
                     let prefix = VARIANTS[prefix_match.pattern()];
-                    responsive.entry(prefix).or_insert(Vec::new()).push(class)
+                    responsive
+                        .entry(prefix)
+                        .or_insert_with(Vec::new)
+                        .push(class)
                 }
 
                 None => custom_classes.push(class),
@@ -74,7 +77,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
 
     for key in VARIANTS.iter() {
         let (mut sorted_classes, new_custom_classes) = sort_responsive_classes(
-            responsive.remove(key).unwrap_or_else(|| vec![]),
+            responsive.remove(key).unwrap_or_else(Vec::new),
             custom_classes,
             key.len() + 1,
         );
