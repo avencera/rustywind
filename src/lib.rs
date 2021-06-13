@@ -53,21 +53,13 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
         match maybe_size {
             Some(size) => tailwind_classes.push((class, size)),
             None => match class.as_bytes() {
-                [b's', b'm', b':', ..] => {
-                    responsive.entry("sm").or_insert_with(|| vec![]).push(class)
-                }
+                [b's', b'm', b':', ..] => responsive.entry("sm").or_insert(Vec::new()).push(class),
 
-                [b'm', b'd', b':', ..] => {
-                    responsive.entry("md").or_insert_with(|| vec![]).push(class)
-                }
+                [b'm', b'd', b':', ..] => responsive.entry("md").or_insert(Vec::new()).push(class),
 
-                [b'l', b'g', b':', ..] => {
-                    responsive.entry("lg").or_insert_with(|| vec![]).push(class)
-                }
+                [b'l', b'g', b':', ..] => responsive.entry("lg").or_insert(Vec::new()).push(class),
 
-                [b'x', b'l', b':', ..] => {
-                    responsive.entry("xl").or_insert_with(|| vec![]).push(class)
-                }
+                [b'x', b'l', b':', ..] => responsive.entry("xl").or_insert(Vec::new()).push(class),
 
                 [b'2', b'x', b'l', b':', ..] => responsive
                     .entry("2xl")
