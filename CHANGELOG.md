@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2021-06-13
+
 - Fix not sorting half classes properly `ex: mt-0.5`
 - Sort all variant classes
 
