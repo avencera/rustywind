@@ -247,3 +247,28 @@ fn test_sort_file_contents_with_responsive_classes() {
         expected_outcome
     )
 }
+
+#[test]
+fn test_sort_file_contents_with_variant_classes() {
+    let file_contents = r#"
+<div>
+    <div class='even:inline 4xl:inline-block focus-visible:flex absolute xl:relative relative focus:flex flex active:flex disabled:flex visited:flex inline-block dark:absolute sm:relative sm:flex inline random-class justify-items another-random-class 
+    sm:absolute 4xl:flex xl:random-class sm:inline-block'>
+        <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
+    </div>
+</div>
+"#;
+
+    let expected_outcome = r#"
+<div>
+    <div class='inline-block inline flex absolute relative sm:inline-block sm:flex sm:absolute sm:relative xl:relative 4xl:inline-block 4xl:flex dark:absolute even:inline visited:flex focus:flex focus-visible:flex active:flex disabled:flex random-class justify-items another-random-class xl:random-class'>
+        <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
+    </div>
+</div>
+"#.to_string();
+
+    assert_eq!(
+        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        expected_outcome
+    )
+}

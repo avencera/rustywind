@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Fix not sorting half classes properly `ex: mt-0.5`
+- Sort all variant classes
 
 ## [0.11.0] - 2021-06-11
 
