@@ -26,7 +26,7 @@ mod tests {
     fn test_sort_file_contents() {
         let file_contents = r#"
     <div>
-        <div class='absolute relative flex inline-block inline random-class justify-items another-random-class'>
+        <div class='mt-4 mb-0.5 flex inline-block inline px-0.5 pt-10 random-class justify-items absolute relative another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>
@@ -34,7 +34,7 @@ mod tests {
 
         let expected_outcome = r#"
     <div>
-        <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
+        <div class='inline-block inline flex absolute relative px-0.5 pt-10 mt-4 mb-0.5 random-class justify-items another-random-class'>
             <ul class='flex items-center md:pr-4 lg:pr-6'>
         </div>
     </div>

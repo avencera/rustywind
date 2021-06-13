@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix not sorting half classes properly `ex: mt-0.5`
+
 ## [0.11.0] - 2021-06-11
 
 - Sorts responsive classes with the same default sorter [#28](https://github.com/avencera/rustywind/issues/28)

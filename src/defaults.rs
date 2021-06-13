@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 lazy_static! {
     pub static ref RE: Regex =
-        Regex::new(r#"\b(?:class(?:Name)*\s*=\s*["'])([_a-zA-Z0-9\s\-:]+)["']"#).unwrap();
+        Regex::new(r#"\b(?:class(?:Name)*\s*=\s*["'])([_a-zA\.-Z0-9\s\-:]+)["']"#).unwrap();
 }
 
 lazy_static! {
