@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.12.1] - 2021-06-13
+
+- Prevent panic if class name same as variant is used
+
 ## [0.12.0] - 2021-06-13
 
 - Fix not sorting half classes properly `ex: mt-0.5`
