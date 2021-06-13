@@ -17,9 +17,12 @@ ignore = "0.4"
 # utils
 itertools = "0.10"
 lazy_static = "1.4.0"
+
+# string matching
+aho-corasick = "0.7"
 regex = "1"
 
-# parrelel
+# parallel
 rayon = "1.5"
 
 [dev-dependencies]
