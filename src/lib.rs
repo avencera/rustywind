@@ -86,6 +86,89 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
                     .or_insert_with(|| vec![])
                     .push(class),
 
+                [b'd', b'a', b'r', b'k', b':', ..] => responsive
+                    .entry("dark")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'f', b'i', b'r', b's', b't', b':', ..] => responsive
+                    .entry("first")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'l', b'a', b's', b't', b':', ..] => responsive
+                    .entry("last")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'o', b'd', b'd', b':', ..] => responsive
+                    .entry("odd")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'e', b'v', b'e', b'n', b':', ..] => responsive
+                    .entry("even")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'v', b'i', b's', b'i', b't', b'e', b'd', b':', ..] => responsive
+                    .entry("visited")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'c', b'h', b'e', b'c', b'k', b'e', b'd', b':', ..] => responsive
+                    .entry("checked")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'g', b'r', b'o', b'u', b'p', b'-', b'h', b'o', b'v', b'e', b'r', b':', ..] => {
+                    responsive
+                        .entry("group-hover")
+                        .or_insert_with(|| vec![])
+                        .push(class)
+                }
+
+                [b'g', b'r', b'o', b'u', b'p', b'-', b'f', b'o', b'c', b'u', b's', b':', ..] => {
+                    responsive
+                        .entry("group-focus")
+                        .or_insert_with(|| vec![])
+                        .push(class)
+                }
+
+                [b'h', b'o', b'v', b'e', b'r', b':', ..] => responsive
+                    .entry("hover")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'f', b'o', b'c', b'u', b's', b'-', b'v', b'i', b's', b'i', b'b', b'l', b'e', b':', ..] => {
+                    responsive
+                        .entry("focus-visible")
+                        .or_insert_with(|| vec![])
+                        .push(class)
+                }
+
+                [b'f', b'o', b'c', b'u', b's', b'-', b'w', b'i', b't', b'h', b'i', b'n', b':', ..] => {
+                    responsive
+                        .entry("focus-within")
+                        .or_insert_with(|| vec![])
+                        .push(class)
+                }
+
+                [b'f', b'o', b'c', b'u', b's', b':', ..] => responsive
+                    .entry("focus")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'a', b'c', b't', b'i', b'v', b'e', b':', ..] => responsive
+                    .entry("active")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
+                [b'd', b'i', b's', b'a', b'b', b'l', b'e', b'd', b':', ..] => responsive
+                    .entry("disabled")
+                    .or_insert_with(|| vec![])
+                    .push(class),
+
                 _ => custom_classes.push(class),
             },
         }
