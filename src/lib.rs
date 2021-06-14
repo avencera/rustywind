@@ -47,7 +47,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
 
     let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
     let mut custom_classes: Vec<&str> = vec![];
-    let mut responsive: HashMap<&str, Vec<&str>> = HashMap::new();
+    let mut variants: HashMap<&str, Vec<&str>> = HashMap::new();
 
     for (class, maybe_size) in enumerated_classes {
         match maybe_size {
@@ -55,10 +55,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
             None => match VARIANT_SEARCHER.find(&class) {
                 Some(prefix_match) => {
                     let prefix = VARIANTS[prefix_match.pattern()];
-                    responsive
-                        .entry(prefix)
-                        .or_insert_with(Vec::new)
-                        .push(class)
+                    variants.entry(prefix).or_insert_with(Vec::new).push(class)
                 }
 
                 None => custom_classes.push(class),
@@ -73,28 +70,28 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
         .map(|(class, _index)| *class)
         .collect();
 
-    let mut sorted_responsive_classes = vec![];
+    let mut sorted_variant_classes = vec![];
 
     for key in VARIANTS.iter() {
-        let (mut sorted_classes, new_custom_classes) = sort_responsive_classes(
-            responsive.remove(key).unwrap_or_else(Vec::new),
+        let (mut sorted_classes, new_custom_classes) = sort_variant_classes(
+            variants.remove(key).unwrap_or_else(Vec::new),
             custom_classes,
             key.len() + 1,
         );
 
-        sorted_responsive_classes.append(&mut sorted_classes);
+        sorted_variant_classes.append(&mut sorted_classes);
         custom_classes = new_custom_classes
     }
 
     [
         &sorted_tailwind_classes[..],
-        &sorted_responsive_classes[..],
+        &sorted_variant_classes[..],
         &custom_classes[..],
     ]
     .concat()
 }
 
-fn sort_responsive_classes<'a>(
+fn sort_variant_classes<'a>(
     classes: Vec<&'a str>,
     mut custom_classes: Vec<&'a str>,
     class_after: usize,
