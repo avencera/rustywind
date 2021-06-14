@@ -19,14 +19,15 @@ lazy_static! {
         "even",
         "visited",
         "checked",
+        "empty",
         "group-hover",
         "group-focus",
+        "focus-within",
         "hover",
         "focus",
         "focus-visible",
-        "focus-within",
         "active",
-        "disabled"
+        "disabled",
     ];
 }
 
