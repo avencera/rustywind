@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use rustywind;
+
 use rustywind::options::Options;
 use rustywind::options::{FinderRegex, Sorter, WriteMode};
 use std::path::Path;

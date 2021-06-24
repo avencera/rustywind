@@ -93,7 +93,7 @@ fn main() {
         _ => options
             .search_paths
             .par_iter()
-            .for_each(|file_path| run_on_file_paths(&file_path, &options)),
+            .for_each(|file_path| run_on_file_paths(file_path, &options)),
     }
 }
 
