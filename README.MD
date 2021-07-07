@@ -20,6 +20,12 @@ or
 
 Download a release directly from github: [github.com/avencera/rustywind/releases](https://github.com/avencera/rustywind/releases)
 
+or
+
+You can use the dockerized version
+
+`docker run --rm -v $PWD:/app avencera/rustywind:latest <rustywind arguments>`
+
 ## Usage
 
 Run rustywind with a path to output updated file contents to the terminal:
