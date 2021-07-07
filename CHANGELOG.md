@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Create dockerized version thanks [@JeroenG](https://github.com/Jeroen-G) [#36](https://github.com/avencera/rustywind/pull/36)
+
 ## [0.12.1] - 2021-06-13
 
 - Prevent panic if class name same as variant is used
