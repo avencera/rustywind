@@ -28,22 +28,16 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
             type=semver,pattern={{major}}
             type=sha
 
-      - name: Get the tagged version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-
-      - name: Build the Docker image for the tagged release
-        run: docker build . --tag ${{ secrets.DOCKERHUB_USERNAME }}/rustywind:${{ steps.get_version.outputs.VERSION }}
-
-      - name: Build the Docker image for the latest tag
-        run: docker build . --tag ${{ secrets.DOCKERHUB_USERNAME }}/rustywind:latest
-
-      - name: Push to Docker Hub
+      - name: Login to DockerHub
         if: github.event_name != 'pull_request'
-        run: docker login -u="${{ secrets.DOCKERHUB_USERNAME }}" -p="${{ secrets.DOCKERHUB_TOKEN }}" && docker push ${{ secrets.DOCKERHUB_USERNAME }}/rustywind:latest && docker push ${{ secrets.DOCKERHUB_USERNAME }}/rustywind:${{ steps.get_version.outputs.VERSION }}
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
