@@ -57,6 +57,12 @@ fn main() {
                 .long("allow-duplicates")
                 .help("When set, rustywind will not delete duplicated classes"),
         )
+        .arg(
+            Arg::with_name("custom-regex")
+                .long("custom-regex")
+                .help("Uses a custom regex instead of default one")
+                .takes_value(true),
+        )
         .get_matches();
 
     let options = Options::new_from_matches(&matches);
@@ -81,7 +87,7 @@ fn main() {
         WriteMode::ToStdOut => {
             let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
 
-            if rustywind::has_classes(&contents) {
+            if rustywind::has_classes(&contents, &options) {
                 let sorted_content = rustywind::sort_file_contents(&contents, &options);
                 print!("{}", sorted_content)
             } else {
@@ -100,7 +106,7 @@ fn main() {
 fn run_on_file_paths(file_path: &Path, options: &Options) {
     match fs::read_to_string(file_path) {
         Ok(contents) => {
-            if rustywind::has_classes(&contents) {
+            if rustywind::has_classes(&contents, &options) {
                 let sorted_content = rustywind::sort_file_contents(&contents, options);
 
                 match &options.write_mode {

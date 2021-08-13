@@ -1,6 +1,7 @@
 use clap::ArgMatches;
 use ignore::WalkBuilder;
 use itertools::Itertools;
+use regex::Regex;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -15,6 +16,7 @@ pub enum WriteMode {
 #[derive(Debug)]
 pub enum FinderRegex {
     DefaultRegex,
+    CustomRegex(Regex),
 }
 
 #[derive(Debug)]
@@ -44,7 +46,7 @@ impl Options {
                 Options {
                     stdin: Some(buffer.trim().to_string()),
                     write_mode: WriteMode::ToStdOut,
-                    regex: FinderRegex::DefaultRegex,
+                    regex: get_custom_regex_from_matches(matches),
                     sorter: Sorter::DefaultSorter,
                     starting_paths: vec![PathBuf::new()],
                     allow_duplicates: matches.is_present("allow-duplicates"),
@@ -60,12 +62,28 @@ impl Options {
                     starting_paths,
                     search_paths,
                     write_mode: get_write_mode_from_matches(matches),
-                    regex: FinderRegex::DefaultRegex,
+                    regex: get_custom_regex_from_matches(matches),
                     sorter: Sorter::DefaultSorter,
                     allow_duplicates: matches.is_present("allow-duplicates"),
                 }
             }
         }
+    }
+}
+
+fn get_custom_regex_from_matches(matches: &ArgMatches) -> FinderRegex {
+    match matches.is_present("custom-regex") {
+        true => {
+            let string = matches
+                .value_of("custom-regex")
+                .expect("Invalid regex string provided");
+
+            let regex = Regex::new(string).unwrap();
+
+            FinderRegex::CustomRegex(regex)
+        }
+
+        false => FinderRegex::DefaultRegex,
     }
 }
 
