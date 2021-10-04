@@ -26,7 +26,7 @@ regex = "1"
 rayon = "1.5"
 
 [dev-dependencies]
-pretty_assertions = "0.7"
+pretty_assertions = "1.0"
 
 [profile.release]
 lto = true
