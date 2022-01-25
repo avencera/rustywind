@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- `--custom-regex` option, thanks [@neonowy](https://github.com/neonowy) [#39](https://github.com/avencera/rustywind/pull/39)
+
+- JIT classes support, thanks [@royduin](https://github.com/royduin) [#42](https://github.com/avencera/rustywind/pull/42)
+
 ## [0.12.2] - 2021-07-07
 
 - Create dockerized version thanks [@JeroenG](https://github.com/Jeroen-G) [#36](https://github.com/avencera/rustywind/pull/36)
@@ -57,7 +63,7 @@ rustywind --write abc/templates efg/templates
 
 ### Changed
 
-- Changed default sorter to match headwind, now works with Tailwind 2.0 (by @dhrubabasu)
+- Changed default sorter to match headwind, now works with Tailwind 2.0 (by [@dhrubabasu](https://github.com/dhrubabasu))
 
 ## [0.6.7] – 2020-09-05
 
