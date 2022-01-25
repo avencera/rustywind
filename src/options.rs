@@ -11,6 +11,7 @@ pub enum WriteMode {
     DryRun,
     ToConsole,
     ToStdOut,
+    CheckFormatted,
 }
 
 #[derive(Debug)]
@@ -96,10 +97,14 @@ fn get_starting_path_from_matches(matches: &ArgMatches) -> Vec<PathBuf> {
 }
 
 fn get_write_mode_from_matches(matches: &ArgMatches) -> WriteMode {
-    match (matches.is_present("write"), matches.is_present("dry_run")) {
-        (_, true) => WriteMode::DryRun,
-        (true, false) => WriteMode::ToFile,
-        _ => WriteMode::ToConsole,
+    if matches.is_present("dry_run") {
+        WriteMode::DryRun
+    } else if matches.is_present("write") {
+        WriteMode::ToFile
+    } else if matches.is_present("check_formatted") {
+        WriteMode::CheckFormatted
+    } else {
+        WriteMode::DryRun
     }
 }
 
