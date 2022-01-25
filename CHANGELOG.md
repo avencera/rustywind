@@ -8,6 +8,8 @@
 
 - JIT classes support, thanks [@royduin](https://github.com/royduin) [#42](https://github.com/avencera/rustywind/pull/42)
 
+- New `--check-formatted` option, thanks [@praveenperera](https://github.com/praveenperera) [#45](https://github.com/avencera/rustywind/pull/45)
+
 ## [0.12.2] - 2021-07-07
 
 - Create dockerized version thanks [@JeroenG](https://github.com/Jeroen-G) [#36](https://github.com/avencera/rustywind/pull/36)

@@ -10,7 +10,7 @@ env:
 
 jobs:
   # This job downloads and stores `cross` as an artifact, so that it can be
-  # redownloaded across all of the jobs. Currently this copied pasted between
+  # re-downloaded across all of the jobs. Currently this copied pasted between
   # `mean_bean_ci.yml` and `mean_bean_deploy.yml`. Make sure to update both places when making
   # changes.
   install-cross:

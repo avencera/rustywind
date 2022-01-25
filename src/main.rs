@@ -5,6 +5,12 @@ use rustywind::options::{Options, WriteMode};
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+
+lazy_static::lazy_static! {
+    pub static ref EXIT_ERROR: AtomicBool = AtomicBool::new(false);
+}
 
 fn main() {
     let matches = App::new("RustyWind")
@@ -18,6 +24,9 @@ fn main() {
 
             If you want to reorganize all classes in place, and change the files run with the `--write` flag
               rustywind --write .
+
+            To print only the file names that would be changed run with the `--check-formatted` flag
+              rustywind --check-formatted .
 
             If you want to run it on your STDIN, you can do:
               echo \"<FILE CONTENTS>\" | rustywind --stdin
@@ -43,14 +52,20 @@ fn main() {
         .arg(
             Arg::with_name("write")
                 .long("write")
-                .conflicts_with_all(&["stdin", "dry-run"])
+                .conflicts_with_all(&["stdin", "dry-run", "check-formatted"])
                 .help("Changes the files in place with the reorganized classes"),
         )
         .arg(
             Arg::with_name("dry_run")
                 .long("dry-run")
-                .conflicts_with_all(&["stdin", "write"])
+                .conflicts_with_all(&["stdin", "write", "check-formatted"])
                 .help("Prints out the new file content with the sorted classes to the terminal"),
+        )
+        .arg(
+            Arg::with_name("check_formatted")
+                .long("check-formatted")
+                .conflicts_with_all(&["stdin", "write", "dry-run"])
+                .help("Prints out the new file content with the sorted classes to the terminal")
         )
         .arg(
             Arg::with_name("allow-duplicates")
@@ -81,6 +96,7 @@ fn main() {
         WriteMode::ToConsole => println!(
             "\nprinting file contents to console, run with --write to save changes to files:"
         ),
+        WriteMode::CheckFormatted => println!("\nonly printing changed files"),
     }
 
     match &options.write_mode {
@@ -96,10 +112,16 @@ fn main() {
                 std::process::exit(2)
             }
         }
-        _ => options
-            .search_paths
-            .par_iter()
-            .for_each(|file_path| run_on_file_paths(file_path, &options)),
+        _ => {
+            options
+                .search_paths
+                .par_iter()
+                .for_each(|file_path| run_on_file_paths(file_path, &options));
+
+            if EXIT_ERROR.load(Ordering::Relaxed) {
+                std::process::exit(1);
+            }
+        }
     }
 }
 
@@ -114,10 +136,29 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                     WriteMode::DryRun => print_file_name(file_path, options),
                     WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
                     WriteMode::ToConsole => print_file_contents(&sorted_content),
+                    WriteMode::CheckFormatted => {
+                        print_changed_files(file_path, &sorted_content, &contents, options)
+                    }
                 }
             }
         }
         Err(_error) => (),
+    }
+}
+
+fn print_changed_files(
+    file_path: &Path,
+    sorted_content: &str,
+    original_content: &str,
+    options: &Options,
+) {
+    if sorted_content != original_content {
+        if !EXIT_ERROR.load(Ordering::Relaxed) {
+            EXIT_ERROR.store(true, Ordering::Relaxed);
+        }
+
+        let file_name = get_file_name(file_path, &options.starting_paths);
+        eprintln!("  * [UNFORMATTED FILE] {file_name}")
     }
 }
 
