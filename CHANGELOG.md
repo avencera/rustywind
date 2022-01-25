@@ -14,6 +14,8 @@
 
 - Replace `lazy_static` crate with `once_cell`, thanks [@praveenperera](https://github.com/praveenperera) [#46](https://github.com/avencera/rustywind/pull/46)
 
+- Update `clap` crate to 3.0, thanks [@praveenperera](https://github.com/praveenperera) [#47](https://github.com/avencera/rustywind/pull/47)
+
 ## [0.12.2] - 2021-07-07
 
 - Create dockerized version thanks [@JeroenG](https://github.com/Jeroen-G) [#36](https://github.com/avencera/rustywind/pull/36)
