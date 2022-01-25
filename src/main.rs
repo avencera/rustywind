@@ -106,7 +106,7 @@ fn main() {
 fn run_on_file_paths(file_path: &Path, options: &Options) {
     match fs::read_to_string(file_path) {
         Ok(contents) => {
-            if rustywind::has_classes(&contents, &options) {
+            if rustywind::has_classes(&contents, options) {
                 let sorted_content = rustywind::sort_file_contents(&contents, options);
 
                 match &options.write_mode {
