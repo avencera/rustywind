@@ -8,7 +8,7 @@ version = "0.12.2"
 
 [dependencies]
 # cli
-clap = "2.33"
+clap = {version = "3.0", features = ["cargo"]}
 indoc = "1.0"
 
 # files
