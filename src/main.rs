@@ -1,5 +1,6 @@
 use clap::{App, AppSettings, Arg};
 use indoc::indoc;
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
 use std::fs;
@@ -8,9 +9,7 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
-lazy_static::lazy_static! {
-    pub static ref EXIT_ERROR: AtomicBool = AtomicBool::new(false);
-}
+static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 fn main() {
     let matches = App::new("RustyWind")
