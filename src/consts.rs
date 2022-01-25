@@ -1,8 +1,8 @@
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
-lazy_static! {
-    pub static ref VARIANTS: Vec<&'static str> = vec![
+pub static VARIANTS: Lazy<Vec<&'static str>> = Lazy::new(|| {
+    vec![
         "sm",
         "md",
         "lg",
@@ -28,13 +28,13 @@ lazy_static! {
         "focus-visible",
         "active",
         "disabled",
-    ];
-}
+    ]
+});
 
-lazy_static! {
-    pub static ref VARIANT_SEARCHER: AhoCorasick = AhoCorasickBuilder::new()
+pub static VARIANT_SEARCHER: Lazy<AhoCorasick> = Lazy::new(|| {
+    AhoCorasickBuilder::new()
         .anchored(true)
         .match_kind(MatchKind::LeftmostLongest)
         .auto_configure(&VARIANTS)
-        .build(VARIANTS.iter());
-}
+        .build(VARIANTS.iter())
+});
