@@ -2,9 +2,15 @@ use clap::{App, AppSettings, Arg};
 use indoc::indoc;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
+use std::sync::atomic::Ordering;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
+
+lazy_static::lazy_static! {
+    pub static ref EXIT_ERROR: AtomicBool = AtomicBool::new(false);
+}
 
 fn main() {
     let matches = App::new("RustyWind")
@@ -106,10 +112,16 @@ fn main() {
                 std::process::exit(2)
             }
         }
-        _ => options
+        _ => {
+            options
             .search_paths
             .par_iter()
-            .for_each(|file_path| run_on_file_paths(file_path, &options)),
+            .for_each(|file_path| run_on_file_paths(file_path, &options));
+
+           if EXIT_ERROR.load(Ordering::Relaxed) {
+               std::process::exit(1);
+           }
+        },
     }
 }
 
@@ -134,8 +146,12 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
 fn print_changed_files(file_path: &Path, sorted_content: &str, original_content: &str, options: &Options) {
     if sorted_content != original_content {
+        if !EXIT_ERROR.load(Ordering::Relaxed) {
+            EXIT_ERROR.store(true, Ordering::Relaxed);
+        }
+
         let file_name = get_file_name(file_path, &options.starting_paths);
-        eprintln!(" * {file_name}")
+        eprintln!("  * [UNFORMATTED FILE] {file_name}")
     }
 }
 
