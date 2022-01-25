@@ -9,14 +9,24 @@ pub mod options;
 
 use consts::{VARIANTS, VARIANT_SEARCHER};
 use defaults::{RE, SORTER};
-use options::Options;
+use options::{FinderRegex, Options};
 
-pub fn has_classes(file_contents: &str) -> bool {
-    RE.is_match(file_contents)
+pub fn has_classes(file_contents: &str, options: &Options) -> bool {
+    let regex = match &options.regex {
+        FinderRegex::DefaultRegex => &RE,
+        FinderRegex::CustomRegex(regex) => regex,
+    };
+
+    regex.is_match(file_contents)
 }
 
 pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<'a, str> {
-    RE.replace_all(file_contents, |caps: &Captures| {
+    let regex = match &options.regex {
+        FinderRegex::DefaultRegex => &RE,
+        FinderRegex::CustomRegex(regex) => regex,
+    };
+
+    regex.replace_all(file_contents, |caps: &Captures| {
         let classes = &caps[1];
         let sorted_classes = sort_classes(classes, options);
 
