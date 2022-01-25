@@ -18,7 +18,7 @@ fn main() {
         .setting(AppSettings::ArgRequiredElseHelp)
         .author("Praveen Perera <praveen@avencera.com>")
         .about("\nOrganize all your tailwind classes")
-        .usage(indoc!("
+        .override_usage(indoc!("
         Run rustywind with a path to get a list of files that will be changed
               rustywind . --dry-run
 
@@ -33,47 +33,47 @@ fn main() {
                          
             rustywind [FLAGS] <PATH>"))
         .arg(
-            Arg::with_name("file_or_dir")
+            Arg::new("file_or_dir")
                 .value_name("PATH")
                 .help("A file or directory to run on")
                 .conflicts_with("stdin")
                 .index(1)
-                .required_unless("stdin")
-                .multiple(true)
+                .required_unless_present("stdin")
+                .multiple_occurrences(true)
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("stdin")
+            Arg::new("stdin")
                 .long("stdin")
-                .conflicts_with_all(&["write", "file_or_dir", "dry-run"])
-                .required_unless("file_or_dir")
+                .conflicts_with_all(&["write", "file_or_dir", "dry_run"])
+                .required_unless_present("file_or_dir")
                 .help("Uses stdin instead of a file or folder")
         )
         .arg(
-            Arg::with_name("write")
+            Arg::new("write")
                 .long("write")
-                .conflicts_with_all(&["stdin", "dry-run", "check-formatted"])
+                .conflicts_with_all(&["stdin", "dry_run", "check-formatted"])
                 .help("Changes the files in place with the reorganized classes"),
         )
         .arg(
-            Arg::with_name("dry_run")
+            Arg::new("dry_run")
                 .long("dry-run")
                 .conflicts_with_all(&["stdin", "write", "check-formatted"])
                 .help("Prints out the new file content with the sorted classes to the terminal"),
         )
         .arg(
-            Arg::with_name("check_formatted")
+            Arg::new("check_formatted")
                 .long("check-formatted")
-                .conflicts_with_all(&["stdin", "write", "dry-run"])
+                .conflicts_with_all(&["stdin", "write", "dry_run"])
                 .help("Prints out the new file content with the sorted classes to the terminal")
         )
         .arg(
-            Arg::with_name("allow-duplicates")
+            Arg::new("allow-duplicates")
                 .long("allow-duplicates")
                 .help("When set, rustywind will not delete duplicated classes"),
         )
         .arg(
-            Arg::with_name("custom-regex")
+            Arg::new("custom-regex")
                 .long("custom-regex")
                 .help("Uses a custom regex instead of default one")
                 .takes_value(true),
