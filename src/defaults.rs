@@ -1,14 +1,13 @@
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
 
-lazy_static! {
-    pub static ref RE: Regex =
-        Regex::new(r#"\b(?:class(?:Name)*\s*=\s*["'])([_a-zA\.-Z0-9\s\-:\[\]]+)["']"#).unwrap();
-}
+pub static RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"\b(?:class(?:Name)*\s*=\s*["'])([_a-zA\.-Z0-9\s\-:\[\]]+)["']"#).unwrap()
+});
 
-lazy_static! {
-    pub static ref SORTER: HashMap<String, usize> = vec![
+pub static SORTER: Lazy<HashMap<String, usize>> = Lazy::new(|| {
+    vec![
         "container",
         "border-box",
         "box-content",
@@ -4960,10 +4959,10 @@ lazy_static! {
         "stroke-1",
         "stroke-2",
         "sr-only",
-        "not-sr-only"
+        "not-sr-only",
     ]
     .into_iter()
     .enumerate()
     .map(|(index, class)| (class.to_string(), index))
-    .collect();
-}
+    .collect()
+});
