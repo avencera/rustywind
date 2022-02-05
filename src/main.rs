@@ -107,8 +107,7 @@ fn main() {
                 print!("{}", sorted_content)
             } else {
                 print!("{}", contents);
-                eprint!("[ERROR] No classes were found in STDIN");
-                std::process::exit(2)
+                eprint!("[WARN] No classes were found in STDIN");
             }
         }
         _ => {
