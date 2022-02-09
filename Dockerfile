@@ -1,4 +1,4 @@
-FROM alpine:3.14
+FROM alpine:latest
 
 RUN apk --no-cache add curl --virtual .build-deps && \
     curl -LSfs https://avencera.github.io/rustywind/install.sh | sh -s -- --git avencera/rustywind && \
