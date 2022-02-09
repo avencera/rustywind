@@ -16,6 +16,10 @@
 
 - Update `clap` crate to 3.0, thanks [@praveenperera](https://github.com/praveenperera) [#47](https://github.com/avencera/rustywind/pull/47)
 
+### Fixed
+
+- No longer exit with error if no classes are found, thanks [@shackra](https://github.com/shackra) [#50](https://github.com/avencera/rustywind/pull/50)
+
 ## [0.12.2] - 2021-07-07
 
 - Create dockerized version thanks [@JeroenG](https://github.com/Jeroen-G) [#36](https://github.com/avencera/rustywind/pull/36)
