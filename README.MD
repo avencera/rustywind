@@ -44,6 +44,10 @@ Run rustywind on your STDIN:
 
 - `echo "<FILE CONTENTS>" | rustywind --stdin`
 
+Run in CI, exit with error if unsorted classes are found:
+
+- `rustywind --check-formatted .`
+
 For more options run help
 
 - `rustywind --help`
