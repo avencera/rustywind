@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2022-02-09
+
 ### Added
 
 - `--custom-regex` option, thanks [@neonowy](https://github.com/neonowy) [#39](https://github.com/avencera/rustywind/pull/39)
