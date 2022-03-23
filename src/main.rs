@@ -51,13 +51,13 @@ fn main() {
         .arg(
             Arg::new("write")
                 .long("write")
-                .conflicts_with_all(&["stdin", "dry_run", "check-formatted"])
+                .conflicts_with_all(&["stdin", "dry_run", "check_formatted"])
                 .help("Changes the files in place with the reorganized classes"),
         )
         .arg(
             Arg::new("dry_run")
                 .long("dry-run")
-                .conflicts_with_all(&["stdin", "write", "check-formatted"])
+                .conflicts_with_all(&["stdin", "write", "check_formatted"])
                 .help("Prints out the new file content with the sorted classes to the terminal"),
         )
         .arg(
