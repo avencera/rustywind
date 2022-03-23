@@ -84,7 +84,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
 
     for key in VARIANTS.iter() {
         let (mut sorted_classes, new_custom_classes) = sort_variant_classes(
-            variants.remove(key).unwrap_or_else(Vec::new),
+            variants.remove(key).unwrap_or_default(),
             custom_classes,
             key.len() + 1,
         );
