@@ -167,10 +167,12 @@ fn print_changed_files(
 }
 
 /// Return a boolean indicating whether the file should be ignored
-/// FIX: It seems that `ignored_files` is not being treated as a string 🧐
-fn should_ignore_current_file(options: &Options, current_file: &String) -> bool {
-    let ignored_files = options.ignored_files.clone();
-    return ignored_files.len() > 0 && ignored_files.contains(current_file);
+fn should_ignore_current_file(ignored_files: &HashSet<String>, current_file: &str) -> bool {
+    current_file
+        .split('/')
+        .last()
+        .map(|file_name_clean| ignored_files.contains(file_name_clean))
+        .unwrap_or(false)
 }
 
 fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {

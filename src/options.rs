@@ -2,9 +2,9 @@ use clap::ArgMatches;
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
+use std::collections::HashSet;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::collections::HashSet;
 
 #[derive(Debug)]
 pub enum WriteMode {
@@ -127,15 +127,8 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
 }
 
 fn get_ignored_files_from_matches(matches: &ArgMatches) -> HashSet<String> {
-    match matches.is_present("ignored_files") {
-        true => {
-            return matches
-                .value_of("ignored_files")
-                .expect("Invalid ignored_files provided")
-                .split(' ') // TODO: We, perhaps, can also accept comma separated values (e.g. `--ignored-files "foo.vue, bar.rs"`) 
-                .map(|s| s.to_string())
-                .collect::<HashSet<String>>();
-        }
-        false => HashSet::new()
+    match matches.values_of("ignored_files") {
+        Some(values) => values.map(|s| s.to_string()).collect::<HashSet<String>>(),
+        None => HashSet::new(),
     }
 }
