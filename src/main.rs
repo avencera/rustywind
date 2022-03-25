@@ -89,7 +89,7 @@ fn main() {
         ),
 
         WriteMode::ToFile => {
-            println!("\nwrite mode is active the following files are being saved:")
+            println!("\nwrite mode is active the following files are being saved:");
         }
 
         WriteMode::ToConsole => println!(
@@ -98,27 +98,24 @@ fn main() {
         WriteMode::CheckFormatted => println!("\nonly printing changed files"),
     }
 
-    match &options.write_mode {
-        WriteMode::ToStdOut => {
-            let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
+    if let WriteMode::ToStdOut = &options.write_mode {
+        let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
 
-            if rustywind::has_classes(&contents, &options) {
-                let sorted_content = rustywind::sort_file_contents(&contents, &options);
-                print!("{}", sorted_content)
-            } else {
-                print!("{}", contents);
-                eprint!("[WARN] No classes were found in STDIN");
-            }
+        if rustywind::has_classes(&contents, &options) {
+            let sorted_content = rustywind::sort_file_contents(&contents, &options);
+            print!("{}", sorted_content);
+        } else {
+            print!("{}", contents);
+            eprint!("[WARN] No classes were found in STDIN");
         }
-        _ => {
-            options
-                .search_paths
-                .par_iter()
-                .for_each(|file_path| run_on_file_paths(file_path, &options));
+    } else {
+        options
+            .search_paths
+            .par_iter()
+            .for_each(|file_path| run_on_file_paths(file_path, &options));
 
-            if EXIT_ERROR.load(Ordering::Relaxed) {
-                std::process::exit(1);
-            }
+        if EXIT_ERROR.load(Ordering::Relaxed) {
+            std::process::exit(1);
         }
     }
 }
@@ -135,7 +132,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                     WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
                     WriteMode::ToConsole => print_file_contents(&sorted_content),
                     WriteMode::CheckFormatted => {
-                        print_changed_files(file_path, &sorted_content, &contents, options)
+                        print_changed_files(file_path, &sorted_content, &contents, options);
                     }
                 }
             }
@@ -156,7 +153,7 @@ fn print_changed_files(
         }
 
         let file_name = get_file_name(file_path, &options.starting_paths);
-        eprintln!("  * [UNFORMATTED FILE] {file_name}")
+        eprintln!("  * [UNFORMATTED FILE] {file_name}");
     }
 }
 
@@ -174,7 +171,7 @@ fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
 }
 
 fn print_file_name(file_path: &Path, options: &Options) {
-    println!("  * {}", get_file_name(file_path, &options.starting_paths))
+    println!("  * {}", get_file_name(file_path, &options.starting_paths));
 }
 
 fn get_file_name(file_path: &Path, starting_paths: &[PathBuf]) -> String {
@@ -194,5 +191,5 @@ fn get_file_name(file_path: &Path, starting_paths: &[PathBuf]) -> String {
 }
 
 fn print_file_contents(file_contents: &str) {
-    println!("\n\n{}\n\n", file_contents)
+    println!("\n\n{}\n\n", file_contents);
 }
