@@ -22,6 +22,10 @@ once_cell = "1.9"
 aho-corasick = "0.7"
 regex = "1"
 
+# logging
+env_logger = "0.9"
+log = "0.4"
+
 # parallel
 rayon = "1.5"
 

@@ -13,6 +13,8 @@ use std::sync::atomic::Ordering;
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 fn main() {
+    env_logger::init();
+
     let matches = App::new("RustyWind")
         .version(clap::crate_version!())
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -128,6 +130,11 @@ fn main() {
 }
 
 fn run_on_file_paths(file_path: &Path, options: &Options) {
+    if should_ignore_current_file(&options.ignored_files, file_path) {
+        log::debug!("file path {file_path:#?} found in ignored_files, will not sort");
+        return;
+    }
+
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind::has_classes(&contents, options) {
@@ -167,11 +174,11 @@ fn print_changed_files(
 }
 
 /// Return a boolean indicating whether the file should be ignored
-fn should_ignore_current_file(ignored_files: &HashSet<String>, current_file: &str) -> bool {
+fn should_ignore_current_file(ignored_files: &HashSet<String>, current_file: &Path) -> bool {
     current_file
-        .split('/')
-        .last()
-        .map(|file_name_clean| ignored_files.contains(file_name_clean))
+        .file_name()
+        .and_then(|file_name_os_str| file_name_os_str.to_str())
+        .map(|file_name| ignored_files.contains(file_name))
         .unwrap_or(false)
 }
 
