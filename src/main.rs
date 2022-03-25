@@ -177,7 +177,7 @@ fn print_changed_files(
 fn should_ignore_current_file(ignored_files: &HashSet<String>, current_file: &Path) -> bool {
     current_file
         .file_name()
-        .and_then(|file_name_os_str| file_name_os_str.to_str())
+        .and_then(std::ffi::OsStr::to_str)
         .map(|file_name| ignored_files.contains(file_name))
         .unwrap_or(false)
 }
