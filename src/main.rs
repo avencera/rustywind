@@ -72,6 +72,12 @@ fn main() {
                 .help("When set, rustywind will not delete duplicated classes"),
         )
         .arg(
+            Arg::new("ignored_files")
+                .long("ignored-files")
+                .help("When set, rustywind will ignore this list of files")
+                .takes_value(true),
+        )
+        .arg(
             Arg::new("custom-regex")
                 .long("custom-regex")
                 .help("Uses a custom regex instead of default one")
@@ -155,6 +161,13 @@ fn print_changed_files(
         let file_name = get_file_name(file_path, &options.starting_paths);
         eprintln!("  * [UNFORMATTED FILE] {file_name}");
     }
+}
+
+/// Return a boolean indicating whether the file should be ignored
+/// FIX: It seems that `ignored_files` is not being treated as a string 🧐
+fn should_ignore_current_file(options: &Options, current_file: &String) -> bool {
+    let ignored_files = options.ignored_files.clone();
+    return ignored_files.len() > 0 && ignored_files.contains(current_file);
 }
 
 fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {

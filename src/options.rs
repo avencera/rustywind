@@ -34,6 +34,7 @@ pub struct Options {
     pub starting_paths: Vec<PathBuf>,
     pub allow_duplicates: bool,
     pub search_paths: Vec<PathBuf>,
+    pub ignored_files: Vec<String>,
 }
 
 impl Options {
@@ -52,6 +53,7 @@ impl Options {
                     starting_paths: vec![PathBuf::new()],
                     allow_duplicates: matches.is_present("allow-duplicates"),
                     search_paths: vec![],
+                    ignored_files: vec![],
                 }
             }
             false => {
@@ -66,6 +68,7 @@ impl Options {
                     regex: get_custom_regex_from_matches(matches),
                     sorter: Sorter::DefaultSorter,
                     allow_duplicates: matches.is_present("allow-duplicates"),
+                    ignored_files: get_ignored_files_from_matches(matches),
                 }
             }
         }
@@ -120,4 +123,8 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
         })
         .unique()
         .collect()
+}
+
+fn get_ignored_files_from_matches(matches: &ArgMatches) -> Vec<String> {
+    matches.values_of("ignored_files").expect("Invalid Ignored Files provided").map(|path| path.to_owned()).collect()
 }
