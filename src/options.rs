@@ -128,7 +128,7 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
 
 fn get_ignored_files_from_matches(matches: &ArgMatches) -> HashSet<String> {
     match matches.values_of("ignored_files") {
-        Some(values) => values.map(|s| s.to_string()).collect::<HashSet<String>>(),
+        Some(values) => values.map(ToString::to_string).collect(),
         None => HashSet::new(),
     }
 }
