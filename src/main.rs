@@ -3,6 +3,7 @@ use indoc::indoc;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -158,8 +159,10 @@ fn print_changed_files(
             EXIT_ERROR.store(true, Ordering::Relaxed);
         }
 
-        let file_name = get_file_name(file_path, &options.starting_paths);
-        eprintln!("  * [UNFORMATTED FILE] {file_name}");
+        if !should_ignore_current_file(&options.ignored_files, &current_file_path) {
+            let file_name = get_file_name(file_path, &options.starting_paths);
+            eprintln!("  * [UNFORMATTED FILE] {file_name}")
+        }
     }
 }
 
