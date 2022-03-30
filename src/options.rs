@@ -5,6 +5,7 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum WriteMode {
@@ -35,7 +36,7 @@ pub struct Options {
     pub starting_paths: Vec<PathBuf>,
     pub allow_duplicates: bool,
     pub search_paths: Vec<PathBuf>,
-    pub ignored_files: HashSet<String>,
+    pub ignored_files: HashSet<PathBuf>,
 }
 
 impl Options {
@@ -126,9 +127,14 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
         .collect()
 }
 
-fn get_ignored_files_from_matches(matches: &ArgMatches) -> HashSet<String> {
+fn get_ignored_files_from_matches(matches: &ArgMatches) -> HashSet<PathBuf> {
     match matches.values_of("ignored_files") {
-        Some(values) => values.map(ToString::to_string).collect(),
+        Some(values) => values
+            .map(PathBuf::from_str)
+            .filter_map(Result::ok)
+            .map(std::fs::canonicalize)
+            .filter_map(Result::ok)
+            .collect(),
         None => HashSet::new(),
     }
 }

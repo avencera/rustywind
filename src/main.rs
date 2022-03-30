@@ -176,12 +176,16 @@ fn print_changed_files(
 }
 
 /// Return a boolean indicating whether the file should be ignored
-fn should_ignore_current_file(ignored_files: &HashSet<String>, current_file: &Path) -> bool {
-    current_file
-        .file_name()
-        .and_then(std::ffi::OsStr::to_str)
-        .map(|file_name| ignored_files.contains(file_name))
-        .unwrap_or(false)
+fn should_ignore_current_file(ignored_files: &HashSet<PathBuf>, current_file: &Path) -> bool {
+    if ignored_files.is_empty() {
+        // if the ignored_files is empty no need to do any more work
+        false
+    } else {
+        current_file
+            .canonicalize()
+            .map(|path| ignored_files.contains(&path))
+            .unwrap_or(false)
+    }
 }
 
 fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
