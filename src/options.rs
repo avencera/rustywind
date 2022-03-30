@@ -2,8 +2,10 @@ use clap::ArgMatches;
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
+use std::collections::HashSet;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum WriteMode {
@@ -34,6 +36,7 @@ pub struct Options {
     pub starting_paths: Vec<PathBuf>,
     pub allow_duplicates: bool,
     pub search_paths: Vec<PathBuf>,
+    pub ignored_files: HashSet<PathBuf>,
 }
 
 impl Options {
@@ -52,6 +55,7 @@ impl Options {
                     starting_paths: vec![PathBuf::new()],
                     allow_duplicates: matches.is_present("allow-duplicates"),
                     search_paths: vec![],
+                    ignored_files: get_ignored_files_from_matches(matches),
                 }
             }
             false => {
@@ -66,6 +70,7 @@ impl Options {
                     regex: get_custom_regex_from_matches(matches),
                     sorter: Sorter::DefaultSorter,
                     allow_duplicates: matches.is_present("allow-duplicates"),
+                    ignored_files: get_ignored_files_from_matches(matches),
                 }
             }
         }
@@ -120,4 +125,16 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
         })
         .unique()
         .collect()
+}
+
+fn get_ignored_files_from_matches(matches: &ArgMatches) -> HashSet<PathBuf> {
+    match matches.values_of("ignored_files") {
+        Some(values) => values
+            .map(PathBuf::from_str)
+            .filter_map(Result::ok)
+            .map(std::fs::canonicalize)
+            .filter_map(Result::ok)
+            .collect(),
+        None => HashSet::new(),
+    }
 }

@@ -3,6 +3,7 @@ use indoc::indoc;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rustywind::options::{Options, WriteMode};
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -12,6 +13,8 @@ use std::sync::atomic::Ordering;
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 fn main() {
+    env_logger::init();
+
     let matches = App::new("RustyWind")
         .version(clap::crate_version!())
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -72,6 +75,13 @@ fn main() {
                 .help("When set, rustywind will not delete duplicated classes"),
         )
         .arg(
+            Arg::new("ignored_files")
+                .short('i')
+                .long("ignored-files")
+                .help("When set, rustywind will ignore this list of files")
+                .takes_value(true),
+        )
+        .arg(
             Arg::new("custom-regex")
                 .long("custom-regex")
                 .help("Uses a custom regex instead of default one")
@@ -121,6 +131,12 @@ fn main() {
 }
 
 fn run_on_file_paths(file_path: &Path, options: &Options) {
+    // if the file is in the ignored_files list return early
+    if should_ignore_current_file(&options.ignored_files, file_path) {
+        log::debug!("file path {file_path:#?} found in ignored_files, will not sort");
+        return;
+    }
+
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind::has_classes(&contents, options) {
@@ -152,8 +168,23 @@ fn print_changed_files(
             EXIT_ERROR.store(true, Ordering::Relaxed);
         }
 
-        let file_name = get_file_name(file_path, &options.starting_paths);
-        eprintln!("  * [UNFORMATTED FILE] {file_name}");
+        if !should_ignore_current_file(&options.ignored_files, file_path) {
+            let file_name = get_file_name(file_path, &options.starting_paths);
+            eprintln!("  * [UNFORMATTED FILE] {file_name}")
+        }
+    }
+}
+
+/// Return a boolean indicating whether the file should be ignored
+fn should_ignore_current_file(ignored_files: &HashSet<PathBuf>, current_file: &Path) -> bool {
+    if ignored_files.is_empty() {
+        // if the ignored_files is empty no need to do any more work
+        false
+    } else {
+        current_file
+            .canonicalize()
+            .map(|path| ignored_files.contains(&path))
+            .unwrap_or(false)
     }
 }
 

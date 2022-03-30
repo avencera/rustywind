@@ -2,12 +2,14 @@ use pretty_assertions::assert_eq;
 
 use rustywind::options::Options;
 use rustywind::options::{FinderRegex, Sorter, WriteMode};
+use std::collections::HashSet;
 use std::path::Path;
 
 fn default_options_for_test() -> Options {
     Options {
         stdin: None,
         write_mode: WriteMode::ToConsole,
+        ignored_files: HashSet::new(),
         regex: FinderRegex::DefaultRegex,
         sorter: Sorter::DefaultSorter,
         starting_paths: vec![Path::new(".").to_owned()],
