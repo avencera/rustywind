@@ -168,7 +168,7 @@ fn print_changed_files(
             EXIT_ERROR.store(true, Ordering::Relaxed);
         }
 
-        if !should_ignore_current_file(&options.ignored_files, &current_file_path) {
+        if !should_ignore_current_file(&options.ignored_files, file_path) {
             let file_name = get_file_name(file_path, &options.starting_paths);
             eprintln!("  * [UNFORMATTED FILE] {file_name}")
         }
