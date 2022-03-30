@@ -76,6 +76,7 @@ fn main() {
         )
         .arg(
             Arg::new("ignored_files")
+                .short('i')
                 .long("ignored-files")
                 .help("When set, rustywind will ignore this list of files")
                 .takes_value(true),
