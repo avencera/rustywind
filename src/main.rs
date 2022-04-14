@@ -18,7 +18,7 @@ use std::sync::atomic::Ordering;
 
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 #[clap(args_override_self = true)]
 #[clap(allow_negative_numbers = true)]

@@ -93,6 +93,8 @@ fn get_write_mode_from_cli(cli: &Cli) -> WriteMode {
         WriteMode::ToFile
     } else if cli.check_formatted {
         WriteMode::CheckFormatted
+    } else if cli.stdin {
+        WriteMode::ToStdOut
     } else {
         WriteMode::DryRun
     }

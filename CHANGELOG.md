@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- `--ignore-files` option, thanks [@ftonato](https://github.com/neonowy) [#55](https://github.com/avencera/rustywind/pull/55)
+
+### Internal
+
+- Refactored, using Clap3 derive macros to parse args
+
 ## [0.13.0] - 2022-02-09
 
 ### Added
