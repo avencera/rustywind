@@ -110,7 +110,7 @@ Any and all feedback and criticism is very welcome. If im doing anything stupid 
 ### Phase 5 (Match Headwind Features)
 
 1. Add custom sorter via CLI args `--customer-sorter=...`
-2. Add custom regex via CLI args `--custom-regex=...`
+2. ~~Add custom regex via CLI args `--custom-regex=...`~~ [#39](https://github.com/avencera/rustywind/pull/39)
 
 ### Later Possibilities...
 
