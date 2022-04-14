@@ -1,3 +1,4 @@
+use clap::Parser;
 use clap::{App, AppSettings, Arg};
 use indoc::indoc;
 use once_cell::sync::Lazy;
@@ -14,6 +15,43 @@ static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 fn main() {
     env_logger::init();
+
+    #[derive(Parser)]
+    #[clap(author, version, about, long_about = None)]
+    #[clap(args_override_self = true)]
+    #[clap(allow_negative_numbers = true)]
+    #[clap(arg_required_else_help = true)]
+    struct Cli {
+        #[clap(help = "A file or directory to run on")]
+        file_or_dir: String,
+
+        #[clap(long, help = "Uses stdin instead of a file or folder")]
+        stdin: bool,
+
+        #[clap(long, help = "Changes the files in place with the reorganized classes")]
+        write: bool,
+
+        #[clap(
+            long,
+            help = "Prints out the new file content with the sorted classes to the terminal"
+        )]
+        dry_run: bool,
+
+        #[clap(
+            long,
+            help = "Prints out the new file content with the sorted classes to the terminal"
+        )]
+        check_formatted: bool,
+
+        #[clap(long, help = "When set, RustyWind will not delete duplicated classes")]
+        allow_duplicates: bool,
+
+        #[clap(long, help = "When set, RustyWind will ignore this list of files")]
+        ignored_files: Option<Vec<String>>,
+
+        #[clap(long, help = "Uses a custom regex instead of default one")]
+        custom_regex: Option<String>,
+    }
 
     let matches = App::new("RustyWind")
         .version(clap::crate_version!())

@@ -1,6 +1,6 @@
 [package]
 authors = ["Praveen Perera <praveen@avencera.com>"]
-edition = "2018"
+edition = "2021"
 name = "rustywind"
 version = "0.13.0"
 
@@ -8,7 +8,7 @@ version = "0.13.0"
 
 [dependencies]
 # cli
-clap = {version = "3.0", features = ["cargo"]}
+clap = {version = "3.1", features = ["cargo", "derive"]}
 indoc = "1.0"
 
 # files
