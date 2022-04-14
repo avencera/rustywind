@@ -73,6 +73,10 @@ fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {
         Some(regex_string) => {
             let regex = Regex::new(regex_string).wrap_err("Unable to parse custom regex")?;
 
+            if regex.captures_len() < 2 {
+                eyre::bail!("custom regex error, requires at-least 2 capture groups");
+            }
+
             Ok(FinderRegex::CustomRegex(regex))
         }
         None => Ok(FinderRegex::DefaultRegex),
