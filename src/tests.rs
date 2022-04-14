@@ -1,7 +1,6 @@
 use pretty_assertions::assert_eq;
 
-use rustywind::options::Options;
-use rustywind::options::{FinderRegex, Sorter, WriteMode};
+use super::*;
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -20,9 +19,7 @@ fn default_options_for_test() -> Options {
 
 #[cfg(test)]
 mod tests {
-    use rustywind::options::Options;
-
-    use crate::default_options_for_test;
+    use super::default_options_for_test;
 
     #[test]
     fn test_sort_file_contents() {
@@ -43,7 +40,7 @@ mod tests {
     "#.to_string();
 
         assert_eq!(
-            rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+            utils::sort_file_contents(file_contents, &default_options_for_test()),
             expected_outcome
         )
     }
@@ -67,7 +64,7 @@ mod tests {
     "#.to_string();
 
         assert_eq!(
-            rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+            utils::sort_file_contents(file_contents, &default_options_for_test()),
             expected_outcome
         )
     }
@@ -91,7 +88,7 @@ mod tests {
     "#.to_string();
 
         assert_eq!(
-            rustywind::sort_file_contents(
+            utils::sort_file_contents(
                 file_contents,
                 &Options {
                     allow_duplicates: true,
@@ -114,7 +111,7 @@ mod tests {
         .to_string();
 
         assert_eq!(
-            rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+            utils::sort_file_contents(file_contents, &default_options_for_test()),
             expected_outcome
         )
     }
@@ -157,7 +154,7 @@ fn test_multi_line_class_list() {
     .to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        utils::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -195,7 +192,7 @@ fn test_sort_file_contents_with_space_and_newline_separated_class_lists() {
     .to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        utils::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -220,7 +217,7 @@ fn test_sort_file_contents_with_spaces_newlines_and_custom_classes() {
     .to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        utils::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -245,7 +242,7 @@ fn test_sort_file_contents_with_responsive_classes() {
 "#.to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        utils::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -270,7 +267,7 @@ fn test_sort_file_contents_with_variant_classes() {
 "#.to_string();
 
     assert_eq!(
-        rustywind::sort_file_contents(file_contents, &default_options_for_test()),
+        utils::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }

@@ -1,8 +1,14 @@
-use clap::{App, AppSettings, Arg};
+pub mod consts;
+pub mod defaults;
+pub mod options;
+pub mod utils;
+
+use clap::Parser;
+use eyre::Result;
 use indoc::indoc;
 use once_cell::sync::Lazy;
+use options::{Options, WriteMode};
 use rayon::prelude::*;
-use rustywind::options::{Options, WriteMode};
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
@@ -12,84 +18,79 @@ use std::sync::atomic::Ordering;
 
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
-fn main() {
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+#[clap(args_override_self = true)]
+#[clap(allow_negative_numbers = true)]
+#[clap(arg_required_else_help = true)]
+#[clap(override_usage = indoc!("
+Run rustywind with a path to get a list of files that will be changed
+      rustywind . --dry-run
+
+    If you want to reorganize all classes in place, and change the files run with the `--write` flag
+      rustywind --write .
+
+    To print only the file names that would be changed run with the `--check-formatted` flag
+      rustywind --check-formatted .
+
+    If you want to run it on your STDIN, you can do:
+      echo \"<FILE CONTENTS>\" | rustywind --stdin
+                 
+    rustywind [FLAGS] <PATH>"))]
+pub struct Cli {
+    #[clap(
+        name = "file-or-dir",
+        help = "A file or directory to run on",
+        required_unless_present = "stdin"
+    )]
+    file_or_dir: Vec<String>,
+
+    #[clap(
+        long,
+        help = "Uses stdin instead of a file or folder",
+        conflicts_with_all = &["write", "file-or-dir", "dry-run"],
+        required_unless_present = "file-or-dir",
+    )]
+    stdin: bool,
+
+    #[clap(
+        long,
+        help = "Changes the files in place with the reorganized classes",
+        conflicts_with_all = &["stdin", "dry-run", "check-formatted"],
+    )]
+    write: bool,
+
+    #[clap(
+        long,
+        help = "Prints out the new file content with the sorted classes to the terminal",
+        conflicts_with_all = &["stdin", "write", "check-formatted"]
+    )]
+    dry_run: bool,
+
+    #[clap(
+        long,
+        help = "Checks if the files are already formatted, exits with 1 if not formatted",
+        conflicts_with_all = &["stdin", "write", "dry-run"]
+
+    )]
+    check_formatted: bool,
+
+    #[clap(long, help = "When set, RustyWind will not delete duplicated classes")]
+    allow_duplicates: bool,
+
+    #[clap(long, help = "When set, RustyWind will ignore this list of files")]
+    ignored_files: Option<Vec<String>>,
+
+    #[clap(long, help = "Uses a custom regex instead of default one")]
+    custom_regex: Option<String>,
+}
+
+fn main() -> Result<()> {
     env_logger::init();
+    color_eyre::install()?;
 
-    let matches = App::new("RustyWind")
-        .version(clap::crate_version!())
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .author("Praveen Perera <praveen@avencera.com>")
-        .about("\nOrganize all your tailwind classes")
-        .override_usage(indoc!("
-        Run rustywind with a path to get a list of files that will be changed
-              rustywind . --dry-run
-
-            If you want to reorganize all classes in place, and change the files run with the `--write` flag
-              rustywind --write .
-
-            To print only the file names that would be changed run with the `--check-formatted` flag
-              rustywind --check-formatted .
-
-            If you want to run it on your STDIN, you can do:
-              echo \"<FILE CONTENTS>\" | rustywind --stdin
-                         
-            rustywind [FLAGS] <PATH>"))
-        .arg(
-            Arg::new("file_or_dir")
-                .value_name("PATH")
-                .help("A file or directory to run on")
-                .conflicts_with("stdin")
-                .index(1)
-                .required_unless_present("stdin")
-                .multiple_occurrences(true)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("stdin")
-                .long("stdin")
-                .conflicts_with_all(&["write", "file_or_dir", "dry_run"])
-                .required_unless_present("file_or_dir")
-                .help("Uses stdin instead of a file or folder")
-        )
-        .arg(
-            Arg::new("write")
-                .long("write")
-                .conflicts_with_all(&["stdin", "dry_run", "check_formatted"])
-                .help("Changes the files in place with the reorganized classes"),
-        )
-        .arg(
-            Arg::new("dry_run")
-                .long("dry-run")
-                .conflicts_with_all(&["stdin", "write", "check_formatted"])
-                .help("Prints out the new file content with the sorted classes to the terminal"),
-        )
-        .arg(
-            Arg::new("check_formatted")
-                .long("check-formatted")
-                .conflicts_with_all(&["stdin", "write", "dry_run"])
-                .help("Prints out the new file content with the sorted classes to the terminal")
-        )
-        .arg(
-            Arg::new("allow-duplicates")
-                .long("allow-duplicates")
-                .help("When set, rustywind will not delete duplicated classes"),
-        )
-        .arg(
-            Arg::new("ignored_files")
-                .short('i')
-                .long("ignored-files")
-                .help("When set, rustywind will ignore this list of files")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("custom-regex")
-                .long("custom-regex")
-                .help("Uses a custom regex instead of default one")
-                .takes_value(true),
-        )
-        .get_matches();
-
-    let options = Options::new_from_matches(&matches);
+    let cli = Cli::parse();
+    let options = Options::new_from_cli(cli)?;
 
     match &options.write_mode {
         WriteMode::ToStdOut => (),
@@ -111,8 +112,8 @@ fn main() {
     if let WriteMode::ToStdOut = &options.write_mode {
         let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
 
-        if rustywind::has_classes(&contents, &options) {
-            let sorted_content = rustywind::sort_file_contents(&contents, &options);
+        if utils::has_classes(&contents, &options) {
+            let sorted_content = utils::sort_file_contents(&contents, &options);
             print!("{}", sorted_content);
         } else {
             print!("{}", contents);
@@ -128,6 +129,8 @@ fn main() {
             std::process::exit(1);
         }
     }
+
+    Ok(())
 }
 
 fn run_on_file_paths(file_path: &Path, options: &Options) {
@@ -139,8 +142,8 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
     match fs::read_to_string(file_path) {
         Ok(contents) => {
-            if rustywind::has_classes(&contents, options) {
-                let sorted_content = rustywind::sort_file_contents(&contents, options);
+            if utils::has_classes(&contents, options) {
+                let sorted_content = utils::sort_file_contents(&contents, options);
 
                 match &options.write_mode {
                     WriteMode::ToStdOut => (),

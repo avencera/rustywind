@@ -3,13 +3,9 @@ use std::{borrow::Cow, collections::HashMap};
 use itertools::Itertools;
 use regex::Captures;
 
-pub mod consts;
-pub mod defaults;
-pub mod options;
-
-use consts::{VARIANTS, VARIANT_SEARCHER};
-use defaults::{RE, SORTER};
-use options::{FinderRegex, Options};
+use crate::consts::{VARIANTS, VARIANT_SEARCHER};
+use crate::defaults::{RE, SORTER};
+use crate::options::{FinderRegex, Options};
 
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
     let regex = match &options.regex {
