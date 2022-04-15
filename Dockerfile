@@ -1,7 +1,10 @@
-FROM alpine:latest
+FROM rust:alpine as builder
+WORKDIR /home/rust/src
+RUN apk --no-cache add musl-dev
+COPY . .
+RUN cargo install --path .
 
-RUN apk --no-cache add curl --virtual .build-deps && \
-    curl -LSfs https://avencera.github.io/rustywind/install.sh | sh -s -- --git avencera/rustywind && \
-    apk del .build-deps
-
-ENTRYPOINT [ "rustywind" ]
+FROM scratch
+COPY --from=builder /usr/local/cargo/bin/rustywind .
+USER 1000:1000
+ENTRYPOINT ["./rustywind"]
