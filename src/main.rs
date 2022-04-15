@@ -19,10 +19,8 @@ use std::sync::atomic::Ordering;
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
-#[clap(args_override_self = true)]
-#[clap(allow_negative_numbers = true)]
-#[clap(arg_required_else_help = true)]
+#[clap(name = "RustyWind", author, version, about, long_about = None)]
+#[clap(args_override_self = true, arg_required_else_help = true)]
 #[clap(override_usage = indoc!("
 Run rustywind with a path to get a list of files that will be changed
       rustywind . --dry-run
@@ -41,6 +39,7 @@ pub struct Cli {
     #[clap(
         name = "file-or-dir",
         help = "A file or directory to run on",
+        value_name = "PATH",
         required_unless_present = "stdin"
     )]
     file_or_dir: Vec<String>,
