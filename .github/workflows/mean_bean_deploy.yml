@@ -16,7 +16,7 @@ jobs:
   install-cross:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - uses: XAMPPRocky/get-github-release@v1
@@ -26,7 +26,7 @@ jobs:
           repo: cross
           matches: ${{ matrix.platform }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         with:
           name: cross-${{ matrix.platform }}
           path: ${{ steps.cross.outputs.install_path }}
@@ -51,7 +51,7 @@ jobs:
         id: tag
         uses: dawidd6/action-get-tag@v1
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: bash ci/set_rust_version.bash stable ${{ matrix.target }}
       - run: bash ci/build.bash cargo ${{ matrix.target }} RELEASE
       - run: |
@@ -102,7 +102,7 @@ jobs:
         uses: dawidd6/action-get-tag@v1
 
       - name: Setup | Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # Cache files between builds
       - name: Setup | Cache Cargo
@@ -201,8 +201,8 @@ jobs:
         id: tag
         uses: dawidd6/action-get-tag@v1
 
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v1
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
         with:
           name: cross-linux-musl
           path: /tmp/
@@ -236,7 +236,7 @@ jobs:
     name: Build Docker image for tagged release
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Docker meta
         id: meta
