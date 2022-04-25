@@ -1,3 +1,4 @@
+use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
@@ -81,10 +82,15 @@ impl Options {
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
     match &cli.config_file {
         Some(config_file) => {
-            let file_contents =
-                fs::read_to_string(config_file).wrap_err("Error reading the config file");
+            let file_contents = fs::read_to_string(config_file)
+                .wrap_err_with(|| format!("Error reading the config file {config_file}"))
+                .with_suggestion(|| format!("Make sure the file {config_file} exists"));
+
             let config_file: ConfigFileContents = serde_json::from_str(&file_contents?)
-                .wrap_err("Error while parsing the config file")?;
+                .wrap_err_with(|| format!("Error while parsing the config file {config_file}"))
+                .with_suggestion(|| {
+                    format!("Make sure the {config_file} is valid json, with the expected format")
+                })?;
 
             Ok(Sorter::CustomSorter(parse_custom_sorter(
                 config_file.sort_order,

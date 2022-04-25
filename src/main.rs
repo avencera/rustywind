@@ -79,7 +79,9 @@ pub struct Cli {
 
     #[clap(
         long,
-        help = "When set, RustyWind will use the config file to derive configurations.  The config file current only supports json with one property sortOrder, e.g. { \"sortOrder\": [\"class1\", ...] }"
+        help = "When set, RustyWind will use the config file to derive configurations. \
+        The config file current only supports json with one property sortOrder, \
+        e.g. { \"sortOrder\": [\"class1\", ...] }"
     )]
     config_file: Option<String>,
 
