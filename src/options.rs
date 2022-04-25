@@ -83,10 +83,11 @@ fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
         Some(config_file) => {
             let file_contents =
                 fs::read_to_string(config_file).wrap_err("Error reading the config file");
-            let result: Result<ConfigFileContents> = serde_json::from_str(&file_contents?)
-                .wrap_err("Error while parsing the config file");
+            let config_file: ConfigFileContents = serde_json::from_str(&file_contents?)
+                .wrap_err("Error while parsing the config file")?;
+
             Ok(Sorter::CustomSorter(parse_custom_sorter(
-                result?.sort_order,
+                config_file.sort_order,
             )))
         }
         None => Ok(Sorter::DefaultSorter),
