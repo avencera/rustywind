@@ -88,6 +88,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>, sorter:&HashMap<
             variants.remove(key).unwrap_or_default(),
             custom_classes,
             key.len() + 1,
+            sorter
         );
 
         sorted_variant_classes.append(&mut sorted_classes);
@@ -106,11 +107,12 @@ fn sort_variant_classes<'a>(
     classes: Vec<&'a str>,
     mut custom_classes: Vec<&'a str>,
     class_after: usize,
+    sorter: &HashMap<String, usize>
 ) -> (Vec<&'a str>, Vec<&'a str>) {
     let mut tailwind_classes = Vec::with_capacity(classes.len());
 
     for class in classes {
-        match class.get(class_after..).and_then(|class| SORTER.get(class)) {
+        match class.get(class_after..).and_then(|class| sorter.get(class)) {
             Some(class_placement) => tailwind_classes.push((class, class_placement)),
             None => custom_classes.push(class),
         }
