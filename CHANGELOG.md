@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.15.0] - 2022-04-25
+
+- Add `--config-file` option, thanks [@mweiss-carerev](https://github.com/mweiss-carerev) [#58](https://github.com/avencera/rustywind/pull/58)
+
 ## [0.14.0] - 2022-03-14
 
 - `--ignore-files` option, thanks [@ftonato](https://github.com/neonowy) [#55](https://github.com/avencera/rustywind/pull/55)
