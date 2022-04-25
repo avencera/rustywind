@@ -1,14 +1,14 @@
-use serde::{Deserialize};
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
-use std::collections::HashSet;
+use serde::Deserialize;
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::fs;
 
 use crate::Cli;
 
@@ -36,7 +36,7 @@ pub enum Sorter {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ConfigFileContents {
-    default_sort_order: Vec<String>
+    default_sort_order: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -81,11 +81,15 @@ impl Options {
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
     match &cli.config_file {
         Some(config_file) => {
-            let file_contents = fs::read_to_string(config_file).expect("Error reading the config file");
-            let result:ConfigFileContents = serde_json::from_str(&file_contents).expect("Error while parsing the config file");
-            Ok(Sorter::CustomSorter(parse_custom_sorter(result.default_sort_order)))
+            let file_contents =
+                fs::read_to_string(config_file).expect("Error reading the config file");
+            let result: ConfigFileContents =
+                serde_json::from_str(&file_contents).expect("Error while parsing the config file");
+            Ok(Sorter::CustomSorter(parse_custom_sorter(
+                result.default_sort_order,
+            )))
         }
-        None => Ok(Sorter::DefaultSorter)
+        None => Ok(Sorter::DefaultSorter),
     }
 }
 
@@ -156,6 +160,6 @@ fn parse_custom_sorter(contents: Vec<String>) -> HashMap<String, usize> {
     contents
         .into_iter()
         .enumerate()
-        .map(|(index, class)| (class.to_string(), index))
+        .map(|(index, class)| (class, index))
         .collect()
 }
