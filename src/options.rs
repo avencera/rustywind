@@ -36,7 +36,7 @@ pub enum Sorter {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ConfigFileContents {
-    default_sort_order: Vec<String>,
+    sort_order: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -82,11 +82,11 @@ fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
     match &cli.config_file {
         Some(config_file) => {
             let file_contents =
-                fs::read_to_string(config_file).expect("Error reading the config file");
-            let result: ConfigFileContents =
-                serde_json::from_str(&file_contents).expect("Error while parsing the config file");
+                fs::read_to_string(config_file).wrap_err("Error reading the config file");
+            let result: Result<ConfigFileContents> = serde_json::from_str(&file_contents?)
+                .wrap_err("Error while parsing the config file");
             Ok(Sorter::CustomSorter(parse_custom_sorter(
-                result.default_sort_order,
+                result?.sort_order,
             )))
         }
         None => Ok(Sorter::DefaultSorter),
