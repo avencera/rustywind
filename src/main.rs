@@ -77,6 +77,12 @@ pub struct Cli {
     #[clap(long, help = "When set, RustyWind will not delete duplicated classes")]
     allow_duplicates: bool,
 
+    #[clap(
+        long,
+        help = "When set, RustyWind will use the config file to derive configurations.  The config file current only supports json with one property sortOrder, e.g. { \"sortOrder\": [\"class1\", ...] }"
+    )]
+    config_file: Option<String>,
+
     #[clap(long, help = "When set, RustyWind will ignore this list of files")]
     ignored_files: Option<Vec<String>>,
 

@@ -5,7 +5,7 @@ use regex::Captures;
 
 use crate::consts::{VARIANTS, VARIANT_SEARCHER};
 use crate::defaults::{RE, SORTER};
-use crate::options::{FinderRegex, Options};
+use crate::options::{FinderRegex, Options, Sorter};
 
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
     let regex = match &options.regex {
@@ -31,10 +31,15 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
 }
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
+    let sorter: &HashMap<String, usize> = match &options.sorter {
+        Sorter::DefaultSorter => &*SORTER,
+        Sorter::CustomSorter(custom_sorter) => custom_sorter,
+    };
+
     let str_vec = if options.allow_duplicates {
-        sort_classes_vec(class_string.split_ascii_whitespace())
+        sort_classes_vec(class_string.split_ascii_whitespace(), sorter)
     } else {
-        sort_classes_vec(class_string.split_ascii_whitespace().unique())
+        sort_classes_vec(class_string.split_ascii_whitespace().unique(), sorter)
     };
 
     let mut string = String::with_capacity(str_vec.len() * 2);
@@ -48,8 +53,11 @@ fn sort_classes(class_string: &str, options: &Options) -> String {
     string
 }
 
-fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
-    let enumerated_classes = classes.map(|class| ((class), SORTER.get(class)));
+fn sort_classes_vec<'a>(
+    classes: impl Iterator<Item = &'a str>,
+    sorter: &HashMap<String, usize>,
+) -> Vec<&'a str> {
+    let enumerated_classes = classes.map(|class| ((class), sorter.get(class)));
 
     let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
     let mut custom_classes: Vec<&str> = vec![];
@@ -83,6 +91,7 @@ fn sort_classes_vec<'a>(classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> 
             variants.remove(key).unwrap_or_default(),
             custom_classes,
             key.len() + 1,
+            sorter,
         );
 
         sorted_variant_classes.append(&mut sorted_classes);
@@ -101,11 +110,12 @@ fn sort_variant_classes<'a>(
     classes: Vec<&'a str>,
     mut custom_classes: Vec<&'a str>,
     class_after: usize,
+    sorter: &HashMap<String, usize>,
 ) -> (Vec<&'a str>, Vec<&'a str>) {
     let mut tailwind_classes = Vec::with_capacity(classes.len());
 
     for class in classes {
-        match class.get(class_after..).and_then(|class| SORTER.get(class)) {
+        match class.get(class_after..).and_then(|class| sorter.get(class)) {
             Some(class_placement) => tailwind_classes.push((class, class_placement)),
             None => custom_classes.push(class),
         }
@@ -137,7 +147,8 @@ fn test_sort_classes_vec() {
                 "px-2",
                 "flex"
             ]
-            .into_iter()
+            .into_iter(),
+            &*SORTER
         ),
         vec![
             "inline-block",
