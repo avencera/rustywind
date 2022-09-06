@@ -58,7 +58,7 @@ impl Options {
             let mut buffer = String::new();
             let mut stdin = std::io::stdin(); // We get `Stdin` here.
             stdin.read_to_string(&mut buffer).unwrap();
-            Some(buffer.trim().to_string())
+            Some(buffer.to_string())
         } else {
             None
         };

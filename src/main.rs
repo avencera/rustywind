@@ -121,9 +121,9 @@ fn main() -> Result<()> {
 
         if utils::has_classes(&contents, &options) {
             let sorted_content = utils::sort_file_contents(&contents, &options);
-            println!("{}", sorted_content);
+            print!("{sorted_content}");
         } else {
-            println!("{}", contents);
+            print!("{contents}");
             eprint!("[WARN] No classes were found in STDIN");
         }
     } else {
