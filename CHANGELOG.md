@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.15.1] - 2022-09-06
+
+- Fixed removing `\n` newline when formatting from STDIN
+- Updated dependencies
+
 ## [0.15.0] - 2022-04-25
 
 - Add `--config-file` option, thanks [@mweiss-carerev](https://github.com/mweiss-carerev) [#58](https://github.com/avencera/rustywind/pull/58)
