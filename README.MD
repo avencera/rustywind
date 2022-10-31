@@ -12,6 +12,12 @@ or
 
 or
 
+Install from homebrew (mac and linux):
+
+`brew install avencera/taps/rustywind`
+
+or
+
 Install from a github release:
 
 `curl -LSfs https://avencera.github.io/rustywind/install.sh | sh -s -- --git avencera/rustywind`
