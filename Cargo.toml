@@ -1,6 +1,8 @@
 [package]
 authors = ["Praveen Perera <praveen@avencera.com>"]
 edition = "2021"
+license = "Apache-2.0"
+license-file = "LICENSE"
 name = "rustywind"
 version = "0.15.1"
 
