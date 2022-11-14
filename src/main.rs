@@ -117,7 +117,7 @@ fn main() -> Result<()> {
     }
 
     if let WriteMode::ToStdOut = &options.write_mode {
-        let contents = options.stdin.clone().unwrap_or_else(|| "".to_string());
+        let contents = options.stdin.clone().unwrap_or_default();
 
         if utils::has_classes(&contents, &options) {
             let sorted_content = utils::sort_file_contents(&contents, &options);

@@ -32,7 +32,7 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
     let sorter: &HashMap<String, usize> = match &options.sorter {
-        Sorter::DefaultSorter => &*SORTER,
+        Sorter::DefaultSorter => &SORTER,
         Sorter::CustomSorter(custom_sorter) => custom_sorter,
     };
 
@@ -66,7 +66,7 @@ fn sort_classes_vec<'a>(
     for (class, maybe_size) in enumerated_classes {
         match maybe_size {
             Some(size) => tailwind_classes.push((class, size)),
-            None => match VARIANT_SEARCHER.find(&class) {
+            None => match VARIANT_SEARCHER.find(class) {
                 Some(prefix_match) => {
                     let prefix = VARIANTS[prefix_match.pattern()];
                     variants.entry(prefix).or_insert_with(Vec::new).push(class)
