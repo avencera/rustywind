@@ -5,7 +5,8 @@
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "install": "node ./lib/postinstall.js"
+    "install": "node ./lib/postinstall.js",
+    "update-release": "node ./lib/update-release.js"
   },
   "repository": {
     "type": "git",

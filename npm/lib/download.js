@@ -11,6 +11,8 @@ const URL = url.URL;
 const child_process = require("child_process");
 const proxy_from_env = require("proxy-from-env");
 
+const get = require("./get");
+
 const packageVersion = require("../package.json").version;
 const tmpDir = path.join(os.tmpdir(), `rustywind-cache-${packageVersion}`);
 
@@ -20,12 +22,20 @@ const fsMkdir = util.promisify(fs.mkdir);
 
 const isWindows = os.platform() === "win32";
 
-const REPO = "avencera/rustywind";
-
+/**
+ * @param {string} _url
+ * @returns boolean
+ */
 function isGithubUrl(_url) {
   return url.parse(_url).hostname === "api.github.com";
 }
 
+/**
+ * @param {string} url
+ * @param {string} dest
+ * @param {{ headers: Record<string, string>; proxy?: string; }} opts
+ * @returns boolean
+ */
 function downloadWin(url, dest, opts) {
   return new Promise((resolve, reject) => {
     let userAgent;
@@ -86,7 +96,7 @@ function download(_url, dest, opts) {
     return downloadWin(_url, dest, opts);
   }
 
-  if (opts.headers && opts.headers.authorization && !isGithubUrl(_url)) {
+  if (opts.headers.authorization && !isGithubUrl(_url)) {
     delete opts.headers.authorization;
   }
 
@@ -123,60 +133,19 @@ function download(_url, dest, opts) {
   });
 }
 
-function get(_url, opts) {
-  console.log(`GET ${_url}`);
-
-  const proxy = proxy_from_env.getProxyForUrl(url.parse(_url));
-  if (proxy !== "") {
-    var HttpsProxyAgent = require("https-proxy-agent");
-    opts = {
-      ...opts,
-      agent: new HttpsProxyAgent(proxy),
-    };
-  }
-
-  return new Promise((resolve, reject) => {
-    let result = "";
-    opts = {
-      ...url.parse(_url),
-      ...opts,
-    };
-    https.get(opts, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error("Request failed: " + response.statusCode));
-      }
-
-      response.on("data", (d) => {
-        result += d.toString();
-      });
-
-      response.on("end", () => {
-        resolve(result);
-      });
-
-      response.on("error", (e) => {
-        reject(e);
-      });
-    });
-  });
-}
-
-function getApiUrl(repo, tag) {
-  return `https://api.github.com/repos/${repo}/releases/tags/${tag}`;
-}
-
 /**
  * @param {{ force: boolean; token: string; version: string; }} opts
  * @param {string} assetName
  * @param {string} downloadFolder
+ * @return {Promise<void>}
  */
-async function getAssetFromGithubApi(opts, assetName, downloadFolder) {
+async function getAssetFromGitHub(opts, assetName, downloadFolder) {
   const assetDownloadPath = path.join(downloadFolder, assetName);
 
   // We can just use the cached binary
   if (!opts.force && (await fsExists(assetDownloadPath))) {
     console.log("Using cached download: " + assetDownloadPath);
-    return assetDownloadPath;
+    return;
   }
 
   const downloadOpts = {
@@ -185,23 +154,12 @@ async function getAssetFromGithubApi(opts, assetName, downloadFolder) {
     },
   };
 
+  downloadOpts.headers.accept = "application/octet-stream";
   if (opts.token) {
     downloadOpts.headers.authorization = `token ${opts.token}`;
   }
 
-  console.log(`Finding release for ${opts.version}`);
-  const release = await get(getApiUrl(REPO, opts.version), downloadOpts);
-  let jsonRelease;
-  try {
-    jsonRelease = JSON.parse(release);
-  } catch (e) {
-    throw new Error("Malformed API response: " + e.stack);
-  }
-
-  if (!jsonRelease.assets) {
-    throw new Error("Bad API response: " + JSON.stringify(release));
-  }
-
+  const jsonRelease = require("../release.json");
   const asset = jsonRelease.assets.find((a) => a.name === assetName);
   if (!asset) {
     throw new Error("Asset not found with name: " + assetName);
@@ -210,8 +168,17 @@ async function getAssetFromGithubApi(opts, assetName, downloadFolder) {
   console.log(`Downloading from ${asset.url}`);
   console.log(`Downloading to ${assetDownloadPath}`);
 
-  downloadOpts.headers.accept = "application/octet-stream";
-  await download(asset.url, assetDownloadPath, downloadOpts);
+  try {
+    await download(asset.url, assetDownloadPath, downloadOpts);
+  } catch (e) {
+    console.error("Download failed:", e);
+    console.error(
+      `Attempting to download from 'browser download url' ${asset.browser_download_url} instead`
+    );
+
+    delete downloadOpts.headers.authorization;
+    await download(asset.browser_download_url, assetDownloadPath, downloadOpts);
+  }
 }
 
 function unzipWindows(zipPath, destinationDir) {
@@ -309,7 +276,7 @@ module.exports = async (opts) => {
 
   const assetDownloadPath = path.join(tmpDir, assetName);
   try {
-    await getAssetFromGithubApi(opts, assetName, tmpDir);
+    await getAssetFromGitHub(opts, assetName, tmpDir);
   } catch (e) {
     console.log("Deleting invalid download cache");
     try {
