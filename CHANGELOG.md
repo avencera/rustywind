@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.15.2] - 2023-01-03
+
+- Fix download rate limited by github thanks [@adamdicarlo0](https://github.com/adamdicarlo0) [#68](https://github.com/avencera/rustywind/pull/68)
+
 ## [0.15.1] - 2022-09-06
 
 - Fixed removing `\n` newline when formatting from STDIN
