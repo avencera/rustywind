@@ -6,8 +6,9 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "install": "node ./lib/postinstall.js",
-    "update-release": "node ./lib/update-release.js"
+    "prepack": "node ./lib/update-release.js"
   },
+  "files": ["bin/", "lib/", "release.json"],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"
@@ -18,7 +19,6 @@
     "headwind",
     "headwind cli"
   ],
-  "postinstall": "node ./lib/postinstall.js",
   "bin": {
     "rustywind": "bin/rustywind"
   },

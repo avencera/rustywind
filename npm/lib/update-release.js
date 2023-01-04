@@ -21,7 +21,6 @@ async function main() {
       ...asset,
       download_count: undefined,
     }));
-    console.log(release);
     fs.writeFileSync("release.json", JSON.stringify(release, undefined, 2), {
       encoding: "utf8",
     });
