@@ -1,6 +1,6 @@
 {
   "name": "rustywind",
-  "version": "0.15.2",
+  "version": "0.15.3",
   "description": "CLI for organizing Tailwind CSS classes",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -8,7 +8,11 @@
     "install": "node ./lib/postinstall.js",
     "prepack": "node ./lib/update-release.js"
   },
-  "files": ["bin/", "lib/", "release.json"],
+  "files": [
+    "bin/",
+    "lib/",
+    "release.json"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"

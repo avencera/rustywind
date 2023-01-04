@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.15.3] - 2023-01-03
+
+- Fix npm publishing thanks [@adamdicarlo0](https://github.com/adamdicarlo0) [#69](https://github.com/avencera/rustywind/pull/69)
+
 ## [0.15.2] - 2023-01-03
 
 - Fix download rate limited by github thanks [@adamdicarlo0](https://github.com/adamdicarlo0) [#68](https://github.com/avencera/rustywind/pull/68)
