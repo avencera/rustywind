@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.15.4] - 2023-02-24
+
+- Update cargo.lock file to new version [#70](https://github.com/avencera/rustywind/issues/70)
+- Fix Regex to only match the characters selected (and work with conditionals), thanks [@rubas](https://github.com/rubas) [#66](https://github.com/avencera/rustywind/pull/66)
+
 ## [0.15.3] - 2023-01-03
 
 - Fix npm publishing thanks [@adamdicarlo0](https://github.com/adamdicarlo0) [#69](https://github.com/avencera/rustywind/pull/69)
