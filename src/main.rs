@@ -22,7 +22,9 @@ static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 #[clap(name = "RustyWind", author, version, about, long_about = None)]
 #[clap(args_override_self = true, arg_required_else_help = true)]
 #[clap(override_usage = indoc!("
-Run rustywind with a path to get a list of files that will be changed
+    rustywind [OPTIONS] [PATH]...
+
+    Run rustywind with a path to get a list of files that will be changed
       rustywind . --dry-run
 
     If you want to reorganize all classes in place, and change the files run with the `--write` flag
@@ -32,63 +34,43 @@ Run rustywind with a path to get a list of files that will be changed
       rustywind --check-formatted .
 
     If you want to run it on your STDIN, you can do:
-      echo \"<FILE CONTENTS>\" | rustywind --stdin
-                 
-    rustywind [FLAGS] <PATH>"))]
+      echo \"<FILE CONTENTS>\" | rustywind --stdin"))]
 pub struct Cli {
-    #[clap(
-        name = "file-or-dir",
-        help = "A file or directory to run on",
+    /// A file or directory to run on.
+    #[arg(
         value_name = "PATH",
         required_unless_present = "stdin"
     )]
     file_or_dir: Vec<String>,
-
-    #[clap(
+    /// Uses stdin instead of a file or folder.
+    #[arg(
         long,
-        help = "Uses stdin instead of a file or folder",
-        conflicts_with_all = &["write", "file-or-dir", "dry-run"],
-        required_unless_present = "file-or-dir",
+        conflicts_with_all = &["write", "file_or_dir", "dry_run"],
+        required_unless_present = "file_or_dir",
     )]
     stdin: bool,
-
-    #[clap(
-        long,
-        help = "Changes the files in place with the reorganized classes",
-        conflicts_with_all = &["stdin", "dry-run", "check-formatted"],
-    )]
+    /// Changes the files in place with the reorganized classes.
+    #[arg(long, conflicts_with_all = &["stdin", "dry_run", "check_formatted"])]
     write: bool,
-
-    #[clap(
-        long,
-        help = "Prints out the new file content with the sorted classes to the terminal",
-        conflicts_with_all = &["stdin", "write", "check-formatted"]
-    )]
+    /// Prints out the new file content with the sorted classes to the terminal.
+    #[arg(long, conflicts_with_all = &["stdin", "write", "check_formatted"])]
     dry_run: bool,
-
-    #[clap(
-        long,
-        help = "Checks if the files are already formatted, exits with 1 if not formatted",
-        conflicts_with_all = &["stdin", "write", "dry-run"]
-
-    )]
+    /// Checks if the files are already formatted, exits with 1 if not formatted.
+    #[arg(long, conflicts_with_all = &["stdin", "write", "dry_run"])]
     check_formatted: bool,
-
-    #[clap(long, help = "When set, RustyWind will not delete duplicated classes")]
+    /// When set, RustyWind will not delete duplicated classes.
+    #[arg(long)]
     allow_duplicates: bool,
-
-    #[clap(
-        long,
-        help = "When set, RustyWind will use the config file to derive configurations. \
-        The config file current only supports json with one property sortOrder, \
-        e.g. { \"sortOrder\": [\"class1\", ...] }"
-    )]
+    /// When set, RustyWind will use the config file to derive configurations. The config file
+    /// current only supports json with one property sortOrder, e.g.
+    /// { "sortOrder": ["class1", ...] }.
+    #[arg(long)]
     config_file: Option<String>,
-
-    #[clap(long, help = "When set, RustyWind will ignore this list of files")]
+    /// When set, RustyWind will ignore this list of files.
+    #[arg(long)]
     ignored_files: Option<Vec<String>>,
-
-    #[clap(long, help = "Uses a custom regex instead of default one")]
+    /// Uses a custom regex instead of default one.
+    #[arg(long)]
     custom_regex: Option<String>,
 }
 
@@ -233,4 +215,13 @@ fn get_file_name(file_path: &Path, starting_paths: &[PathBuf]) -> String {
 
 fn print_file_contents(file_contents: &str) {
     println!("\n\n{}\n\n", file_contents);
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn verify_cli(){
+        use clap::CommandFactory;
+        super::Cli::command().debug_assert();
+    }
 }
