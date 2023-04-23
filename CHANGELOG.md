@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2023-04-23
+
+- Updated all dependencies, including `aho-corasick` [#73](https://github.com/avencera/rustywind/pull/73), thanks [@dnaka91](https://github.com/dnaka91)
+- Change regex to work with colors with opacity [#72](https://github.com/avencera/rustywind/pull/72), thanks [@dnaka91](https://github.com/dnaka91)
+
 ## [0.15.4] - 2023-02-24
 
 - Update cargo.lock file to new version [#70](https://github.com/avencera/rustywind/issues/70)
