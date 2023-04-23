@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use aho_corasick::{Anchored, Input};
 use itertools::Itertools;
 use regex::Captures;
 
@@ -66,14 +67,17 @@ fn sort_classes_vec<'a>(
     for (class, maybe_size) in enumerated_classes {
         match maybe_size {
             Some(size) => tailwind_classes.push((class, size)),
-            None => match VARIANT_SEARCHER.find(class) {
-                Some(prefix_match) => {
-                    let prefix = VARIANTS[prefix_match.pattern()];
-                    variants.entry(prefix).or_insert_with(Vec::new).push(class)
-                }
+            None => {
+                let input = Input::new(class).anchored(Anchored::Yes);
+                match VARIANT_SEARCHER.find(input) {
+                    Some(prefix_match) => {
+                        let prefix = VARIANTS[prefix_match.pattern()];
+                        variants.entry(prefix).or_insert_with(Vec::new).push(class)
+                    }
 
-                None => custom_classes.push(class),
-            },
+                    None => custom_classes.push(class),
+                }
+            }
         }
     }
 

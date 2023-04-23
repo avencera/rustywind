@@ -627,7 +627,7 @@ dependencies = [
 name = "rustywind"
 version = "0.15.4"
 dependencies = [
- "aho-corasick 0.7.20",
+ "aho-corasick 1.0.1",
  "clap",
  "color-eyre",
  "env_logger",

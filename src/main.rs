@@ -37,10 +37,7 @@ static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
       echo \"<FILE CONTENTS>\" | rustywind --stdin"))]
 pub struct Cli {
     /// A file or directory to run on.
-    #[arg(
-        value_name = "PATH",
-        required_unless_present = "stdin"
-    )]
+    #[arg(value_name = "PATH", required_unless_present = "stdin")]
     file_or_dir: Vec<String>,
     /// Uses stdin instead of a file or folder.
     #[arg(
@@ -220,7 +217,7 @@ fn print_file_contents(file_contents: &str) {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn verify_cli(){
+    fn verify_cli() {
         use clap::CommandFactory;
         super::Cli::command().debug_assert();
     }

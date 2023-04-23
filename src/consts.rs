@@ -1,4 +1,4 @@
-use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind, StartKind};
 use once_cell::sync::Lazy;
 
 pub static VARIANTS: Lazy<Vec<&'static str>> = Lazy::new(|| {
@@ -33,8 +33,8 @@ pub static VARIANTS: Lazy<Vec<&'static str>> = Lazy::new(|| {
 
 pub static VARIANT_SEARCHER: Lazy<AhoCorasick> = Lazy::new(|| {
     AhoCorasickBuilder::new()
-        .anchored(true)
+        .start_kind(StartKind::Anchored)
         .match_kind(MatchKind::LeftmostLongest)
-        .auto_configure(&VARIANTS)
         .build(VARIANTS.iter())
+        .expect("Failed to build variant searcher")
 });
