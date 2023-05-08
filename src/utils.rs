@@ -152,7 +152,7 @@ fn test_sort_classes_vec() {
                 "flex"
             ]
             .into_iter(),
-            &*SORTER
+            &SORTER
         ),
         vec![
             "inline-block",
