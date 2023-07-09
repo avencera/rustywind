@@ -40,7 +40,7 @@ mod tests {
     "#.to_string();
 
         assert_eq!(
-            utils::sort_file_contents(file_contents, &default_options_for_test()),
+            sort::sort_file_contents(file_contents, &default_options_for_test()),
             expected_outcome
         )
     }
@@ -64,7 +64,7 @@ mod tests {
     "#.to_string();
 
         assert_eq!(
-            utils::sort_file_contents(file_contents, &default_options_for_test()),
+            sort::sort_file_contents(file_contents, &default_options_for_test()),
             expected_outcome
         )
     }
@@ -88,7 +88,7 @@ mod tests {
     "#.to_string();
 
         assert_eq!(
-            utils::sort_file_contents(
+            sort::sort_file_contents(
                 file_contents,
                 &Options {
                     allow_duplicates: true,
@@ -111,7 +111,7 @@ mod tests {
         .to_string();
 
         assert_eq!(
-            utils::sort_file_contents(file_contents, &default_options_for_test()),
+            sort::sort_file_contents(file_contents, &default_options_for_test()),
             expected_outcome
         )
     }
@@ -154,7 +154,7 @@ fn test_multi_line_class_list() {
     .to_string();
 
     assert_eq!(
-        utils::sort_file_contents(file_contents, &default_options_for_test()),
+        sort::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -192,7 +192,7 @@ fn test_sort_file_contents_with_space_and_newline_separated_class_lists() {
     .to_string();
 
     assert_eq!(
-        utils::sort_file_contents(file_contents, &default_options_for_test()),
+        sort::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -217,7 +217,7 @@ fn test_sort_file_contents_with_spaces_newlines_and_custom_classes() {
     .to_string();
 
     assert_eq!(
-        utils::sort_file_contents(file_contents, &default_options_for_test()),
+        sort::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -242,7 +242,7 @@ fn test_sort_file_contents_with_responsive_classes() {
 "#.to_string();
 
     assert_eq!(
-        utils::sort_file_contents(file_contents, &default_options_for_test()),
+        sort::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }
@@ -267,7 +267,7 @@ fn test_sort_file_contents_with_variant_classes() {
 "#.to_string();
 
     assert_eq!(
-        utils::sort_file_contents(file_contents, &default_options_for_test()),
+        sort::sort_file_contents(file_contents, &default_options_for_test()),
         expected_outcome
     )
 }

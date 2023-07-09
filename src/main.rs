@@ -2,7 +2,7 @@ pub mod consts;
 pub mod defaults;
 pub mod options;
 pub mod parser;
-pub mod utils;
+pub mod sorter;
 
 use clap::Parser;
 use eyre::Result;
@@ -62,8 +62,12 @@ pub struct Cli {
     /// When set, RustyWind will use the config file to derive configurations. The config file
     /// current only supports json with one property sortOrder, e.g.
     /// { "sortOrder": ["class1", ...] }.
-    #[arg(long)]
+    #[arg(long, conflicts_with_all = &["output_css_file"])]
     config_file: Option<String>,
+    /// When set RustyWind will determine the sort order
+    /// by the order the class appears in the the given css file.
+    #[arg(long, conflicts_with_all = &["config_file"])]
+    output_css_file: Option<String>,
     /// When set, RustyWind will ignore this list of files.
     #[arg(long)]
     ignored_files: Option<Vec<String>>,
@@ -99,8 +103,8 @@ fn main() -> Result<()> {
     if let WriteMode::ToStdOut = &options.write_mode {
         let contents = options.stdin.clone().unwrap_or_default();
 
-        if utils::has_classes(&contents, &options) {
-            let sorted_content = utils::sort_file_contents(&contents, &options);
+        if sorter::has_classes(&contents, &options) {
+            let sorted_content = sorter::sort_file_contents(&contents, &options);
             print!("{sorted_content}");
         } else {
             print!("{contents}");
@@ -129,8 +133,8 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
     match fs::read_to_string(file_path) {
         Ok(contents) => {
-            if utils::has_classes(&contents, options) {
-                let sorted_content = utils::sort_file_contents(&contents, options);
+            if sorter::has_classes(&contents, options) {
+                let sorted_content = sorter::sort_file_contents(&contents, options);
 
                 match &options.write_mode {
                     WriteMode::ToStdOut => (),
