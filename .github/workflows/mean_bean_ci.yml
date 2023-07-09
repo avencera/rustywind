@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        channel: [stable, beta, nightly]
+        channel: [stable]
         target:
           # MSVC
           - i686-pc-windows-msvc
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        channel: [stable, beta, nightly]
+        channel: [stable]
         target:
           - x86_64-apple-darwin
           ### Disable running tests on M1 target, not currently working
@@ -117,7 +117,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        channel: [stable, beta, nightly]
+        channel: [stable]
         target:
           # WASM, off by default as most rust projects aren't compatible yet.
           # - wasm32-unknown-emscripten
