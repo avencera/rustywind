@@ -1,6 +1,7 @@
 pub mod consts;
 pub mod defaults;
 pub mod options;
+pub mod parser;
 pub mod utils;
 
 use clap::Parser;
