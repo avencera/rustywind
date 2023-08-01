@@ -11,6 +11,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use crate::parser;
 use crate::Cli;
 
 #[derive(Debug)]
@@ -80,8 +81,17 @@ impl Options {
 }
 
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
-    match &cli.config_file {
-        Some(config_file) => {
+    match (&cli.config_file, &cli.output_css_file) {
+        (_, Some(css_file)) => {
+            let css_file = std::fs::File::open(css_file)
+                .wrap_err_with(|| format!("Error opening the css file {css_file}"))
+                .with_suggestion(|| format!("Make sure the file {css_file} exists"))?;
+
+            let sorter = parser::parse_classes(css_file).wrap_err("Error parsing the css file")?;
+            Ok(Sorter::CustomSorter(sorter))
+        }
+
+        (Some(config_file), _) => {
             let file_contents = fs::read_to_string(config_file)
                 .wrap_err_with(|| format!("Error reading the config file {config_file}"))
                 .with_suggestion(|| format!("Make sure the file {config_file} exists"));
@@ -92,11 +102,11 @@ fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
                     format!("Make sure the {config_file} is valid json, with the expected format")
                 })?;
 
-            Ok(Sorter::CustomSorter(parse_custom_sorter(
-                config_file.sort_order,
-            )))
+            let sorter = parse_custom_sorter(config_file.sort_order);
+            Ok(Sorter::CustomSorter(sorter))
         }
-        None => Ok(Sorter::DefaultSorter),
+
+        (None, None) => Ok(Sorter::DefaultSorter),
     }
 }
 
