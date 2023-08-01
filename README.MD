@@ -59,8 +59,12 @@ which is an array with the classes listed in the order you want them sorted.
 
 - `rustywind --config-file config_file.json`
 
+Use with tailwind prettier plugin
+
+- `rustywind --output-css-file <path to the tailwind generated css file>`
+
 ```shell
-RustyWind 0.14.0
+RustyWind 0.17.0
 Praveen Perera <praveen@avencera.com>
 
 USAGE:
