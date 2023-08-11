@@ -1,3 +1,5 @@
+pub mod vite;
+
 use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
@@ -81,33 +83,38 @@ impl Options {
 }
 
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
-    match (&cli.config_file, &cli.output_css_file) {
-        (_, Some(css_file)) => {
-            let css_file = std::fs::File::open(css_file)
-                .wrap_err_with(|| format!("Error opening the css file {css_file}"))
-                .with_suggestion(|| format!("Make sure the file {css_file} exists"))?;
-
-            let sorter = parser::parse_classes(css_file).wrap_err("Error parsing the css file")?;
-            Ok(Sorter::CustomSorter(sorter))
-        }
-
-        (Some(config_file), _) => {
-            let file_contents = fs::read_to_string(config_file)
-                .wrap_err_with(|| format!("Error reading the config file {config_file}"))
-                .with_suggestion(|| format!("Make sure the file {config_file} exists"));
-
-            let config_file: ConfigFileContents = serde_json::from_str(&file_contents?)
-                .wrap_err_with(|| format!("Error while parsing the config file {config_file}"))
-                .with_suggestion(|| {
-                    format!("Make sure the {config_file} is valid json, with the expected format")
-                })?;
-
-            let sorter = parse_custom_sorter(config_file.sort_order);
-            Ok(Sorter::CustomSorter(sorter))
-        }
-
-        (None, None) => Ok(Sorter::DefaultSorter),
+    if let Some(vite_css_url) = &cli.vite_css {
+        return vite::create_sorter(vite_css_url);
     }
+
+    if let Some(css_file) = &cli.output_css_file {
+        let css_file = std::fs::File::open(css_file)
+            .wrap_err_with(|| format!("Error opening the css file {css_file}"))
+            .with_suggestion(|| format!("Make sure the file {css_file} exists"))?;
+
+        let sorter =
+            parser::parse_classes_from_file(css_file).wrap_err("Error parsing the css file")?;
+
+        return Ok(Sorter::CustomSorter(sorter));
+    }
+
+    if let Some(config_file) = &cli.config_file {
+        let file_contents = fs::read_to_string(config_file)
+            .wrap_err_with(|| format!("Error reading the config file {config_file}"))
+            .with_suggestion(|| format!("Make sure the file {config_file} exists"));
+
+        let config_file: ConfigFileContents = serde_json::from_str(&file_contents?)
+            .wrap_err_with(|| format!("Error while parsing the config file {config_file}"))
+            .with_suggestion(|| {
+                format!("Make sure the {config_file} is valid json, with the expected format")
+            })?;
+
+        let sorter = parse_custom_sorter(config_file.sort_order);
+        return Ok(Sorter::CustomSorter(sorter));
+    }
+
+    // if no other sorter is specified, use the default sorter
+    Ok(Sorter::DefaultSorter)
 }
 
 fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {

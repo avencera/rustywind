@@ -65,8 +65,15 @@ pub struct Cli {
     #[arg(long, conflicts_with_all = &["output_css_file"])]
     config_file: Option<String>,
     /// When set RustyWind will determine the sort order by the order the class appear in the the given css file.
-    #[arg(long, conflicts_with_all = &["config_file"])]
+    #[arg(long, conflicts_with_all = &["config_file", "vite_css"])]
     output_css_file: Option<String>,
+    /// When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates.
+    ///
+    /// Please provide the full URL to the CSS file ex: `http://127.0.0.1:5173/src/assets/main.css`
+    ///
+    /// Note: This option is experimental and may be removed in the future.
+    #[arg(long, conflicts_with_all = &["config_file", "output_css_file"])]
+    vite_css: Option<String>,
     /// When set, RustyWind will ignore this list of files.
     #[arg(long)]
     ignored_files: Option<Vec<String>>,
