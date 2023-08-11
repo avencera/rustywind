@@ -30,6 +30,9 @@ log = "0.4"
 # parallel
 rayon = "1.5"
 
+# http
+ureq = "2.7"
+
 # errors
 color-eyre = "0.6"
 eyre = "0.6"
