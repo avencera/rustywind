@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.18.0] - 2023-08-11
+
+- Add expiremental support for getting CSS order from a vite URL [#77](https://github.com/avencera/rustywind/pull/77), thanks [@praveenperera](https://github.com/praveenperera)
+
+## [0.17.0] - 2023-08-01
+
+- Match sorting rules to tailwind prettier plugin [#76](https://github.com/avencera/rustywind/pull/76), thanks [@praveenperera](https://github.com/praveenperera)
+
 ## [0.16.0] - 2023-04-23
 
 - Updated all dependencies, including `aho-corasick` [#73](https://github.com/avencera/rustywind/pull/73), thanks [@dnaka91](https://github.com/dnaka91)
