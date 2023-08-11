@@ -164,7 +164,6 @@ jobs:
           - arm-unknown-linux-gnueabihf
           - armv7-unknown-linux-gnueabihf
           - i686-unknown-linux-musl
-          - powerpc64le-unknown-linux-gnu
           - x86_64-unknown-linux-musl
           # - i686-unknown-linux-gnu
           # - mips-unknown-linux-gnu
