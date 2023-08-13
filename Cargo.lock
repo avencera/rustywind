@@ -711,6 +711,7 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "regex",
+ "rustls",
  "serde",
  "serde_json",
  "ureq",

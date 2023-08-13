@@ -3,6 +3,7 @@ pub mod defaults;
 pub mod options;
 pub mod parser;
 pub mod sorter;
+pub mod tls;
 
 use clap::Parser;
 use eyre::Result;
@@ -74,7 +75,12 @@ pub struct Cli {
     /// Note: This option is experimental and may be removed in the future.
     #[arg(long, conflicts_with_all = &["config_file", "output_css_file"])]
     vite_css: Option<String>,
-    /// When set, RustyWind will ignore this list of files.
+
+    /// When set, RustyWind will skip SSL verification for the vite_css option.
+    #[arg(long, conflicts_with_all = &["config_file", "output_css_file"])]
+    skip_ssl_verification: bool,
+
+    /// When set, RustyWind will ignore this list of files.k
     #[arg(long)]
     ignored_files: Option<Vec<String>>,
     /// Uses a custom regex instead of default one.
