@@ -3,5 +3,5 @@
 
 module.exports = {
   REPO: "avencera/rustywind",
-  VERSION: "v0.18.0",
+  VERSION: "v0.19.0",
 };
