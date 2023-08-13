@@ -70,7 +70,7 @@ pub struct Cli {
     output_css_file: Option<String>,
     /// When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates.
     ///
-    /// Please provide the full URL to the CSS file ex: `http://127.0.0.1:5173/src/assets/main.css`
+    /// Please provide the full URL to the CSS file ex: `rustywind --vite-css "http://127.0.0.1:5173/src/assets/main.css" . --dry-run`
     ///
     /// Note: This option is experimental and may be removed in the future.
     #[arg(long, conflicts_with_all = &["config_file", "output_css_file"])]
@@ -80,7 +80,7 @@ pub struct Cli {
     #[arg(long, conflicts_with_all = &["config_file", "output_css_file"])]
     skip_ssl_verification: bool,
 
-    /// When set, RustyWind will ignore this list of files.k
+    /// When set, RustyWind will ignore this list of files
     #[arg(long)]
     ignored_files: Option<Vec<String>>,
     /// Uses a custom regex instead of default one.

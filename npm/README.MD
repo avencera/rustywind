@@ -108,10 +108,13 @@ Options:
 
       --vite-css <VITE_CSS>
           When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates.
-
-          Please provide the full URL to the CSS file ex: `http://127.0.0.1:5173/src/assets/main.css`
-
+          
+          Please provide the full URL to the CSS file ex: `rustywind --vite-css "http://127.0.0.1:5173/src/assets/main.css" . --dry-run`
+          
           Note: This option is experimental and may be removed in the future.
+
+      --skip-ssl-verification
+          When set, RustyWind will skip SSL verification for the vite_css option
 
       --ignored-files <IGNORED_FILES>
           When set, RustyWind will ignore this list of files

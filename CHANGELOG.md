@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.19.0] - 2023-08-13
+
+- Add new `--skip-ssl-verification`flag for use with `https` in dev for `--vite-css` [#78](https://github.com/avencera/rustywind/pull/78), thanks [@praveenperera](https://github.com/praveenperera)
+
 ## [0.18.0] - 2023-08-11
 
 - Add expiremental support for getting CSS order from a vite URL [#77](https://github.com/avencera/rustywind/pull/77), thanks [@praveenperera](https://github.com/praveenperera)
