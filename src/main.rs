@@ -1,3 +1,4 @@
+mod cli;
 pub mod consts;
 pub mod defaults;
 pub mod options;
@@ -22,6 +23,7 @@ static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 #[derive(Parser, Debug)]
 #[clap(name = "RustyWind", author, version, about, long_about = None)]
+#[command(styles=cli::get_styles())]
 #[clap(args_override_self = true, arg_required_else_help = true)]
 #[clap(override_usage = indoc!("
     rustywind [OPTIONS] [PATH]...

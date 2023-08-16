@@ -9,7 +9,7 @@ version = "0.19.0"
 
 [dependencies]
 # cli
-clap = {version = "4.3", features = ["cargo", "derive"]}
+clap = { version = "4.3", features = ["cargo", "derive", "unstable-styles"] }
 indoc = "2.0"
 
 # files
@@ -41,6 +41,7 @@ eyre = "0.6"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 rustls = { version = "0.21.6", features = ["dangerous_configuration"] }
+anstyle = "1.0.1"
 
 [dev-dependencies]
 pretty_assertions = "1.4"
