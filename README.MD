@@ -18,6 +18,12 @@ Install from homebrew (mac and linux):
 
 or
 
+Install from crats.io:
+
+`cargo install rustywind`
+
+or
+
 Install from a github release:
 
 `curl -LSfs https://avencera.github.io/rustywind/install.sh | sh -s -- --git avencera/rustywind`
