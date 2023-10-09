@@ -8,7 +8,7 @@ use eyre::Result;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PARSER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"^(\.[^\s]+)[ ]"#).unwrap());
+static PARSER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
 
 pub fn parse_classes_from_file(css_file: File) -> Result<HashMap<String, usize>> {
     let css_reader = BufReader::new(css_file);

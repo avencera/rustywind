@@ -72,7 +72,7 @@ fn sort_classes_vec<'a>(
                 match VARIANT_SEARCHER.find(input) {
                     Some(prefix_match) => {
                         let prefix = VARIANTS[prefix_match.pattern()];
-                        variants.entry(prefix).or_insert_with(Vec::new).push(class)
+                        variants.entry(prefix).or_default().push(class)
                     }
 
                     None => custom_classes.push(class),
