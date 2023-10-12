@@ -18,9 +18,13 @@ Install from homebrew (mac and linux):
 
 or
 
-Install from crats.io:
+Install from crates.io:
 
 `cargo install rustywind`
+
+or
+
+`cargo binstall rustywind`
 
 or
 
