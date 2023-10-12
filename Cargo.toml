@@ -54,3 +54,8 @@ pretty_assertions = "1.4"
 codegen-units = 1
 lto = "fat"
 opt-level = 3
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
