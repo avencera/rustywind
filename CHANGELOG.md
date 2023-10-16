@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.20.0] - 2023-10-15
+
+- Add new `--quiet` flag to prevent log messages [#86](https://github.com/avencera/rustywind/pull/86), thanks [@azzamsa](https://github.com/azzamsa)
+
 ## [0.19.0] - 2023-08-13
 
 - Add new `--skip-ssl-verification`flag for use with `https` in dev for `--vite-css` [#78](https://github.com/avencera/rustywind/pull/78), thanks [@praveenperera](https://github.com/praveenperera)
