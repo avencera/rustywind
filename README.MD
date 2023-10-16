@@ -132,6 +132,9 @@ Options:
       --custom-regex <CUSTOM_REGEX>
           Uses a custom regex instead of default one
 
+      --quiet
+          Do not print log messages
+
   -h, --help
           Print help (see a summary with '-h')
 
