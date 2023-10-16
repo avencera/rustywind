@@ -5,6 +5,7 @@
 ## [0.20.0] - 2023-10-15
 
 - Add new `--quiet` flag to prevent log messages [#86](https://github.com/avencera/rustywind/pull/86), thanks [@azzamsa](https://github.com/azzamsa)
+- Updated dependencies
 
 ## [0.19.0] - 2023-08-13
 
