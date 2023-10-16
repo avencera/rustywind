@@ -8,7 +8,7 @@ source ci/common.bash
 CROSS=$1
 # $1 {string} = <Target Triple> e.g. x86_64-pc-windows-msvc
 TARGET_TRIPLE=$2
-# $3 {boolean} = Are we building for deployment? 
+# $3 {boolean} = Are we building for deployment?
 RELEASE_BUILD=$3
 
 required_arg $CROSS 'CROSS'
@@ -20,4 +20,3 @@ if [ -z "$RELEASE_BUILD" ]; then
 else
     $CROSS build --target $TARGET_TRIPLE --all-features --release
 fi
-
