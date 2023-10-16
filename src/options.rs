@@ -53,6 +53,7 @@ pub struct Options {
     pub allow_duplicates: bool,
     pub search_paths: Vec<PathBuf>,
     pub ignored_files: HashSet<PathBuf>,
+    pub quiet: bool,
 }
 
 impl Options {
@@ -78,6 +79,7 @@ impl Options {
             sorter: get_sorter_from_cli(&cli)?,
             allow_duplicates: cli.allow_duplicates,
             ignored_files: get_ignored_files_from_cli(&cli),
+            quiet: cli.quiet,
         })
     }
 }

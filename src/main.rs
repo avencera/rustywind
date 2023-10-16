@@ -88,6 +88,9 @@ pub struct Cli {
     /// Uses a custom regex instead of default one.
     #[arg(long)]
     custom_regex: Option<String>,
+    /// Do not print log messages
+    #[arg(long, default_value = "false", conflicts_with_all = &["dry_run"])]
+    quiet: bool,
 }
 
 fn main() -> Result<()> {
@@ -105,7 +108,9 @@ fn main() -> Result<()> {
         ),
 
         WriteMode::ToFile => {
-            println!("\nwrite mode is active the following files are being saved:");
+            if !options.quiet {
+                println!("\nwrite mode is active the following files are being saved:");
+            }
         }
 
         WriteMode::ToConsole => println!(
@@ -210,7 +215,9 @@ fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
 }
 
 fn print_file_name(file_path: &Path, options: &Options) {
-    println!("  * {}", get_file_name(file_path, &options.starting_paths));
+    if !options.quiet {
+        println!("  * {}", get_file_name(file_path, &options.starting_paths));
+    }
 }
 
 fn get_file_name(file_path: &Path, starting_paths: &[PathBuf]) -> String {
