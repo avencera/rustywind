@@ -14,7 +14,7 @@ or
 
 Install from homebrew (mac and linux):
 
-`brew install avencera/taps/rustywind`
+`brew install avencera/tap/rustywind`
 
 or
 
