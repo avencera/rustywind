@@ -15,6 +15,7 @@ description = "A CLI to sort tailwind CSS classes"
 # cli
 clap = { version = "4.3", features = ["cargo", "derive", "unstable-styles"] }
 indoc = "2.0"
+colored = "2.1"
 
 # files
 ignore = "0.4"
