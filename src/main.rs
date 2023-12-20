@@ -163,8 +163,12 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                     (true, WriteMode::ToFile) => write_to_file(file_path, &sorted_content, options),
                     (false, WriteMode::ToFile) => print_file_name(file_path, options),
 
+                    // For now print the file contents to the console even if it hasn't changed to
+                    // keep consistent with how rustywind has always worked. But in a later
+                    // breaking release add a `--print-unchanged` flag to get the old behavior back
+                    // but default to not printing unchanged files.
                     (true, WriteMode::ToConsole) => print_file_contents(&sorted_content),
-                    (false, WriteMode::ToConsole) => (),
+                    (false, WriteMode::ToConsole) => print_file_contents(&sorted_content),
 
                     (_, WriteMode::CheckFormatted) => {
                         print_changed_files(file_path, contents_changed, options);
