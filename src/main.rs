@@ -231,7 +231,7 @@ fn print_file_name(file_path: &Path, contents_changed: bool, options: &Options) 
         if contents_changed {
             println!("{}", line);
         } else {
-            eprintln!("{}", line.custom_color(GRAY.clone()));
+            eprintln!("{}", line.custom_color(*GRAY));
         }
     }
 }
