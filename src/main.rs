@@ -20,6 +20,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+static GRAY: Lazy<colored::CustomColor> = Lazy::new(|| colored::CustomColor::new(120, 120, 120));
 
 #[derive(Parser, Debug)]
 #[clap(name = "RustyWind", author, version, about, long_about = None)]
@@ -158,10 +159,12 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
                 match (contents_changed, &options.write_mode) {
                     (_, WriteMode::ToStdOut) => (),
-                    (_, WriteMode::DryRun) => print_file_name(file_path, options),
+                    (_, WriteMode::DryRun) => print_file_name(file_path, contents_changed, options),
 
                     (true, WriteMode::ToFile) => write_to_file(file_path, &sorted_content, options),
-                    (false, WriteMode::ToFile) => print_file_name(file_path, options),
+                    (false, WriteMode::ToFile) => {
+                        print_file_name(file_path, contents_changed, options)
+                    }
 
                     // For now print the file contents to the console even if it hasn't changed to
                     // keep consistent with how rustywind has always worked. But in a later
@@ -208,7 +211,7 @@ fn should_ignore_current_file(ignored_files: &HashSet<PathBuf>, current_file: &P
 
 fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
     match fs::write(file_path, sorted_contents.as_bytes()) {
-        Ok(_) => print_file_name(file_path, options),
+        Ok(_) => print_file_name(file_path, true, options),
         Err(err) => {
             eprintln!("\nError: {:?}", err);
             eprintln!(
@@ -219,9 +222,17 @@ fn write_to_file(file_path: &Path, sorted_contents: &str, options: &Options) {
     }
 }
 
-fn print_file_name(file_path: &Path, options: &Options) {
+fn print_file_name(file_path: &Path, contents_changed: bool, options: &Options) {
+    use colored::*;
+
     if !options.quiet {
-        println!("  * {}", get_file_name(file_path, &options.starting_paths));
+        let line = format!("  * {}", get_file_name(file_path, &options.starting_paths));
+
+        if contents_changed {
+            println!("{}", line);
+        } else {
+            eprintln!("{}", line.custom_color(*GRAY));
+        }
     }
 }
 
