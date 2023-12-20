@@ -154,14 +154,20 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
         Ok(contents) => {
             if sorter::has_classes(&contents, options) {
                 let sorted_content = sorter::sort_file_contents(&contents, options);
+                let contents_changed = sorted_content != contents;
 
-                match &options.write_mode {
-                    WriteMode::ToStdOut => (),
-                    WriteMode::DryRun => print_file_name(file_path, options),
-                    WriteMode::ToFile => write_to_file(file_path, &sorted_content, options),
-                    WriteMode::ToConsole => print_file_contents(&sorted_content),
-                    WriteMode::CheckFormatted => {
-                        print_changed_files(file_path, &sorted_content, &contents, options);
+                match (contents_changed, &options.write_mode) {
+                    (_, WriteMode::ToStdOut) => (),
+                    (_, WriteMode::DryRun) => print_file_name(file_path, options),
+
+                    (true, WriteMode::ToFile) => write_to_file(file_path, &sorted_content, options),
+                    (false, WriteMode::ToFile) => print_file_name(file_path, options),
+
+                    (true, WriteMode::ToConsole) => print_file_contents(&sorted_content),
+                    (false, WriteMode::ToConsole) => (),
+
+                    (_, WriteMode::CheckFormatted) => {
+                        print_changed_files(file_path, contents_changed, options);
                     }
                 }
             }
@@ -170,13 +176,8 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
     }
 }
 
-fn print_changed_files(
-    file_path: &Path,
-    sorted_content: &str,
-    original_content: &str,
-    options: &Options,
-) {
-    if sorted_content != original_content {
+fn print_changed_files(file_path: &Path, contents_changed: bool, options: &Options) {
+    if contents_changed {
         if !EXIT_ERROR.load(Ordering::Relaxed) {
             EXIT_ERROR.store(true, Ordering::Relaxed);
         }
