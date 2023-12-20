@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.21.0] - 2023-12-20
+
+- Prevent writing to file if the contents hasn't changed. Fixes: [#88](https://github.com/avencera/rustywind/issues/88)
+- Show UI difference for files that were/will be changed vs ones that won't be touched
+- Upgraded deps
+
 ## [0.20.0] - 2023-10-15
 
 - Add new `--quiet` flag to prevent log messages [#86](https://github.com/avencera/rustywind/pull/86), thanks [@azzamsa](https://github.com/azzamsa)
