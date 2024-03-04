@@ -6,13 +6,13 @@ pub mod parser;
 pub mod sorter;
 pub mod tls;
 
+use ahash::AHashSet as HashSet;
 use clap::Parser;
 use eyre::Result;
 use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::{Options, WriteMode};
 use rayon::prelude::*;
-use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;

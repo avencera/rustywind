@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::hash_map::Entry,
     fs::File,
     io::{BufRead, BufReader, Read},
 };
@@ -7,6 +7,8 @@ use std::{
 use eyre::Result;
 use once_cell::sync::Lazy;
 use regex::Regex;
+
+use ahash::AHashMap as HashMap;
 
 static PARSER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
 

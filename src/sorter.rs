@@ -1,4 +1,6 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
+
+use ahash::AHashMap as HashMap;
 
 use aho_corasick::{Anchored, Input};
 use itertools::Itertools;

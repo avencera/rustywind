@@ -6,12 +6,13 @@ use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+
+use ahash::AHashMap as HashMap;
+use ahash::AHashSet as HashSet;
 
 use crate::parser;
 use crate::Cli;
