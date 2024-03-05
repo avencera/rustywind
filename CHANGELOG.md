@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Switch up std HashMap for faster hasher ahash
+- Update rustls to 0.22
+- Update cargo deps
+
 ## [0.21.0] - 2023-12-20
 
 - Prevent writing to file if the contents hasn't changed. Fixes: [#88](https://github.com/avencera/rustywind/issues/88)
