@@ -18,7 +18,7 @@ pub fn create_sorter(url: &str, skip_ssl_verification: bool) -> Result<Sorter> {
 
     if skip_ssl_verification && url.starts_with("https") {
         let ssl = rustls::ClientConfig::builder()
-            .with_safe_defaults()
+            .dangerous()
             .with_custom_certificate_verifier(Arc::new(NoCertificateVerification {}))
             .with_no_client_auth();
 
