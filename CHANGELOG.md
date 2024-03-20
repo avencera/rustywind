@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.1] - 2024-03-20
+
 - Switch up std HashMap for faster hasher ahash
 - Update rustls to 0.22
 - Update cargo deps
