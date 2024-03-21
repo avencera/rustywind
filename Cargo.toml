@@ -44,7 +44,7 @@ ahash = "0.8"
 rayon = "1.5"
 
 # http
-ureq = "2.7"
+ureq = "2.9"
 
 # errors
 color-eyre = "0.6"
@@ -63,3 +63,4 @@ pretty_assertions = "1.4"
 codegen-units = 1
 lto = "fat"
 opt-level = 3
+strip = true
