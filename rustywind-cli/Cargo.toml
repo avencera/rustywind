@@ -20,6 +20,9 @@ pkg-fmt = "tgz"
 rustywind_core = { path = "../rustywind-core" }
 rustywind_vite = { path = "../rustywind-vite" }
 
+itertools = { workspace = true }
+regex = { workspace = true }
+
 # cli
 clap = { version = "4.3", features = ["cargo", "derive", "unstable-styles"] }
 indoc = "2.0"

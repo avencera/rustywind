@@ -3,7 +3,8 @@ use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
-use rustywind_core::sorter;
+use rustywind_core::{parser, sorter};
+use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
 use std::fs;
 use std::io::Read;
@@ -76,7 +77,7 @@ impl Options {
 
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
     if let Some(vite_css_url) = &cli.vite_css {
-        return vite::create_sorter(vite_css_url, cli.skip_ssl_verification);
+        return create_vite_sorter(vite_css_url, cli.skip_ssl_verification);
     }
 
     if let Some(css_file) = &cli.output_css_file {
