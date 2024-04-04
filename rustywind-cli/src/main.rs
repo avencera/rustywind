@@ -1,18 +1,15 @@
 mod cli;
-pub mod consts;
-pub mod defaults;
-pub mod options;
-pub mod parser;
-pub mod sorter;
-pub mod tls;
+mod options;
 
 use ahash::AHashSet as HashSet;
 use clap::Parser;
 use eyre::Result;
 use indoc::indoc;
 use once_cell::sync::Lazy;
-use options::{Options, WriteMode};
+use options::Options;
+use options::WriteMode;
 use rayon::prelude::*;
+use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -123,8 +120,8 @@ fn main() -> Result<()> {
     if let WriteMode::ToStdOut = &options.write_mode {
         let contents = options.stdin.clone().unwrap_or_default();
 
-        if sorter::has_classes(&contents, &options) {
-            let sorted_content = sorter::sort_file_contents(&contents, &options);
+        if sorter::has_classes(&contents, &options.sorter_options) {
+            let sorted_content = sorter::sort_file_contents(&contents, &options.sorter_options);
             print!("{sorted_content}");
         } else {
             print!("{contents}");
@@ -153,8 +150,8 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
     match fs::read_to_string(file_path) {
         Ok(contents) => {
-            if sorter::has_classes(&contents, options) {
-                let sorted_content = sorter::sort_file_contents(&contents, options);
+            if sorter::has_classes(&contents, &options.sorter_options) {
+                let sorted_content = sorter::sort_file_contents(&contents, &options.sorter_options);
                 let contents_changed = sorted_content != contents;
 
                 match (contents_changed, &options.write_mode) {

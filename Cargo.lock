@@ -606,7 +606,6 @@ name = "rustywind"
 version = "0.21.1"
 dependencies = [
  "ahash",
- "aho-corasick",
  "anstyle",
  "clap",
  "color-eyre",
@@ -615,6 +614,25 @@ dependencies = [
  "eyre",
  "ignore",
  "indoc",
+ "log",
+ "once_cell",
+ "pretty_assertions",
+ "rayon",
+ "rustywind_core",
+ "rustywind_vite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rustywind_core"
+version = "0.21.1"
+dependencies = [
+ "ahash",
+ "aho-corasick",
+ "anstyle",
+ "env_logger",
+ "eyre",
  "itertools",
  "log",
  "once_cell",
@@ -624,6 +642,19 @@ dependencies = [
  "rustls",
  "serde",
  "serde_json",
+ "ureq",
+]
+
+[[package]]
+name = "rustywind_vite"
+version = "0.1.0"
+dependencies = [
+ "color-eyre",
+ "eyre",
+ "once_cell",
+ "regex",
+ "rustls",
+ "rustywind_core",
  "ureq",
 ]
 

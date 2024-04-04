@@ -4,11 +4,29 @@ use ahash::AHashMap as HashMap;
 
 use aho_corasick::{Anchored, Input};
 use itertools::Itertools;
-use regex::Captures;
+use regex::{Captures, Regex};
 
 use crate::consts::{VARIANTS, VARIANT_SEARCHER};
 use crate::defaults::{RE, SORTER};
-use crate::options::{FinderRegex, Options, Sorter};
+
+#[derive(Debug)]
+pub enum FinderRegex {
+    DefaultRegex,
+    CustomRegex(Regex),
+}
+
+#[derive(Debug)]
+pub enum Sorter {
+    DefaultSorter,
+    CustomSorter(HashMap<String, usize>),
+}
+
+#[derive(Debug)]
+pub struct Options {
+    pub regex: FinderRegex,
+    pub sorter: Sorter,
+    pub allow_duplicates: bool,
+}
 
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
     let regex = match &options.regex {
