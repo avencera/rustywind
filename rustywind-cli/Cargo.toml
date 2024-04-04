@@ -1,0 +1,60 @@
+[package]
+authors = ["Praveen Perera <praveen@avencera.com>"]
+edition = "2021"
+license = "Apache-2.0"
+name = "rustywind"
+version = "0.21.1"
+homepage = "https://github.com/avencera/rustywind"
+repository = "https://github.com/avencera/rustywind"
+documentation = "https://docs.rs/rustywind"
+description = "A CLI to sort tailwind CSS classes"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rustywind_core = { path = "../rustywind-core" }
+rustywind_vite = { path = "../rustywind-vite" }
+
+# cli
+clap = { version = "4.3", features = ["cargo", "derive", "unstable-styles"] }
+indoc = "2.0"
+colored = "2.1"
+
+# files
+ignore = "0.4"
+
+# utils
+once_cell = "1.18"
+
+# logging
+env_logger = "0.11"
+log = "0.4"
+
+# faster hashmap
+ahash = { workspace = true }
+
+# parallel
+rayon = "1.5"
+
+# errors
+eyre = { workspace = true }
+color-eyre = { workspace = true }
+
+# json parsing
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anstyle = "1.0.1"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+strip = true
