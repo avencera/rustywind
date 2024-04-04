@@ -4,11 +4,10 @@ use color_eyre::Help;
 use eyre::{Context, Result};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rustywind_core::{parser, sorter::Sorter};
 use ureq::AgentBuilder;
 
-use crate::{parser, tls::NoCertificateVerification};
-
-use super::Sorter;
+use crate::tls::NoCertificateVerification;
 
 static VITE_CSS_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"const __vite__css = "(.*)""#).unwrap());
