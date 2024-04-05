@@ -1,13 +1,19 @@
 [package]
 name = "rustywind_vite"
-version = "0.1.0"
-edition = "2021"
+description = "Additional functionality for rustywind_core specific to Vite"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 rustywind_core = { path = "../rustywind-core" }
+
 once_cell = { workspace = true }
 regex = { workspace = true }
-ureq = "2.9"
 eyre = { workspace = true }
 color-eyre = { workspace = true }
-rustls = { version = "0.22" }
+ureq = { workspace = true }
+rustls = { workspace = true }
