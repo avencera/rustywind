@@ -142,7 +142,7 @@ fn get_write_mode_from_cli(cli: &Cli) -> WriteMode {
     } else if cli.stdin {
         WriteMode::ToStdOut
     } else {
-        WriteMode::DryRun
+        WriteMode::ToConsole
     }
 }
 
