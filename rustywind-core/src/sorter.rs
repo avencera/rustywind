@@ -1,3 +1,4 @@
+//! The module that sorts the classes in the file contents.
 use std::borrow::Cow;
 
 use ahash::AHashMap as HashMap;
@@ -9,14 +10,14 @@ use regex::{Captures, Regex};
 use crate::consts::{VARIANTS, VARIANT_SEARCHER};
 use crate::defaults::{RE, SORTER};
 
-/// Use either our default regex in [defaults::RE] or a custom regex.
+/// Use either our default regex in [crate::defaults::RE] or a custom regex.
 #[derive(Debug)]
 pub enum FinderRegex {
     DefaultRegex,
     CustomRegex(Regex),
 }
 
-/// Use either our default sorter in [defaults::SORTER] or a custom sorter.
+/// Use either our default sorter in [crate::defaults::SORTER] or a custom sorter.
 #[derive(Debug)]
 pub enum Sorter {
     DefaultSorter,

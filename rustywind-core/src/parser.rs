@@ -13,13 +13,13 @@ use ahash::AHashMap as HashMap;
 
 static PARSER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
 
-/// Create the sorter from a file
+/// Create the sorter from a [File]
 pub fn parse_classes_from_file(css_file: File) -> Result<HashMap<String, usize>> {
     let css_reader = BufReader::new(css_file);
     parse_classes(css_reader)
 }
 
-/// Create the sorter from any BufReader
+/// Create the sorter from any [BufReader]
 pub fn parse_classes<T: Read>(css_file: BufReader<T>) -> Result<HashMap<String, usize>> {
     let css_reader = BufReader::new(css_file);
     let mut classes: HashMap<String, usize> = HashMap::new();
