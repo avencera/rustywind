@@ -10,7 +10,7 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-rustywind_core = { path = "../rustywind-core" }
+rustywind_core = { version = "0.1.0" }
 
 once_cell = { workspace = true }
 regex = { workspace = true }
