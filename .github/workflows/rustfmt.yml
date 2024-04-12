@@ -14,4 +14,4 @@ jobs:
           override: true
           components: rustfmt
 
-      - run: cargo fmt --check -- --edition 2021
+      - run: cargo fmt --check
