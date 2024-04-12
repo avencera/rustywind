@@ -14,16 +14,21 @@ repository = "https://github.com/avencera/rustywind"
 once_cell = "1.18"
 regex = "1.9"
 itertools = "0.12"
-# Faster HashMap
+
+# hashmap
 ahash = "0.8"
-# Errors
+
+# errors
 eyre = "0.6"
 color-eyre = "0.6"
-# Logging
+
+# logging
 env_logger = "0.11"
 log = "0.4"
-# TLS
-rustls = { version = "0.22" }
+
+# tls
+rustls = { version = "0.23" }
+
 # HTTP
 ureq = "2.9"
 

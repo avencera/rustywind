@@ -9,18 +9,21 @@ use regex::{Captures, Regex};
 use crate::consts::{VARIANTS, VARIANT_SEARCHER};
 use crate::defaults::{RE, SORTER};
 
+/// Use either our default regex in [defaults::RE] or a custom regex.
 #[derive(Debug)]
 pub enum FinderRegex {
     DefaultRegex,
     CustomRegex(Regex),
 }
 
+/// Use either our default sorter in [defaults::SORTER] or a custom sorter.
 #[derive(Debug)]
 pub enum Sorter {
     DefaultSorter,
     CustomSorter(HashMap<String, usize>),
 }
 
+/// The options to pass to the sorter.
 #[derive(Debug)]
 pub struct Options {
     pub regex: FinderRegex,
@@ -28,6 +31,7 @@ pub struct Options {
     pub allow_duplicates: bool,
 }
 
+/// Checks if the file contents have any classes.
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
     let regex = match &options.regex {
         FinderRegex::DefaultRegex => &RE,
@@ -37,6 +41,7 @@ pub fn has_classes(file_contents: &str, options: &Options) -> bool {
     regex.is_match(file_contents)
 }
 
+/// Sorts the classes in the file contents.
 pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<'a, str> {
     let regex = match &options.regex {
         FinderRegex::DefaultRegex => &RE,
