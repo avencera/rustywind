@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.22.0] - 2024-04-12
+
+- Split rustywind into multiple crates, [#100](https://github.com/avencera/rustywind/pull/100), thanks [@Rolv-Apneseth](https://github.com/Rolv-Apneseth), and [@bram209](https://github.com/bram209/)
+
 ## [0.21.1] - 2024-03-20
 
 - Switch up std HashMap for faster hasher ahash
