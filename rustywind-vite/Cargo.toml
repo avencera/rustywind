@@ -10,11 +10,16 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-rustywind_core = { version = "0.1.0" }
+rustywind_core = { version = "0.1.1" }
+
+# tls
+rustls = { version = "0.22" }
+
+# HTTP
+ureq = "2.9"
 
 once_cell = { workspace = true }
 regex = { workspace = true }
 eyre = { workspace = true }
 color-eyre = { workspace = true }
-ureq = { workspace = true }
-rustls = { workspace = true }
+

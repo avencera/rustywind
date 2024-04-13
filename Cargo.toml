@@ -26,12 +26,6 @@ color-eyre = "0.6"
 env_logger = "0.11"
 log = "0.4"
 
-# tls
-rustls = { version = "0.23" }
-
-# HTTP
-ureq = "2.9"
-
 [profile.release]
 codegen-units = 1
 lto = "fat"

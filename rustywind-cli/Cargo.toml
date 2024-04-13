@@ -16,7 +16,7 @@ pkg-fmt = "tgz"
 
 [dependencies]
 # rustywind
-rustywind_core = { version = "0.1.0" }
+rustywind_core = { version = "0.1.1" }
 rustywind_vite = { version = "0.1.0" }
 
 # iter
