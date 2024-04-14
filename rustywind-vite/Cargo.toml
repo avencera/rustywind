@@ -13,6 +13,7 @@ repository.workspace = true
 rustywind_core = { version = "0.1.1" }
 
 # tls
+# ureq 2.9 requires rustls 0.22.0
 rustls = { version = "0.22" }
 
 # HTTP
