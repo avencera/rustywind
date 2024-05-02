@@ -4966,3 +4966,72 @@ pub static SORTER: Lazy<HashMap<String, usize>> = Lazy::new(|| {
     .map(|(index, class)| (class.to_string(), index))
     .collect()
 });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_regex_matches_class_name() {
+        assert!(RE.is_match(r#"class="my-class""#));
+        assert!(RE.is_match(r#"className="my-class""#));
+        assert!(RE.is_match(r#"class='my-class'"#));
+        assert!(RE.is_match(r#"className='my-class'"#));
+    }
+
+    #[test]
+    fn test_regex_matches_tailwind_classes() {
+        assert!(RE.is_match(r#"class="bg-red-500 text-white""#));
+        assert!(RE.is_match(r#"className="bg-red-500 text-white""#));
+        assert!(RE.is_match(r#"class='bg-red-500 text-white'"#));
+        assert!(RE.is_match(r#"className='bg-red-500 text-white'"#));
+    }
+
+    #[test]
+    fn test_regex_matches_tailwind_classes_with_arbitrary_values() {
+        assert!(RE.is_match(r#"class="bg-[#123456] text-white""#));
+        assert!(RE.is_match(r#"className="bg-[#123456] text-white""#));
+        assert!(RE.is_match(r#"class='bg-[#123456] text-white'"#));
+        assert!(RE.is_match(r#"className='bg-[#123456] text-white'"#));
+    }
+
+    #[test]
+    fn test_regex_does_not_match_negative_class_names() {
+        assert!(RE.is_match(r#"class="-my-class""#));
+        assert!(RE.is_match(r#"className="-my-class""#));
+        assert!(RE.is_match(r#"class='-my-class'"#));
+        assert!(RE.is_match(r#"className='-my-class'"#));
+    }
+
+    #[test]
+    fn test_regex_matches_multiple_classes_with_arbitrary_values() {
+        assert!(RE.is_match(r#"class="bg-[#123456] text-white p-4 m-2""#));
+        assert!(RE.is_match(r#"className="bg-[#123456] text-white p-4 m-2""#));
+        assert!(RE.is_match(r#"class='bg-[#123456] text-white p-4 m-2'"#));
+        assert!(RE.is_match(r#"className='bg-[#123456] text-white p-4 m-2'"#));
+    }
+
+    #[test]
+    fn test_regex_matches_classes_with_special_characters() {
+        assert!(RE.is_match(r#"class="bg-red-500/50 text-white""#));
+        assert!(RE.is_match(r#"className="bg-red-500/50 text-white""#));
+        assert!(RE.is_match(r#"class='bg-red-500/50 text-white'"#));
+        assert!(RE.is_match(r#"className='bg-red-500/50 text-white'"#));
+    }
+
+    #[test]
+    fn test_regex_matches_classes_with_numbers() {
+        assert!(RE.is_match(r#"class="w-1/2 h-1/3""#));
+        assert!(RE.is_match(r#"className="w-1/2 h-1/3""#));
+        assert!(RE.is_match(r#"class='w-1/2 h-1/3'"#));
+        assert!(RE.is_match(r#"className='w-1/2 h-1/3'"#));
+    }
+
+    #[test]
+    fn test_regex_matches_classes_with_mixed_characters() {
+        assert!(RE.is_match(r#"class="bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3""#));
+        assert!(RE.is_match(r#"className="bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3""#));
+        assert!(RE.is_match(r#"class='bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3'"#));
+        assert!(RE.is_match(r#"className='bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3'"#));
+    }
+}
