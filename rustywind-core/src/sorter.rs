@@ -65,7 +65,9 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
         })
 }
 
-fn sort_classes(class_string: &str, options: &Options) -> String {
+/// Given a [&str] of whitespace-separated classes, returns a [String] of sorted classes.
+/// Does not preserve whitespace.
+pub fn sort_classes(class_string: &str, options: &Options) -> String {
     let sorter = options.extract_sorter();
 
     if options.allow_duplicates {
