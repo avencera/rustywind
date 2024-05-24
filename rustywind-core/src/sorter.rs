@@ -31,30 +31,38 @@ pub struct Options {
     pub sorter: Sorter,
     pub allow_duplicates: bool,
 }
+impl Options {
+    /// Extracts the [Regex] pattern that will be used for matching classes
+    pub fn extract_regex(&self) -> &Regex {
+        match &self.regex {
+            FinderRegex::DefaultRegex => &RE,
+            FinderRegex::CustomRegex(regex) => regex,
+        }
+    }
+    /// Extracts the [HashMap] that will be used for sorting classes
+    pub fn extract_sorter(&self) -> &HashMap<String, usize> {
+        match &self.sorter {
+            Sorter::DefaultSorter => &SORTER,
+            Sorter::CustomSorter(custom_sorter) => custom_sorter,
+        }
+    }
+}
 
 /// Checks if the file contents have any classes.
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
-    let regex = match &options.regex {
-        FinderRegex::DefaultRegex => &RE,
-        FinderRegex::CustomRegex(regex) => regex,
-    };
-
-    regex.is_match(file_contents)
+    options.extract_regex().is_match(file_contents)
 }
 
 /// Sorts the classes in the file contents.
 pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<'a, str> {
-    let regex = match &options.regex {
-        FinderRegex::DefaultRegex => &RE,
-        FinderRegex::CustomRegex(regex) => regex,
-    };
+    options
+        .extract_regex()
+        .replace_all(file_contents, |caps: &Captures| {
+            let classes = &caps[1];
+            let sorted_classes = sort_classes(classes, options);
 
-    regex.replace_all(file_contents, |caps: &Captures| {
-        let classes = &caps[1];
-        let sorted_classes = sort_classes(classes, options);
-
-        caps[0].replace(classes, &sorted_classes)
-    })
+            caps[0].replace(classes, &sorted_classes)
+        })
 }
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
