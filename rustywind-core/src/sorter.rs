@@ -66,26 +66,14 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
 }
 
 fn sort_classes(class_string: &str, options: &Options) -> String {
-    let sorter: &HashMap<String, usize> = match &options.sorter {
-        Sorter::DefaultSorter => &SORTER,
-        Sorter::CustomSorter(custom_sorter) => custom_sorter,
-    };
+    let sorter = options.extract_sorter();
 
-    let str_vec = if options.allow_duplicates {
+    if options.allow_duplicates {
         sort_classes_vec(class_string.split_ascii_whitespace(), sorter)
     } else {
         sort_classes_vec(class_string.split_ascii_whitespace().unique(), sorter)
-    };
-
-    let mut string = String::with_capacity(str_vec.len() * 2);
-
-    for str in str_vec {
-        string.push_str(str);
-        string.push(' ')
     }
-
-    string.pop();
-    string
+    .join(" ")
 }
 
 fn sort_classes_vec<'a>(
