@@ -16,12 +16,28 @@ pub enum FinderRegex {
     DefaultRegex,
     CustomRegex(Regex),
 }
+impl FinderRegex {
+    fn get_value(&self) -> &Regex {
+        match &self {
+            Self::DefaultRegex => &RE,
+            Self::CustomRegex(re) => re,
+        }
+    }
+}
 
 /// Use either our default sorter in [crate::defaults::SORTER] or a custom sorter.
 #[derive(Debug)]
 pub enum Sorter {
     DefaultSorter,
     CustomSorter(HashMap<String, usize>),
+}
+impl Sorter {
+    fn get_value(&self) -> &HashMap<String, usize> {
+        match &self {
+            Self::DefaultSorter => &SORTER,
+            Self::CustomSorter(custom_sorter) => custom_sorter,
+        }
+    }
 }
 
 /// The options to pass to the sorter.
@@ -34,50 +50,33 @@ pub struct Options {
 
 /// Checks if the file contents have any classes.
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
-    let regex = match &options.regex {
-        FinderRegex::DefaultRegex => &RE,
-        FinderRegex::CustomRegex(regex) => regex,
-    };
-
-    regex.is_match(file_contents)
+    options.regex.get_value().is_match(file_contents)
 }
 
 /// Sorts the classes in the file contents.
 pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<'a, str> {
-    let regex = match &options.regex {
-        FinderRegex::DefaultRegex => &RE,
-        FinderRegex::CustomRegex(regex) => regex,
-    };
+    options
+        .regex
+        .get_value()
+        .replace_all(file_contents, |caps: &Captures| {
+            let classes = &caps[1];
+            let sorted_classes = sort_classes(classes, options);
 
-    regex.replace_all(file_contents, |caps: &Captures| {
-        let classes = &caps[1];
-        let sorted_classes = sort_classes(classes, options);
-
-        caps[0].replace(classes, &sorted_classes)
-    })
+            caps[0].replace(classes, &sorted_classes)
+        })
 }
 
-fn sort_classes(class_string: &str, options: &Options) -> String {
-    let sorter: &HashMap<String, usize> = match &options.sorter {
-        Sorter::DefaultSorter => &SORTER,
-        Sorter::CustomSorter(custom_sorter) => custom_sorter,
-    };
+/// Given a [&str] of whitespace-separated classes, returns a [String] of sorted classes.
+/// Does not preserve whitespace.
+pub fn sort_classes(class_string: &str, options: &Options) -> String {
+    let sorter = options.sorter.get_value();
 
-    let str_vec = if options.allow_duplicates {
+    if options.allow_duplicates {
         sort_classes_vec(class_string.split_ascii_whitespace(), sorter)
     } else {
         sort_classes_vec(class_string.split_ascii_whitespace().unique(), sorter)
-    };
-
-    let mut string = String::with_capacity(str_vec.len() * 2);
-
-    for str in str_vec {
-        string.push_str(str);
-        string.push(' ')
     }
-
-    string.pop();
-    string
+    .join(" ")
 }
 
 fn sort_classes_vec<'a>(
