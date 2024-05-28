@@ -13,7 +13,7 @@ repository = "https://github.com/avencera/rustywind"
 [workspace.dependencies]
 once_cell = "1.18"
 regex = "1.9"
-itertools = "0.12"
+itertools = "0.13"
 
 # hashmap
 ahash = "0.8"
