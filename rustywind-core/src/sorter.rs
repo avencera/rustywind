@@ -1,5 +1,6 @@
 //! The module that sorts the classes in the file contents.
 use std::borrow::Cow;
+use std::ops::Deref;
 
 use ahash::AHashMap as HashMap;
 
@@ -16,8 +17,11 @@ pub enum FinderRegex {
     DefaultRegex,
     CustomRegex(Regex),
 }
-impl FinderRegex {
-    fn get_value(&self) -> &Regex {
+
+impl Deref for FinderRegex {
+    type Target = Regex;
+
+    fn deref(&self) -> &Self::Target {
         match &self {
             Self::DefaultRegex => &RE,
             Self::CustomRegex(re) => re,
@@ -31,11 +35,14 @@ pub enum Sorter {
     DefaultSorter,
     CustomSorter(HashMap<String, usize>),
 }
-impl Sorter {
-    fn get_value(&self) -> &HashMap<String, usize> {
+
+impl Deref for Sorter {
+    type Target = HashMap<String, usize>;
+
+    fn deref(&self) -> &Self::Target {
         match &self {
             Self::DefaultSorter => &SORTER,
-            Self::CustomSorter(custom_sorter) => custom_sorter,
+            Self::CustomSorter(sorter) => sorter,
         }
     }
 }
@@ -50,26 +57,23 @@ pub struct Options {
 
 /// Checks if the file contents have any classes.
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
-    options.regex.get_value().is_match(file_contents)
+    options.regex.is_match(file_contents)
 }
 
 /// Sorts the classes in the file contents.
 pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<'a, str> {
-    options
-        .regex
-        .get_value()
-        .replace_all(file_contents, |caps: &Captures| {
-            let classes = &caps[1];
-            let sorted_classes = sort_classes(classes, options);
+    options.regex.replace_all(file_contents, |caps: &Captures| {
+        let classes = &caps[1];
+        let sorted_classes = sort_classes(classes, options);
 
-            caps[0].replace(classes, &sorted_classes)
-        })
+        caps[0].replace(classes, &sorted_classes)
+    })
 }
 
 /// Given a [&str] of whitespace-separated classes, returns a [String] of sorted classes.
 /// Does not preserve whitespace.
 pub fn sort_classes(class_string: &str, options: &Options) -> String {
-    let sorter = options.sorter.get_value();
+    let sorter = &options.sorter;
 
     if options.allow_duplicates {
         sort_classes_vec(class_string.split_ascii_whitespace(), sorter)
