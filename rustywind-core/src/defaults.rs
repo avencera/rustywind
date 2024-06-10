@@ -4972,67 +4972,61 @@ pub static SORTER: Lazy<HashMap<String, usize>> = Lazy::new(|| {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_regex_matches_class_name() {
-        assert!(RE.is_match(r#"class="my-class""#));
-        assert!(RE.is_match(r#"className="my-class""#));
-        assert!(RE.is_match(r#"class='my-class'"#));
-        assert!(RE.is_match(r#"className='my-class'"#));
+    use test_case::case;
+
+    #[case(r#"class="my-class""#; "class attribute with double quotes")]
+    #[case(r#"className="my-class""#; "className attribute with double quotes")]
+    #[case(r#"class='my-class'"#; "class attribute with single quotes")]
+    #[case(r#"className='my-class'"#; "className attribute with single quotes")]
+    fn test_regex_matches_class_name(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 
-    #[test]
-    fn test_regex_matches_tailwind_classes() {
-        assert!(RE.is_match(r#"class="bg-red-500 text-white""#));
-        assert!(RE.is_match(r#"className="bg-red-500 text-white""#));
-        assert!(RE.is_match(r#"class='bg-red-500 text-white'"#));
-        assert!(RE.is_match(r#"className='bg-red-500 text-white'"#));
+    #[case(r#"class="bg-red-500 text-white""#; "class attribute with multiple classes and double quotes")]
+    #[case(r#"className="bg-red-500 text-white""#; "className attribute with multiple classes and double quotes")]
+    #[case(r#"class='bg-red-500 text-white'"#; "class attribute with multiple classes and single quotes")]
+    #[case(r#"className='bg-red-500 text-white'"#; "className attribute with multiple classes and single quotes")]
+    fn test_regex_matches_tailwind_classes(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 
-    #[test]
-    fn test_regex_matches_tailwind_classes_with_arbitrary_values() {
-        assert!(RE.is_match(r#"class="bg-[#123456] text-white""#));
-        assert!(RE.is_match(r#"className="bg-[#123456] text-white""#));
-        assert!(RE.is_match(r#"class='bg-[#123456] text-white'"#));
-        assert!(RE.is_match(r#"className='bg-[#123456] text-white'"#));
+    #[case(r#"class="bg-[#123456]""#; "class attribute with arbitrary value and double quotes")]
+    #[case(r#"className="bg-[#123456]""#; "className attribute with arbitrary value and double quotes")]
+    #[case(r#"class='bg-[#123456]'"#; "class attribute with arbitrary value and single quotes")]
+    #[case(r#"className='bg-[#123456]'"#; "className attribute with arbitrary value and single quotes")]
+    fn test_regex_matches_tailwind_class_with_arbitrary_value(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 
-    #[test]
-    fn test_regex_does_not_match_negative_class_names() {
-        assert!(RE.is_match(r#"class="-my-class""#));
-        assert!(RE.is_match(r#"className="-my-class""#));
-        assert!(RE.is_match(r#"class='-my-class'"#));
-        assert!(RE.is_match(r#"className='-my-class'"#));
+    #[case(r#"class="-my-class""#; "class attribute with negative class name and double quotes")]
+    #[case(r#"className="-my-class""#; "className attribute with negative class name and double quotes")]
+    #[case(r#"class='-my-class'"#; "class attribute with negative class name and single quotes")]
+    #[case(r#"className='-my-class'"#; "className attribute with negative class name and single quotes")]
+    fn test_regex_matches_negative_class_names(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 
-    #[test]
-    fn test_regex_matches_multiple_classes_with_arbitrary_values() {
-        assert!(RE.is_match(r#"class="bg-[#123456] text-white p-4 m-2""#));
-        assert!(RE.is_match(r#"className="bg-[#123456] text-white p-4 m-2""#));
-        assert!(RE.is_match(r#"class='bg-[#123456] text-white p-4 m-2'"#));
-        assert!(RE.is_match(r#"className='bg-[#123456] text-white p-4 m-2'"#));
+    #[case(r#"class="bg-[#123456] text-white p-4 m-2""#; "class attribute with multiple classes, arbitrary values and double quotes")]
+    #[case(r#"className="bg-[#123456] text-white p-4 m-2""#; "className attribute with multiple classes, arbitrary values and double quotes")]
+    #[case(r#"class='bg-[#123456] text-white p-4 m-2'"#; "class attribute with multiple classes, arbitrary values and single quotes")]
+    #[case(r#"className='bg-[#123456] text-white p-4 m-2'"#; "className attribute with multiple classes, arbitrary values and single quotes")]
+    fn test_regex_matches_multiple_classes_with_arbitrary_values(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 
-    #[test]
-    fn test_regex_matches_classes_with_special_characters() {
-        assert!(RE.is_match(r#"class="bg-red-500/50 text-white""#));
-        assert!(RE.is_match(r#"className="bg-red-500/50 text-white""#));
-        assert!(RE.is_match(r#"class='bg-red-500/50 text-white'"#));
-        assert!(RE.is_match(r#"className='bg-red-500/50 text-white'"#));
+    #[case(r#"class="bg-red-500/50 text-white""#; "class attribute with special characters and double quotes")]
+    #[case(r#"className="bg-red-500/50 text-white""#; "className attribute with special characters and double quotes")]
+    #[case(r#"class='bg-red-500/50 text-white'"#; "class attribute with special characters and single quotes")]
+    #[case(r#"className='bg-red-500/50 text-white'"#; "className attribute with special characters and single quotes")]
+    fn test_regex_matches_classes_with_special_characters(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 
-    #[test]
-    fn test_regex_matches_classes_with_numbers() {
-        assert!(RE.is_match(r#"class="w-1/2 h-1/3""#));
-        assert!(RE.is_match(r#"className="w-1/2 h-1/3""#));
-        assert!(RE.is_match(r#"class='w-1/2 h-1/3'"#));
-        assert!(RE.is_match(r#"className='w-1/2 h-1/3'"#));
-    }
-
-    #[test]
-    fn test_regex_matches_classes_with_mixed_characters() {
-        assert!(RE.is_match(r#"class="bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3""#));
-        assert!(RE.is_match(r#"className="bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3""#));
-        assert!(RE.is_match(r#"class='bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3'"#));
-        assert!(RE.is_match(r#"className='bg-[#123456] text-white p-4 m-2 w-1/2 h-1/3'"#));
+    #[case(r#"class="bg-[#123456] text-white -p-4 m-2 w-1/2 h-1/3""#; "class attribute with mixed characters and double quotes")]
+    #[case(r#"className="bg-[#123456] text-white -p-4 m-2 w-1/2 h-1/3""#; "className attribute with mixed characters and double quotes")]
+    #[case(r#"class='bg-[#123456] text-white -p-4 m-2 w-1/2 h-1/3'"#; "class attribute with mixed characters and single quotes")]
+    #[case(r#"className='bg-[#123456] text-white -p-4 m-2 w-1/2 h-1/3'"#; "className attribute with mixed characters and single quotes")]
+    fn test_regex_matches_classes_with_mixed_characters(haystack: &str) {
+        assert!(RE.is_match(haystack));
     }
 }
