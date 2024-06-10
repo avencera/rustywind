@@ -1,4 +1,3 @@
-# When pushed to master, run `cargo +nightly fmt --all` and open a PR.
 name: rustfmt
 on: [push, pull_request]
 jobs:
@@ -6,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain with rustfmt available
         uses: actions-rs/toolchain@v1
@@ -15,4 +14,4 @@ jobs:
           override: true
           components: rustfmt
 
-      - run: rustfmt --edition 2021 **/*.rs --check
+      - run: cargo fmt --check

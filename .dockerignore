@@ -1,0 +1,6 @@
+/target
+**/*.rs.bk
+ci
+npm
+.github
+.git

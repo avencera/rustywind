@@ -1,3 +1,4 @@
+//! Create a sorter from a CSS file to sort classes in the order that they appear in the file
 use std::{
     collections::hash_map::Entry,
     fs::File,
@@ -12,11 +13,13 @@ use ahash::AHashMap as HashMap;
 
 static PARSER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
 
+/// Create the sorter from a [File]
 pub fn parse_classes_from_file(css_file: File) -> Result<HashMap<String, usize>> {
     let css_reader = BufReader::new(css_file);
     parse_classes(css_reader)
 }
 
+/// Create the sorter from any [BufReader]
 pub fn parse_classes<T: Read>(css_file: BufReader<T>) -> Result<HashMap<String, usize>> {
     let css_reader = BufReader::new(css_file);
     let mut classes: HashMap<String, usize> = HashMap::new();

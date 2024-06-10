@@ -1,0 +1,52 @@
+[package]
+name = "rustywind"
+version = "0.22.0"
+description = "A CLI to sort tailwind CSS classes"
+documentation = "https://docs.rs/rustywind"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-v{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[dependencies]
+# rustywind
+rustywind_core = { version = "0.1.1" }
+rustywind_vite = { version = "0.1.0" }
+
+# iter
+itertools = { workspace = true }
+
+# utils
+regex = { workspace = true }
+once_cell = { workspace = true }
+ahash = { workspace = true }
+
+# logging
+env_logger = { workspace = true }
+log = { workspace = true }
+
+# errors
+eyre = { workspace = true }
+color-eyre = { workspace = true }
+
+# cli
+clap = { version = "4.3", features = ["cargo", "derive", "unstable-styles"] }
+indoc = "2.0"
+colored = "2.1"
+anstyle = "1.0.1"
+
+# parallel
+rayon = "1.5"
+
+# files
+ignore = "0.4"
+
+# parsing
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

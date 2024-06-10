@@ -1,0 +1,24 @@
+[package]
+name = "rustywind_core"
+version = "0.1.2"
+description = "A library for sorting tailwind CSS classes"
+documentation = "https://docs.rs/rustywind_core"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+itertools = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }
+ahash = { workspace = true }
+eyre = { workspace = true }
+
+# string matching
+aho-corasick = "1.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+test-case = "3.3.1"

@@ -1,0 +1,26 @@
+[package]
+name = "rustywind_vite"
+version = "0.1.0"
+description = "Additional functionality for rustywind_core specific to Vite"
+documentation = "https://docs.rs/rustywind_vite"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+rustywind_core = { version = "0.1.1" }
+
+# tls
+# ureq 2.9 requires rustls 0.22.0
+rustls = { version = "0.22" }
+
+# HTTP
+ureq = "2.9"
+
+once_cell = { workspace = true }
+regex = { workspace = true }
+eyre = { workspace = true }
+color-eyre = { workspace = true }
+

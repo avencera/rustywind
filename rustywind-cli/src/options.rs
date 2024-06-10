@@ -1,10 +1,10 @@
-pub mod vite;
-
 use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
+use rustywind_core::{parser, sorter};
+use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
 use std::fs;
 use std::io::Read;
@@ -14,7 +14,7 @@ use std::str::FromStr;
 use ahash::AHashMap as HashMap;
 use ahash::AHashSet as HashSet;
 
-use crate::parser;
+use crate::sorter::{FinderRegex, Sorter};
 use crate::Cli;
 
 #[derive(Debug)]
@@ -26,18 +26,6 @@ pub enum WriteMode {
     CheckFormatted,
 }
 
-#[derive(Debug)]
-pub enum FinderRegex {
-    DefaultRegex,
-    CustomRegex(Regex),
-}
-
-#[derive(Debug)]
-pub enum Sorter {
-    DefaultSorter,
-    CustomSorter(HashMap<String, usize>),
-}
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ConfigFileContents {
@@ -47,11 +35,9 @@ struct ConfigFileContents {
 #[derive(Debug)]
 pub struct Options {
     pub stdin: Option<String>,
+    pub sorter_options: sorter::Options,
     pub write_mode: WriteMode,
-    pub regex: FinderRegex,
-    pub sorter: Sorter,
     pub starting_paths: Vec<PathBuf>,
-    pub allow_duplicates: bool,
     pub search_paths: Vec<PathBuf>,
     pub ignored_files: HashSet<PathBuf>,
     pub quiet: bool,
@@ -71,14 +57,18 @@ impl Options {
         let starting_paths = get_starting_path_from_cli(&cli);
         let search_paths = get_search_paths_from_starting_paths(&starting_paths);
 
-        Ok(Options {
-            stdin,
-            starting_paths,
-            search_paths,
-            write_mode: get_write_mode_from_cli(&cli),
+        let sorter_options = sorter::Options {
             regex: get_custom_regex_from_cli(&cli)?,
             sorter: get_sorter_from_cli(&cli)?,
             allow_duplicates: cli.allow_duplicates,
+        };
+
+        Ok(Options {
+            stdin,
+            sorter_options,
+            starting_paths,
+            search_paths,
+            write_mode: get_write_mode_from_cli(&cli),
             ignored_files: get_ignored_files_from_cli(&cli),
             quiet: cli.quiet,
         })
@@ -87,7 +77,7 @@ impl Options {
 
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
     if let Some(vite_css_url) = &cli.vite_css {
-        return vite::create_sorter(vite_css_url, cli.skip_ssl_verification);
+        return create_vite_sorter(vite_css_url, cli.skip_ssl_verification);
     }
 
     if let Some(css_file) = &cli.output_css_file {
@@ -152,7 +142,7 @@ fn get_write_mode_from_cli(cli: &Cli) -> WriteMode {
     } else if cli.stdin {
         WriteMode::ToStdOut
     } else {
-        WriteMode::DryRun
+        WriteMode::ToConsole
     }
 }
 

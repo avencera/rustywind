@@ -1,3 +1,4 @@
+//! Contains the default [Sorter](SORTER) and default [Regex](RE)
 use ahash::AHashMap as HashMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
