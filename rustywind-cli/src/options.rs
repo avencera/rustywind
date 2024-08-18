@@ -1,8 +1,10 @@
+use clap::ValueEnum;
 use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
+use rustywind_core::sorter::HowClassesAreWrapped;
 use rustywind_core::{parser, sorter};
 use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
@@ -30,6 +32,24 @@ pub enum WriteMode {
 #[serde(rename_all = "camelCase")]
 struct ConfigFileContents {
     sort_order: Vec<String>,
+}
+
+// Wrapper to be able to use the `ValueEnum` trait without adding clap to the core crate
+#[derive(Clone, Copy, Debug)]
+pub struct CliHowClassesAreWrapped(HowClassesAreWrapped);
+
+impl ValueEnum for CliHowClassesAreWrapped {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[
+            CliHowClassesAreWrapped(HowClassesAreWrapped::NoWrapping),
+            CliHowClassesAreWrapped(HowClassesAreWrapped::CommaSingleQuotes),
+            CliHowClassesAreWrapped(HowClassesAreWrapped::CommaDoubleQuotes),
+        ]
+    }
+
+    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
+        Some(clap::builder::PossibleValue::new(self.0.as_str()))
+    }
 }
 
 #[derive(Debug)]
@@ -61,6 +81,7 @@ impl Options {
             regex: get_custom_regex_from_cli(&cli)?,
             sorter: get_sorter_from_cli(&cli)?,
             allow_duplicates: cli.allow_duplicates,
+            class_wrapping: get_class_wrapping_from_cli(&cli),
         };
 
         Ok(Options {
@@ -122,6 +143,13 @@ fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {
             Ok(FinderRegex::CustomRegex(regex))
         }
         None => Ok(FinderRegex::DefaultRegex),
+    }
+}
+
+fn get_class_wrapping_from_cli(cli: &Cli) -> HowClassesAreWrapped {
+    match &cli.class_wrapping {
+        Some(class_wrapping) => class_wrapping.0,
+        None => HowClassesAreWrapped::NoWrapping,
     }
 }
 

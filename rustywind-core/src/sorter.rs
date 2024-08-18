@@ -29,6 +29,41 @@ impl Deref for FinderRegex {
     }
 }
 
+/// How individual classes are wrapped.
+#[derive(Debug, Clone, Copy)]
+pub enum HowClassesAreWrapped {
+    NoWrapping,
+    CommaSingleQuotes,
+    CommaDoubleQuotes,
+}
+
+impl Default for HowClassesAreWrapped {
+    fn default() -> Self {
+        Self::NoWrapping
+    }
+}
+
+impl HowClassesAreWrapped {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            HowClassesAreWrapped::NoWrapping => "no-wrapping",
+            HowClassesAreWrapped::CommaSingleQuotes => "comma-single-quotes",
+            HowClassesAreWrapped::CommaDoubleQuotes => "comma-double-quotes",
+        }
+    }
+}
+
+impl<T: AsRef<str>> From<T> for HowClassesAreWrapped {
+    fn from(s: T) -> Self {
+        match s.as_ref() {
+            "no-wrapping" => Self::NoWrapping,
+            "comma-single-quotes" => Self::CommaSingleQuotes,
+            "comma-double-quotes" => Self::CommaDoubleQuotes,
+            _ => Self::NoWrapping,
+        }
+    }
+}
+
 /// Use either our default sorter in [crate::defaults::SORTER] or a custom sorter.
 #[derive(Debug)]
 pub enum Sorter {
@@ -53,6 +88,7 @@ pub struct Options {
     pub regex: FinderRegex,
     pub sorter: Sorter,
     pub allow_duplicates: bool,
+    pub class_wrapping: HowClassesAreWrapped,
 }
 
 /// Checks if the file contents have any classes.
@@ -65,7 +101,6 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
     options.regex.replace_all(file_contents, |caps: &Captures| {
         let classes = &caps[1];
         let sorted_classes = sort_classes(classes, options);
-
         caps[0].replace(classes, &sorted_classes)
     })
 }
@@ -75,12 +110,48 @@ pub fn sort_file_contents<'a>(file_contents: &'a str, options: &Options) -> Cow<
 pub fn sort_classes(class_string: &str, options: &Options) -> String {
     let sorter = &options.sorter;
 
-    if options.allow_duplicates {
-        sort_classes_vec(class_string.split_ascii_whitespace(), sorter)
+    let extracted_classes = unwrap_wrapped_classes(class_string, options.class_wrapping);
+
+    let sorted = if options.allow_duplicates {
+        sort_classes_vec(extracted_classes.into_iter(), sorter)
     } else {
-        sort_classes_vec(class_string.split_ascii_whitespace().unique(), sorter)
+        sort_classes_vec(extracted_classes.into_iter().unique(), sorter)
+    };
+
+    rewrap_wrapped_classes(sorted, options.class_wrapping)
+}
+
+fn unwrap_wrapped_classes<'a>(
+    class_string: &'a str,
+    wrapping: HowClassesAreWrapped,
+) -> Vec<&'a str> {
+    match wrapping {
+        HowClassesAreWrapped::NoWrapping => class_string.split_ascii_whitespace().collect(),
+        HowClassesAreWrapped::CommaSingleQuotes => class_string
+            .split(',')
+            .flat_map(|class| class.split_ascii_whitespace())
+            .map(|class| class.trim_matches('\''))
+            .collect(),
+        HowClassesAreWrapped::CommaDoubleQuotes => class_string
+            .split(',')
+            .flat_map(|class| class.split_ascii_whitespace())
+            .map(|class| class.trim_matches('"'))
+            .collect(),
     }
-    .join(" ")
+}
+
+fn rewrap_wrapped_classes<'a>(classes: Vec<&'a str>, wrapping: HowClassesAreWrapped) -> String {
+    match wrapping {
+        HowClassesAreWrapped::NoWrapping => classes.join(" "),
+        HowClassesAreWrapped::CommaSingleQuotes => classes
+            .iter()
+            .map(|class| format!("'{}'", class))
+            .join(", "),
+        HowClassesAreWrapped::CommaDoubleQuotes => classes
+            .iter()
+            .map(|class| format!("\"{}\"", class))
+            .join(", "),
+    }
 }
 
 fn sort_classes_vec<'a>(
@@ -103,7 +174,6 @@ fn sort_classes_vec<'a>(
                         let prefix = VARIANTS[prefix_match.pattern()];
                         variants.entry(prefix).or_default().push(class)
                     }
-
                     None => custom_classes.push(class),
                 }
             }
@@ -174,6 +244,7 @@ mod tests {
         regex: FinderRegex::DefaultRegex,
         sorter: Sorter::DefaultSorter,
         allow_duplicates: false,
+        class_wrapping: HowClassesAreWrapped::NoWrapping,
     };
 
     // HAS_CLASSES --------------------------------------------------------------------------------
@@ -439,5 +510,99 @@ mod tests {
     )]
     fn test_sort_file_contents(opts: &Options, input: &str, output: &str) {
         assert_eq!(sort_file_contents(input, opts), output);
+    }
+
+    #[test_case(
+        r#"flex-col inline flex"#,
+        HowClassesAreWrapped::NoWrapping,
+        vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
+        ; "no wrapping"
+    )]
+    #[test_case(
+        r#"'flex-col', 'inline', 'flex'"#,
+        HowClassesAreWrapped::CommaSingleQuotes,
+        vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
+        ; "comma single quotes"
+    )]
+    #[test_case(
+        r#""flex-col", "inline", "flex""#,
+        HowClassesAreWrapped::CommaDoubleQuotes,
+        vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
+        ; "comma double quotes"
+    )]
+    fn test_unwrap_wrapped_classes<'a>(
+        input: &str,
+        wrapping: HowClassesAreWrapped,
+        output: Vec<&str>,
+    ) {
+        assert_eq!(unwrap_wrapped_classes(input, wrapping), output)
+    }
+
+    #[test_case(
+        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
+        HowClassesAreWrapped::NoWrapping,
+        r#"flex-col inline flex"#
+        ; "no wrapping"
+    )]
+    #[test_case(
+        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
+        HowClassesAreWrapped::CommaSingleQuotes,
+        r#"'flex-col', 'inline', 'flex'"#
+        ; "comma single quotes"
+    )]
+    #[test_case(
+        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
+        HowClassesAreWrapped::CommaDoubleQuotes,
+        r#""flex-col", "inline", "flex""#
+        ; "comma double quotes"
+    )]
+    fn test_rewrap_wrapped_classes<'a>(
+        input: Vec<&'a str>,
+        wrapping: HowClassesAreWrapped,
+        output: &str,
+    ) {
+        assert_eq!(rewrap_wrapped_classes(input, wrapping), output)
+    }
+
+    #[test_case(
+        None,
+        HowClassesAreWrapped::NoWrapping,
+        r#"<div class="flex-col inline flex"></div>"#,
+        r#"<div class="inline flex flex-col"></div>"#
+        ; "normal HTML use case"
+    )]
+    #[test_case(
+        Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
+        HowClassesAreWrapped::CommaSingleQuotes,
+        r#"classes = ['flex-col', 'inline', 'flex']"#,
+        r#"classes = ['inline', 'flex', 'flex-col']"#
+        ; "array with single quotes"
+    )]
+    #[test_case(
+        Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
+        HowClassesAreWrapped::CommaDoubleQuotes,
+        r#"classes = ["flex-col", "inline", "flex"]"#,
+        r#"classes = ["inline", "flex", "flex-col"]"#
+        ; "array with double quotes"
+    )]
+    fn test_unusual_use_cases(
+        regex_overwrite: Option<&str>,
+        class_wrapping: HowClassesAreWrapped,
+        input: &str,
+        output: &str,
+    ) {
+        let regex = match regex_overwrite {
+            Some(re) => FinderRegex::CustomRegex(Regex::new(re).unwrap()),
+            None => FinderRegex::DefaultRegex,
+        };
+
+        let opts = Options {
+            regex,
+            sorter: Sorter::DefaultSorter,
+            allow_duplicates: false,
+            class_wrapping,
+        };
+
+        assert_eq!(sort_file_contents(input, &opts), output);
     }
 }
