@@ -869,7 +869,7 @@ dependencies = [
  "rayon",
  "regex",
  "rustywind_core 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustywind_vite 0.1.1",
+ "rustywind_vite 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
 ]
@@ -904,9 +904,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind_vite"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a86ad03b092de88f35d3b0e8475a9ad60e9d2c94d1b3b25d1fd0923bfa13d30"
+version = "0.1.2"
 dependencies = [
  "color-eyre",
  "eyre",
@@ -920,6 +918,8 @@ dependencies = [
 [[package]]
 name = "rustywind_vite"
 version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5c2e61bb50a02fc3293e2ead78c1ecc4102652df1a145ea6f7a5721c6e63184"
 dependencies = [
  "color-eyre",
  "eyre",
