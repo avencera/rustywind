@@ -1,6 +1,6 @@
 [package]
 name = "rustywind_vite"
-version = "0.1.0"
+version = "0.1.1"
 description = "Additional functionality for rustywind_core specific to Vite"
 documentation = "https://docs.rs/rustywind_vite"
 authors.workspace = true
@@ -13,11 +13,10 @@ repository.workspace = true
 rustywind_core = { version = "0.1.1" }
 
 # tls
-# ureq 2.9 requires rustls 0.22.0
-rustls = { version = "0.22" }
+rustls = { version = "0.23" }
 
 # HTTP
-ureq = "2.9"
+ureq = "2.10"
 
 once_cell = { workspace = true }
 regex = { workspace = true }
