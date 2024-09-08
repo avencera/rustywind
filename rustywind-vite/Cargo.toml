@@ -13,7 +13,7 @@ repository.workspace = true
 rustywind_core = { version = "0.1.2" }
 
 # tls
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { version = "0.23", features = ["ring"], defaut-features = false }
 
 # HTTP
 ureq = "2.10"
