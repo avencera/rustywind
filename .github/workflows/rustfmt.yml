@@ -8,7 +8,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install stable toolchain with rustfmt availableA
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
 
