@@ -7,11 +7,10 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      - name: Install stable toolchain with rustfmt available
-        uses: actions-rs/toolchain@v1
+      - name: Install stable toolchain with rustfmt availableA
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: stable
-          override: true
           components: rustfmt
 
-      - run: cargo fmt --check
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
