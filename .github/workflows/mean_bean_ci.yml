@@ -82,7 +82,6 @@ jobs:
       - run: ci/set_rust_version.bash ${{ matrix.channel }} ${{ matrix.target }}
 
       - name: Test
-        uses: actions-rust-lang/setup-rust-toolchain@v1
         run: cargo test --target ${{ matrix.target }}
 
   linux:
@@ -98,6 +97,7 @@ jobs:
         with:
           name: cross-linux-musl
           path: /tmp/
+
       - run: chmod +x /tmp/cross
       - run: ci/set_rust_version.bash ${{ matrix.channel }} ${{ matrix.target }}
       - run: ci/build.bash /tmp/cross ${{ matrix.target }}
