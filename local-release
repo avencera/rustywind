@@ -1,5 +1,8 @@
 #!/bin/bash
 
+APP=rustywind
+INSTALL_DIR=$HOME/.local/bin
+
 cargo build --release;
-rm  /usr/local/bin/rustywind;
-ln -s "$(pwd)/target/release/rustywind" /usr/local/bin
+rm  $INSTALL_DIR/$APP || true;
+ln -s "$(pwd)/target/release/$APP" $INSTALL_DIR/$APP;
