@@ -83,9 +83,13 @@ pub struct Cli {
     /// When set, RustyWind will ignore this list of files
     #[arg(long)]
     ignored_files: Option<Vec<String>>,
-    /// Uses a custom regex instead of default one.
+    /// Uses a custom regex instead of default one. Should have a single capture group that
+    /// includes only the classes.
     #[arg(long)]
     custom_regex: Option<String>,
+    /// Specify how individual classes are wrapped.
+    #[arg(long)]
+    class_wrapping: Option<options::CliHowClassesAreWrapped>,
     /// Do not print log messages
     #[arg(long, default_value = "false", conflicts_with_all = &["dry_run"])]
     quiet: bool,
