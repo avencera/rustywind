@@ -511,7 +511,7 @@ mod tests {
     fn test_sort_file_contents(opts: &Options, input: &str, output: &str) {
         assert_eq!(sort_file_contents(input, opts), output);
     }
-
+    // CLASS WRAPPING
     #[test_case(
         r#"flex-col inline flex"#,
         HowClassesAreWrapped::NoWrapping,
