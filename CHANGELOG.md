@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.23.0] - 2024-10-21
+
+- Add options to handle wrapped classes to extend the set of use cases [#109](https://github.com/avencera/rustywind/pull/109), thanks [@dikkadev]](https://github.com/dikkadev])
+
 ## [0.22.1] - 2024-10-21
 
 - Fix regex for parsing css classes, [#99](https://github.com/avencera/rustywind/pull/99), thanks [@DanikVitek](https://github.com/DanikVitek)
