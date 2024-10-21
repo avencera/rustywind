@@ -1,6 +1,6 @@
 [package]
 name = "rustywind"
-version = "0.22.1"
+version = "0.23.0"
 description = "A CLI to sort tailwind CSS classes"
 documentation = "https://docs.rs/rustywind"
 authors.workspace = true
