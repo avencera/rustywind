@@ -629,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind"
-version = "0.23.0"
+version = "0.23.1"
 dependencies = [
  "ahash",
  "anstyle",
@@ -645,24 +645,10 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "rustywind_core 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustywind_core 0.2.0",
  "rustywind_vite 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "rustywind_core"
-version = "0.2.0"
-dependencies = [
- "ahash",
- "aho-corasick",
- "eyre",
- "itertools",
- "once_cell",
- "pretty_assertions",
- "regex",
- "test-case",
 ]
 
 [[package]]
@@ -680,6 +666,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustywind_core"
+version = "0.2.1"
+dependencies = [
+ "ahash",
+ "aho-corasick",
+ "eyre",
+ "itertools",
+ "once_cell",
+ "pretty_assertions",
+ "regex",
+ "test-case",
+]
+
+[[package]]
 name = "rustywind_vite"
 version = "0.2.0"
 dependencies = [
@@ -688,7 +688,7 @@ dependencies = [
  "once_cell",
  "regex",
  "rustls",
- "rustywind_core 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustywind_core 0.2.0",
  "ureq",
 ]
 
@@ -703,7 +703,7 @@ dependencies = [
  "once_cell",
  "regex",
  "rustls",
- "rustywind_core 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustywind_core 0.2.0",
  "ureq",
 ]
 
