@@ -1,6 +1,6 @@
 [package]
 name = "rustywind"
-version = "0.22.0"
+version = "0.22.1"
 description = "A CLI to sort tailwind CSS classes"
 documentation = "https://docs.rs/rustywind"
 authors.workspace = true
@@ -16,8 +16,8 @@ pkg-fmt = "tgz"
 
 [dependencies]
 # rustywind
-rustywind_core = { path = "../rustywind-core", version = "0.1.1" }
-rustywind_vite = { path = "../rustywind-vite", version = "0.1.1" }
+rustywind_core = { version = "0.1.3" }
+rustywind_vite = { version = "0.1.4" }
 
 # iter
 itertools = { workspace = true }

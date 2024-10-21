@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.22.1] - 2024-10-21
+
+- Fix regex for parsing css classes, [#99](https://github.com/avencera/rustywind/pull/99), thanks [@DanikVitek](https://github.com/DanikVitek)
+- Update cargo deps
+
 ## [0.22.0] - 2024-04-12
 
 - Split rustywind into multiple crates, [#100](https://github.com/avencera/rustywind/pull/100), thanks [@Rolv-Apneseth](https://github.com/Rolv-Apneseth), and [@bram209](https://github.com/bram209/)
