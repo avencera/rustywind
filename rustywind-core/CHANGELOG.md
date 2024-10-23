@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Changed `HowClassesAreWrapped` to `ClassWrapping`
+- Fixed some clippy warnings
+
 ## [0.2.0] - 2024-10-21
 
 - Add options to handle wrapped classes to extend the set of use cases [#109](https://github.com/avencera/rustywind/pull/109), thanks [@dikkadev]](https://github.com/dikkadev])

@@ -10,7 +10,8 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-rustywind_core = { version = "0.2.1" }
+rustywind_core = { path = "../rustywind-core" }
+# rustywind_core = { version = "0.3" }
 
 # tls
 rustls = { version = "0.23", features = ["ring"], default-features = false }

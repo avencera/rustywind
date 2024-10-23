@@ -4,7 +4,7 @@ use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
-use rustywind_core::sorter::HowClassesAreWrapped;
+use rustywind_core::sorter::ClassWrapping;
 use rustywind_core::{parser, sorter};
 use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
@@ -36,14 +36,14 @@ struct ConfigFileContents {
 
 // Wrapper to be able to use the `ValueEnum` trait without adding clap to the core crate
 #[derive(Clone, Copy, Debug)]
-pub struct CliHowClassesAreWrapped(HowClassesAreWrapped);
+pub struct CliClassWrapping(ClassWrapping);
 
-impl ValueEnum for CliHowClassesAreWrapped {
+impl ValueEnum for CliClassWrapping {
     fn value_variants<'a>() -> &'a [Self] {
         &[
-            CliHowClassesAreWrapped(HowClassesAreWrapped::NoWrapping),
-            CliHowClassesAreWrapped(HowClassesAreWrapped::CommaSingleQuotes),
-            CliHowClassesAreWrapped(HowClassesAreWrapped::CommaDoubleQuotes),
+            CliClassWrapping(ClassWrapping::NoWrapping),
+            CliClassWrapping(ClassWrapping::CommaSingleQuotes),
+            CliClassWrapping(ClassWrapping::CommaDoubleQuotes),
         ]
     }
 
@@ -146,10 +146,10 @@ fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {
     }
 }
 
-fn get_class_wrapping_from_cli(cli: &Cli) -> HowClassesAreWrapped {
+fn get_class_wrapping_from_cli(cli: &Cli) -> ClassWrapping {
     match &cli.class_wrapping {
         Some(class_wrapping) => class_wrapping.0,
-        None => HowClassesAreWrapped::NoWrapping,
+        None => ClassWrapping::NoWrapping,
     }
 }
 

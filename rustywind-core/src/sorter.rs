@@ -31,29 +31,29 @@ impl Deref for FinderRegex {
 
 /// How individual classes are wrapped.
 #[derive(Debug, Clone, Copy)]
-pub enum HowClassesAreWrapped {
+pub enum ClassWrapping {
     NoWrapping,
     CommaSingleQuotes,
     CommaDoubleQuotes,
 }
 
-impl Default for HowClassesAreWrapped {
+impl Default for ClassWrapping {
     fn default() -> Self {
         Self::NoWrapping
     }
 }
 
-impl HowClassesAreWrapped {
+impl ClassWrapping {
     pub fn as_str(&self) -> &'static str {
         match self {
-            HowClassesAreWrapped::NoWrapping => "no-wrapping",
-            HowClassesAreWrapped::CommaSingleQuotes => "comma-single-quotes",
-            HowClassesAreWrapped::CommaDoubleQuotes => "comma-double-quotes",
+            ClassWrapping::NoWrapping => "no-wrapping",
+            ClassWrapping::CommaSingleQuotes => "comma-single-quotes",
+            ClassWrapping::CommaDoubleQuotes => "comma-double-quotes",
         }
     }
 }
 
-impl<T: AsRef<str>> From<T> for HowClassesAreWrapped {
+impl<T: AsRef<str>> From<T> for ClassWrapping {
     fn from(s: T) -> Self {
         match s.as_ref() {
             "no-wrapping" => Self::NoWrapping,
@@ -88,7 +88,7 @@ pub struct Options {
     pub regex: FinderRegex,
     pub sorter: Sorter,
     pub allow_duplicates: bool,
-    pub class_wrapping: HowClassesAreWrapped,
+    pub class_wrapping: ClassWrapping,
 }
 
 /// Checks if the file contents have any classes.
@@ -121,18 +121,15 @@ pub fn sort_classes(class_string: &str, options: &Options) -> String {
     rewrap_wrapped_classes(sorted, options.class_wrapping)
 }
 
-fn unwrap_wrapped_classes<'a>(
-    class_string: &'a str,
-    wrapping: HowClassesAreWrapped,
-) -> Vec<&'a str> {
+fn unwrap_wrapped_classes(class_string: &str, wrapping: ClassWrapping) -> Vec<&str> {
     match wrapping {
-        HowClassesAreWrapped::NoWrapping => class_string.split_ascii_whitespace().collect(),
-        HowClassesAreWrapped::CommaSingleQuotes => class_string
+        ClassWrapping::NoWrapping => class_string.split_ascii_whitespace().collect(),
+        ClassWrapping::CommaSingleQuotes => class_string
             .split(',')
             .flat_map(|class| class.split_ascii_whitespace())
             .map(|class| class.trim_matches('\''))
             .collect(),
-        HowClassesAreWrapped::CommaDoubleQuotes => class_string
+        ClassWrapping::CommaDoubleQuotes => class_string
             .split(',')
             .flat_map(|class| class.split_ascii_whitespace())
             .map(|class| class.trim_matches('"'))
@@ -140,14 +137,14 @@ fn unwrap_wrapped_classes<'a>(
     }
 }
 
-fn rewrap_wrapped_classes<'a>(classes: Vec<&'a str>, wrapping: HowClassesAreWrapped) -> String {
+fn rewrap_wrapped_classes(classes: Vec<&str>, wrapping: ClassWrapping) -> String {
     match wrapping {
-        HowClassesAreWrapped::NoWrapping => classes.join(" "),
-        HowClassesAreWrapped::CommaSingleQuotes => classes
+        ClassWrapping::NoWrapping => classes.join(" "),
+        ClassWrapping::CommaSingleQuotes => classes
             .iter()
             .map(|class| format!("'{}'", class))
             .join(", "),
-        HowClassesAreWrapped::CommaDoubleQuotes => classes
+        ClassWrapping::CommaDoubleQuotes => classes
             .iter()
             .map(|class| format!("\"{}\"", class))
             .join(", "),
@@ -244,7 +241,7 @@ mod tests {
         regex: FinderRegex::DefaultRegex,
         sorter: Sorter::DefaultSorter,
         allow_duplicates: false,
-        class_wrapping: HowClassesAreWrapped::NoWrapping,
+        class_wrapping: ClassWrapping::NoWrapping,
     };
 
     // HAS_CLASSES --------------------------------------------------------------------------------
@@ -514,80 +511,72 @@ mod tests {
     // CLASS WRAPPING
     #[test_case(
         r#"flex-col inline flex"#,
-        HowClassesAreWrapped::NoWrapping,
+        ClassWrapping::NoWrapping,
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "no wrapping"
     )]
     #[test_case(
         r#"'flex-col', 'inline', 'flex'"#,
-        HowClassesAreWrapped::CommaSingleQuotes,
+        ClassWrapping::CommaSingleQuotes,
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "comma single quotes"
     )]
     #[test_case(
         r#""flex-col", "inline", "flex""#,
-        HowClassesAreWrapped::CommaDoubleQuotes,
+        ClassWrapping::CommaDoubleQuotes,
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "comma double quotes"
     )]
-    fn test_unwrap_wrapped_classes<'a>(
-        input: &str,
-        wrapping: HowClassesAreWrapped,
-        output: Vec<&str>,
-    ) {
+    fn test_unwrap_wrapped_classes<'a>(input: &str, wrapping: ClassWrapping, output: Vec<&str>) {
         assert_eq!(unwrap_wrapped_classes(input, wrapping), output)
     }
 
     #[test_case(
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        HowClassesAreWrapped::NoWrapping,
+        ClassWrapping::NoWrapping,
         r#"flex-col inline flex"#
         ; "no wrapping"
     )]
     #[test_case(
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        HowClassesAreWrapped::CommaSingleQuotes,
+        ClassWrapping::CommaSingleQuotes,
         r#"'flex-col', 'inline', 'flex'"#
         ; "comma single quotes"
     )]
     #[test_case(
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        HowClassesAreWrapped::CommaDoubleQuotes,
+        ClassWrapping::CommaDoubleQuotes,
         r#""flex-col", "inline", "flex""#
         ; "comma double quotes"
     )]
-    fn test_rewrap_wrapped_classes<'a>(
-        input: Vec<&'a str>,
-        wrapping: HowClassesAreWrapped,
-        output: &str,
-    ) {
+    fn test_rewrap_wrapped_classes<'a>(input: Vec<&'a str>, wrapping: ClassWrapping, output: &str) {
         assert_eq!(rewrap_wrapped_classes(input, wrapping), output)
     }
 
     #[test_case(
         None,
-        HowClassesAreWrapped::NoWrapping,
+        ClassWrapping::NoWrapping,
         r#"<div class="flex-col inline flex"></div>"#,
         r#"<div class="inline flex flex-col"></div>"#
         ; "normal HTML use case"
     )]
     #[test_case(
         Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
-        HowClassesAreWrapped::CommaSingleQuotes,
+        ClassWrapping::CommaSingleQuotes,
         r#"classes = ['flex-col', 'inline', 'flex']"#,
         r#"classes = ['inline', 'flex', 'flex-col']"#
         ; "array with single quotes"
     )]
     #[test_case(
         Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
-        HowClassesAreWrapped::CommaDoubleQuotes,
+        ClassWrapping::CommaDoubleQuotes,
         r#"classes = ["flex-col", "inline", "flex"]"#,
         r#"classes = ["inline", "flex", "flex-col"]"#
         ; "array with double quotes"
     )]
     fn test_unusual_use_cases(
         regex_overwrite: Option<&str>,
-        class_wrapping: HowClassesAreWrapped,
+        class_wrapping: ClassWrapping,
         input: &str,
         output: &str,
     ) {

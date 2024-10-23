@@ -89,7 +89,7 @@ pub struct Cli {
     custom_regex: Option<String>,
     /// Specify how individual classes are wrapped.
     #[arg(long)]
-    class_wrapping: Option<options::CliHowClassesAreWrapped>,
+    class_wrapping: Option<options::CliClassWrapping>,
     /// Do not print log messages
     #[arg(long, default_value = "false", conflicts_with_all = &["dry_run"])]
     quiet: bool,
