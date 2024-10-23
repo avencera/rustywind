@@ -91,6 +91,17 @@ pub struct Options {
     pub class_wrapping: ClassWrapping,
 }
 
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            regex: FinderRegex::DefaultRegex,
+            sorter: Sorter::DefaultSorter,
+            allow_duplicates: false,
+            class_wrapping: ClassWrapping::NoWrapping,
+        }
+    }
+}
+
 /// Checks if the file contents have any classes.
 pub fn has_classes(file_contents: &str, options: &Options) -> bool {
     options.regex.is_match(file_contents)

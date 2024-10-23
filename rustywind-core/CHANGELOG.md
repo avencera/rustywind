@@ -4,6 +4,7 @@
 
 - Changed `HowClassesAreWrapped` to `ClassWrapping`
 - Fixed some clippy warnings
+- Implemented `Default` for `Options`
 
 ## [0.2.0] - 2024-10-21
 
