@@ -11,8 +11,6 @@ const URL = url.URL;
 const child_process = require("child_process");
 const proxy_from_env = require("proxy-from-env");
 
-const get = require("./get");
-
 const packageVersion = require("../package.json").version;
 const tmpDir = path.join(os.tmpdir(), `rustywind-cache-${packageVersion}`);
 
@@ -79,10 +77,11 @@ function downloadWin(url, dest, opts) {
   });
 }
 
-function download(_url, dest, opts) {
+async function download(_url, dest, opts) {
+  // Handle proxy setup
   const proxy = proxy_from_env.getProxyForUrl(url.parse(_url));
-  if (proxy !== "") {
-    var HttpsProxyAgent = require("https-proxy-agent");
+  if (proxy) {
+    const HttpsProxyAgent = require("https-proxy-agent");
     opts = {
       ...opts,
       agent: new HttpsProxyAgent(proxy),
@@ -90,46 +89,56 @@ function download(_url, dest, opts) {
     };
   }
 
+  // Windows-specific handling
   if (isWindows) {
-    // This alternative strategy shouldn't be necessary but sometimes on Windows the file does not get closed,
-    // so unzipping it fails, and I don't know why.
     return downloadWin(_url, dest, opts);
   }
 
+  // Remove auth headers for non-GitHub URLs
   if (opts.headers.authorization && !isGithubUrl(_url)) {
     delete opts.headers.authorization;
   }
 
   return new Promise((resolve, reject) => {
-    console.log(`Download options: ${JSON.stringify(opts)}`);
     const outFile = fs.createWriteStream(dest);
-    const mergedOpts = {
-      ...url.parse(_url),
-      ...opts,
-    };
-    https
-      .get(mergedOpts, (response) => {
-        console.log("statusCode: " + response.statusCode);
-        if (response.statusCode === 302) {
-          console.log("Following redirect to: " + response.headers.location);
-          return download(response.headers.location, dest, opts).then(
-            resolve,
-            reject
-          );
-        } else if (response.statusCode !== 200) {
-          reject(new Error("Download failed with " + response.statusCode));
-          return;
-        }
+    const mergedOpts = { ...url.parse(_url), ...opts };
 
-        response.pipe(outFile);
-        outFile.on("finish", () => {
-          resolve();
-        });
-      })
-      .on("error", async (err) => {
-        await fsUnlink(dest);
-        reject(err);
-      });
+    const request = https.get(mergedOpts, (response) => {
+      // Handle redirects
+      if (response.statusCode === 302) {
+        outFile.destroy();
+        return download(response.headers.location, dest, opts).then(resolve, reject);
+      }
+
+      // Handle error status codes
+      if (response.statusCode !== 200) {
+        outFile.destroy();
+        reject(new Error(`Download failed with ${response.statusCode}`));
+        return;
+      }
+
+      // Pipe the response to file
+      response.pipe(outFile);
+    });
+
+    // Handle write stream errors
+    outFile.on('error', async (err) => {
+      outFile.destroy();
+      await fsUnlink(dest).catch(() => { });
+      reject(err);
+    });
+
+    // Handle successful completion
+    outFile.on('finish', () => {
+      outFile.close(() => resolve(null));
+    });
+
+    // Handle request errors
+    request.on('error', async (err) => {
+      outFile.destroy();
+      await fsUnlink(dest).catch(() => { });
+      reject(err);
+    });
   });
 }
 
@@ -229,6 +238,8 @@ function untar(zipPath, destinationDir) {
       if (code !== 0) {
         reject(new Error(`tar xvf exited with ${code}`));
         return;
+      } else {
+        process.exit(0);
       }
 
       resolve();
@@ -281,7 +292,7 @@ module.exports = async (opts) => {
     console.log("Deleting invalid download cache");
     try {
       await fsUnlink(assetDownloadPath);
-    } catch (e) {}
+    } catch (e) { }
 
     throw e;
   }
@@ -300,7 +311,7 @@ module.exports = async (opts) => {
 
     try {
       await fsUnlink(assetDownloadPath);
-    } catch (e) {}
+    } catch (e) { }
 
     throw e;
   }
