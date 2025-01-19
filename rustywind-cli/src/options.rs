@@ -4,8 +4,8 @@ use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use itertools::Itertools;
 use regex::Regex;
-use rustywind_core::sorter::ClassWrapping;
-use rustywind_core::{parser, sorter};
+use rustywind_core::class_wrapping::ClassWrapping;
+use rustywind_core::RustyWind;
 use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
 use std::fs;
@@ -55,7 +55,7 @@ impl ValueEnum for CliClassWrapping {
 #[derive(Debug)]
 pub struct Options {
     pub stdin: Option<String>,
-    pub sorter_options: sorter::Options,
+    pub rustywind: RustyWind,
     pub write_mode: WriteMode,
     pub starting_paths: Vec<PathBuf>,
     pub search_paths: Vec<PathBuf>,
@@ -77,7 +77,7 @@ impl Options {
         let starting_paths = get_starting_path_from_cli(&cli);
         let search_paths = get_search_paths_from_starting_paths(&starting_paths);
 
-        let sorter_options = sorter::Options {
+        let rustywind = RustyWind {
             regex: get_custom_regex_from_cli(&cli)?,
             sorter: get_sorter_from_cli(&cli)?,
             allow_duplicates: cli.allow_duplicates,
@@ -86,7 +86,7 @@ impl Options {
 
         Ok(Options {
             stdin,
-            sorter_options,
+            rustywind,
             starting_paths,
             search_paths,
             write_mode: get_write_mode_from_cli(&cli),
@@ -106,10 +106,9 @@ fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
             .wrap_err_with(|| format!("Error opening the css file {css_file}"))
             .with_suggestion(|| format!("Make sure the file {css_file} exists"))?;
 
-        let sorter =
-            parser::parse_classes_from_file(css_file).wrap_err("Error parsing the css file")?;
+        let sorter = Sorter::new_from_file(css_file)?;
 
-        return Ok(Sorter::CustomSorter(sorter));
+        return Ok(sorter);
     }
 
     if let Some(config_file) = &cli.config_file {
