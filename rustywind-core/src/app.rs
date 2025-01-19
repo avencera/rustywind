@@ -7,7 +7,6 @@ use crate::{
 };
 use ahash::AHashMap as HashMap;
 use aho_corasick::{Anchored, Input};
-use itertools::Itertools as _;
 use regex::Captures;
 
 /// The options to pass to the sorter.
@@ -64,11 +63,11 @@ impl RustyWind {
     pub fn sort_classes(&self, class_string: &str) -> String {
         let extracted_classes = self.unwrap_wrapped_classes(class_string);
 
-        let sorted = if self.allow_duplicates {
-            self.sort_classes_vec(extracted_classes.into_iter())
-        } else {
-            self.sort_classes_vec(extracted_classes.into_iter().unique())
-        };
+        let mut sorted = self.sort_classes_vec(extracted_classes.into_iter());
+
+        if !self.allow_duplicates {
+            sorted.dedup();
+        }
 
         self.rewrap_wrapped_classes(sorted)
     }
@@ -95,10 +94,12 @@ impl RustyWind {
             ClassWrapping::CommaSingleQuotes => classes
                 .iter()
                 .map(|class| format!("'{}'", class))
+                .collect::<Vec<String>>()
                 .join(", "),
             ClassWrapping::CommaDoubleQuotes => classes
                 .iter()
                 .map(|class| format!("\"{}\"", class))
+                .collect::<Vec<String>>()
                 .join(", "),
         }
     }
