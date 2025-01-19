@@ -1,4 +1,6 @@
 //! Create a sorter from a CSS file to sort classes in the order that they appear in the file
+pub mod regex;
+
 use std::{
     collections::hash_map::Entry,
     fs::File,
@@ -6,12 +8,9 @@ use std::{
 };
 
 use eyre::Result;
-use once_cell::sync::Lazy;
-use regex::Regex;
 
 use ahash::AHashMap as HashMap;
-
-static PARSER_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
+use regex::PARSER_RE;
 
 /// Create the sorter from a [File]
 pub fn parse_classes_from_file(css_file: File) -> Result<HashMap<String, usize>> {
