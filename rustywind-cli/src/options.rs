@@ -2,7 +2,6 @@ use clap::ValueEnum;
 use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
-use itertools::Itertools;
 use regex::Regex;
 use rustywind_core::class_wrapping::ClassWrapping;
 use rustywind_core::RustyWind;
@@ -183,7 +182,6 @@ fn get_search_paths_from_starting_paths(starting_paths: &[PathBuf]) -> Vec<PathB
                 .filter(|f| f.path().is_file())
                 .map(|file| file.path().to_owned())
         })
-        .unique()
         .collect()
 }
 

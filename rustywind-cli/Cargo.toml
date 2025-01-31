@@ -22,9 +22,6 @@ rustywind_vite = { path = "../rustywind-vite" }
 # rustywind_core = { version = "0.3" }
 # rustywind_vite = { version = "0.3" }
 
-# iter
-itertools = { workspace = true }
-
 # utils
 regex = { workspace = true }
 once_cell = { workspace = true }

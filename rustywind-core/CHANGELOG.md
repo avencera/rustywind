@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Refactor
+
+- Completely refactored the public API, now all the functionality is in the `RustyWind` struct
+
+### Changed
+
 - Changed `HowClassesAreWrapped` to `ClassWrapping`
 - Fixed some clippy warnings
 - Implemented `Default` for `Options`
