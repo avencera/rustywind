@@ -4,7 +4,7 @@ use color_eyre::Help;
 use eyre::{Context, Result};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rustywind_core::{parser, sorter::Sorter};
+use rustywind_core::sorter::Sorter;
 use ureq::AgentBuilder;
 
 use crate::tls::NoCertificateVerification;
@@ -44,8 +44,7 @@ pub fn create_sorter(url: &str, skip_ssl_verification: bool) -> Result<Sorter> {
         .as_str();
 
     let reader = BufReader::new(css_string.as_bytes());
-    let sorter = parser::parse_classes(reader)
-        .wrap_err("Error parsing css classes from the vite css file")?;
+    let sorter = Sorter::new_from_reader(reader)?;
 
-    Ok(Sorter::CustomSorter(sorter))
+    Ok(sorter)
 }

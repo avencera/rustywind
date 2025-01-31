@@ -101,6 +101,7 @@ fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let options = Options::new_from_cli(cli)?;
+    let rustywind = &options.rustywind;
 
     match &options.write_mode {
         WriteMode::ToStdOut => (),
@@ -124,8 +125,8 @@ fn main() -> Result<()> {
     if let WriteMode::ToStdOut = &options.write_mode {
         let contents = options.stdin.clone().unwrap_or_default();
 
-        if sorter::has_classes(&contents, &options.sorter_options) {
-            let sorted_content = sorter::sort_file_contents(&contents, &options.sorter_options);
+        if rustywind.has_classes(&contents) {
+            let sorted_content = rustywind.sort_file_contents(&contents);
             print!("{sorted_content}");
         } else {
             print!("{contents}");
@@ -152,10 +153,11 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
         return;
     }
 
+    let rustywind = &options.rustywind;
     match fs::read_to_string(file_path) {
         Ok(contents) => {
-            if sorter::has_classes(&contents, &options.sorter_options) {
-                let sorted_content = sorter::sort_file_contents(&contents, &options.sorter_options);
+            if rustywind.has_classes(&contents) {
+                let sorted_content = rustywind.sort_file_contents(&contents);
                 let contents_changed = sorted_content != contents;
 
                 match (contents_changed, &options.write_mode) {
