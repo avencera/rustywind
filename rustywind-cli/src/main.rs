@@ -154,7 +154,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
     let rustywind = &options.rustywind;
 
-    match fs::read_to_string(file_path) {
+    match rustywind.read_file_contents(file_path) {
         Ok(contents) => {
             if rustywind.has_classes(&contents) {
                 let sorted_content = rustywind.sort_file_contents(&contents);
