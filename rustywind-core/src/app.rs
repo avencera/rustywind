@@ -28,7 +28,7 @@ pub struct RustyWind {
 impl Default for RustyWind {
     fn default() -> Self {
         Self {
-            bump: Bump::new(),
+            bump: Bump::with_capacity(1024 * 1024 * 1024 * 500),
             regex: FinderRegex::DefaultRegex,
             sorter: Sorter::DefaultSorter,
             allow_duplicates: false,
@@ -45,7 +45,7 @@ impl RustyWind {
         class_wrapping: ClassWrapping,
     ) -> Self {
         Self {
-            bump: Bump::new(),
+            bump: Bump::with_capacity(1024 * 1024 * 1024 * 500),
             regex,
             sorter,
             allow_duplicates,
