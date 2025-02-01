@@ -6,6 +6,7 @@
 //!
 //! You can use this to create a custom sorter. Using this customer sorter you can call [`sorter::sort_file_contents`].
 pub(crate) mod app;
+pub mod bump_ext;
 pub mod class_wrapping;
 pub mod consts;
 pub mod defaults;

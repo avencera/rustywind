@@ -81,6 +81,7 @@ impl Options {
             sorter: get_sorter_from_cli(&cli)?,
             allow_duplicates: cli.allow_duplicates,
             class_wrapping: get_class_wrapping_from_cli(&cli),
+            ..RustyWind::default()
         };
 
         Ok(Options {

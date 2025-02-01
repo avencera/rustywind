@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fs::File, io::BufRead as _, path::Path};
 
 use crate::{
     class_wrapping::ClassWrapping,
@@ -7,11 +7,18 @@ use crate::{
 };
 use ahash::AHashMap as HashMap;
 use aho_corasick::{Anchored, Input};
+use bumpalo::{
+    collections::{CollectIn, String, Vec},
+    format, Bump,
+};
+
+use crate::bump_ext::JoinIn;
 use regex::Captures;
 
 /// The options to pass to the sorter.
 #[derive(Debug)]
 pub struct RustyWind {
+    pub bump: bumpalo::Bump,
     pub regex: FinderRegex,
     pub sorter: Sorter,
     pub allow_duplicates: bool,
@@ -21,6 +28,7 @@ pub struct RustyWind {
 impl Default for RustyWind {
     fn default() -> Self {
         Self {
+            bump: Bump::new(),
             regex: FinderRegex::DefaultRegex,
             sorter: Sorter::DefaultSorter,
             allow_duplicates: false,
@@ -37,11 +45,25 @@ impl RustyWind {
         class_wrapping: ClassWrapping,
     ) -> Self {
         Self {
+            bump: Bump::new(),
             regex,
             sorter,
             allow_duplicates,
             class_wrapping,
         }
+    }
+
+    /// Read the file contents into a `String`.
+    pub fn read_file_contents(&self, file_path: &Path) -> eyre::Result<String> {
+        let file = File::open(file_path)?;
+        let mut contents = String::new_in(&self.bump);
+
+        for line in std::io::BufReader::new(file).lines() {
+            contents.push_str(&line?);
+            contents.push('\n');
+        }
+
+        Ok(contents)
     }
 
     /// Checks if the file contents have any classes.
@@ -74,42 +96,49 @@ impl RustyWind {
 
     fn unwrap_wrapped_classes<'a>(&self, class_string: &'a str) -> Vec<&'a str> {
         match self.class_wrapping {
-            ClassWrapping::NoWrapping => class_string.split_ascii_whitespace().collect(),
+            ClassWrapping::NoWrapping => {
+                class_string.split_ascii_whitespace().collect_in(&self.bump)
+            }
             ClassWrapping::CommaSingleQuotes => class_string
                 .split(',')
                 .flat_map(|class| class.split_ascii_whitespace())
                 .map(|class| class.trim_matches('\''))
-                .collect(),
+                .collect_in(&self.bump),
             ClassWrapping::CommaDoubleQuotes => class_string
                 .split(',')
                 .flat_map(|class| class.split_ascii_whitespace())
                 .map(|class| class.trim_matches('"'))
-                .collect(),
+                .collect_in(&self.bump),
         }
     }
 
     fn rewrap_wrapped_classes(&self, classes: Vec<&str>) -> String {
+        let bump = &self.bump;
         match self.class_wrapping {
-            ClassWrapping::NoWrapping => classes.join(" "),
+            ClassWrapping::NoWrapping => classes.join_in(" ", bump),
             ClassWrapping::CommaSingleQuotes => classes
                 .iter()
-                .map(|class| format!("'{}'", class))
-                .collect::<Vec<String>>()
-                .join(", "),
+                .map(|class| format!(in bump, "'{}'", class))
+                .collect_in::<Vec<String>>(bump)
+                .join_in(", ", bump),
             ClassWrapping::CommaDoubleQuotes => classes
                 .iter()
-                .map(|class| format!("\"{}\"", class))
-                .collect::<Vec<String>>()
-                .join(", "),
+                .map(|class| format!(in bump, "\"{}\"", class))
+                .collect_in::<Vec<String>>(bump)
+                .join_in(", ", bump),
         }
     }
 
-    fn sort_classes_vec<'a>(&self, classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+    fn sort_classes_vec<'b, 'a>(
+        &'b self,
+        classes: impl Iterator<Item = &'a str>,
+    ) -> Vec<'b, &'a str> {
+        let bump = &self.bump;
         let enumerated_classes = classes.map(|class| ((class), self.sorter.get(class)));
 
-        let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
-        let mut custom_classes: Vec<&str> = vec![];
-        let mut variants: HashMap<&str, Vec<&str>> = HashMap::new();
+        let mut tailwind_classes: Vec<(&'a str, &usize)> = Vec::new_in(bump);
+        let mut custom_classes: Vec<&'a str> = Vec::new_in(bump);
+        let mut variants: HashMap<&str, Vec<&'a str>> = HashMap::new();
 
         for (class, maybe_size) in enumerated_classes {
             match maybe_size {
@@ -119,7 +148,10 @@ impl RustyWind {
                     match VARIANT_SEARCHER.find(input) {
                         Some(prefix_match) => {
                             let prefix = VARIANTS[prefix_match.pattern()];
-                            variants.entry(prefix).or_default().push(class)
+                            variants
+                                .entry(prefix)
+                                .or_insert_with(|| Vec::new_in(&self.bump))
+                                .push(class);
                         }
                         None => custom_classes.push(class),
                     }
@@ -129,16 +161,16 @@ impl RustyWind {
 
         tailwind_classes.sort_by_key(|&(_class, class_placement)| class_placement);
 
-        let sorted_tailwind_classes: Vec<&str> = tailwind_classes
+        let mut sorted_tailwind_classes: Vec<&'a str> = tailwind_classes
             .iter()
             .map(|(class, _index)| *class)
-            .collect();
+            .collect_in(&self.bump);
 
-        let mut sorted_variant_classes = vec![];
-
+        // sorted varaints
+        let mut sorted_variant_classes = Vec::new_in(&bump);
         for key in VARIANTS.iter() {
             let (mut sorted_classes, new_custom_classes) = self.sort_variant_classes(
-                variants.remove(key).unwrap_or_default(),
+                variants.remove(key).unwrap_or_else(|| Vec::new_in(&bump)),
                 custom_classes,
                 key.len() + 1,
             );
@@ -147,21 +179,25 @@ impl RustyWind {
             custom_classes = new_custom_classes
         }
 
-        [
-            &sorted_tailwind_classes[..],
-            &sorted_variant_classes[..],
-            &custom_classes[..],
-        ]
-        .concat()
+        let all_sorted_len =
+            sorted_tailwind_classes.len() + sorted_variant_classes.len() + custom_classes.len();
+
+        let mut all_sorted = Vec::with_capacity_in(all_sorted_len, bump);
+        all_sorted.append(&mut sorted_tailwind_classes);
+        all_sorted.append(&mut sorted_variant_classes);
+        all_sorted.append(&mut custom_classes);
+
+        all_sorted
     }
 
-    fn sort_variant_classes<'a>(
-        &self,
-        classes: Vec<&'a str>,
-        mut custom_classes: Vec<&'a str>,
+    fn sort_variant_classes<'b, 'a>(
+        &'b self,
+        classes: Vec<'b, &'a str>,
+        mut custom_classes: Vec<'b, &'a str>,
         class_after: usize,
-    ) -> (Vec<&'a str>, Vec<&'a str>) {
-        let mut tailwind_classes = Vec::with_capacity(classes.len());
+    ) -> (Vec<'b, &'a str>, Vec<'b, &'a str>) {
+        let bump = &self.bump;
+        let mut tailwind_classes = Vec::with_capacity_in(classes.len(), bump);
 
         for class in classes {
             match class
@@ -178,7 +214,7 @@ impl RustyWind {
         let sorted_classes = tailwind_classes
             .iter()
             .map(|(class, _index)| *class)
-            .collect();
+            .collect_in(bump);
 
         (sorted_classes, custom_classes)
     }
@@ -191,6 +227,7 @@ mod tests {
     use regex::Regex;
     use test_case::test_case;
     const RUSTYWIND_DEFAULT: RustyWind = RustyWind {
+        bump: Bump::new(),
         regex: FinderRegex::DefaultRegex,
         sorter: Sorter::DefaultSorter,
         allow_duplicates: false,

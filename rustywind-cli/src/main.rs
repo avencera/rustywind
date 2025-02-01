@@ -8,7 +8,6 @@ use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::Options;
 use options::WriteMode;
-use rayon::prelude::*;
 use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
@@ -135,7 +134,7 @@ fn main() -> Result<()> {
     } else {
         options
             .search_paths
-            .par_iter()
+            .iter()
             .for_each(|file_path| run_on_file_paths(file_path, &options));
 
         if EXIT_ERROR.load(Ordering::Relaxed) {
@@ -154,6 +153,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
     }
 
     let rustywind = &options.rustywind;
+
     match fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind.has_classes(&contents) {

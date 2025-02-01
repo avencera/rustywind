@@ -17,7 +17,10 @@ eyre = { workspace = true }
 
 # parsing
 aho-corasick = "1.0"
-winnow = { version = "0.6", features = ["simd"] }
+winnow = { version = "0.7", features = ["simd"] }
+
+# arena allocation
+bumpalo = { version = "3.17", features = ["allocator-api2", "collections"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4"
