@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Remove `rayon` run everything single threaded, the biggest bottleneck is reading the file
+
 ## [0.23.1] - 2024-10-21
 
 - Fix default regex
