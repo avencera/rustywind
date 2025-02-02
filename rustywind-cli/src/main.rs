@@ -99,8 +99,8 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
     let cli = Cli::parse();
-    let options = Options::new_from_cli(cli)?;
-    let rustywind = &options.rustywind;
+    let mut options = Options::new_from_cli(cli)?;
+    let rustywind = &mut options.rustywind;
 
     match &options.write_mode {
         WriteMode::ToStdOut => (),
@@ -132,10 +132,11 @@ fn main() -> Result<()> {
             eprint!("[WARN] No classes were found in STDIN");
         }
     } else {
-        options
-            .search_paths
+        let search_paths = &options.search_paths.clone();
+
+        search_paths
             .iter()
-            .for_each(|file_path| run_on_file_paths(file_path, &options));
+            .for_each(|file_path| run_on_file_paths(file_path, &mut options));
 
         if EXIT_ERROR.load(Ordering::Relaxed) {
             std::process::exit(1);
@@ -145,15 +146,16 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_on_file_paths(file_path: &Path, options: &Options) {
+fn run_on_file_paths(file_path: &Path, options: &mut Options) {
     // if the file is in the ignored_files list return early
     if should_ignore_current_file(&options.ignored_files, file_path) {
         log::debug!("file path {file_path:#?} found in ignored_files, will not sort");
         return;
     }
 
-    let rustywind = &options.rustywind;
+    options.rustywind.check_and_reset_bump();
 
+    let rustywind = &options.rustywind;
     match rustywind.read_file_contents(file_path) {
         Ok(contents) => {
             if rustywind.has_classes(&contents) {

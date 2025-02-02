@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fs::File, io::BufRead as _, path::Path};
+use std::{borrow::Cow, fs::File, io::Read as _, path::Path};
 
 use crate::{
     class_wrapping::ClassWrapping,
@@ -53,17 +53,15 @@ impl RustyWind {
         }
     }
 
+    /// Resets if needed the bumpalo allocator
+    pub fn check_and_reset_bump(&mut self) {
+        self.bump.reset();
+    }
+
     /// Read the file contents into a `String`.
-    pub fn read_file_contents(&self, file_path: &Path) -> eyre::Result<String> {
-        let file = File::open(file_path)?;
-        let mut contents = String::new_in(&self.bump);
-
-        for line in std::io::BufReader::new(file).lines() {
-            contents.push_str(&line?);
-            contents.push('\n');
-        }
-
-        Ok(contents)
+    pub fn read_file_contents(&self, file_path: &Path) -> eyre::Result<std::string::String> {
+        let file_contents = std::fs::read_to_string(file_path)?;
+        Ok(file_contents)
     }
 
     /// Checks if the file contents have any classes.
@@ -167,10 +165,10 @@ impl RustyWind {
             .collect_in(&self.bump);
 
         // sorted varaints
-        let mut sorted_variant_classes = Vec::new_in(&bump);
+        let mut sorted_variant_classes = Vec::new_in(bump);
         for key in VARIANTS.iter() {
             let (mut sorted_classes, new_custom_classes) = self.sort_variant_classes(
-                variants.remove(key).unwrap_or_else(|| Vec::new_in(&bump)),
+                variants.remove(key).unwrap_or_else(|| Vec::new_in(bump)),
                 custom_classes,
                 key.len() + 1,
             );
