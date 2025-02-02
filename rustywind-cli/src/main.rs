@@ -1,5 +1,6 @@
 mod cli;
 mod options;
+pub mod par;
 
 use ahash::AHashSet as HashSet;
 use clap::Parser;
@@ -8,12 +9,14 @@ use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::Options;
 use options::WriteMode;
+use par::Heard;
 use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static GRAY: Lazy<colored::CustomColor> = Lazy::new(|| colored::CustomColor::new(120, 120, 120));
@@ -99,7 +102,12 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
     let cli = Cli::parse();
-    let options = Options::new_from_cli(cli)?;
+
+    let mut options = Options::new_from_cli(cli)?;
+
+    let search_paths = std::mem::take(&mut options.search_paths);
+
+    let options = Arc::new(options);
     let rustywind = &options.rustywind;
 
     match &options.write_mode {
@@ -132,9 +140,8 @@ fn main() -> Result<()> {
             eprint!("[WARN] No classes were found in STDIN");
         }
     } else {
-        for file_path in options.search_paths.iter() {
-            run_on_file_paths(file_path, &options)
-        }
+        let heard = Heard::new(options.clone());
+        heard.run_on_file_paths(search_paths);
 
         // after running on all files, if there was an error, exit with 1
         if EXIT_ERROR.load(Ordering::Relaxed) {
@@ -145,7 +152,9 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_on_file_paths(file_path: &Path, options: &Options) {
+pub fn run_on_file_paths(file_path: PathBuf, options: Arc<Options>) {
+    let file_path = &file_path;
+
     // if the file is in the ignored_files list return early
     if should_ignore_current_file(&options.ignored_files, file_path) {
         log::debug!("file path {file_path:#?} found in ignored_files, will not sort");
@@ -161,11 +170,15 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
 
                 match (contents_changed, &options.write_mode) {
                     (_, WriteMode::ToStdOut) => (),
-                    (_, WriteMode::DryRun) => print_file_name(file_path, contents_changed, options),
+                    (_, WriteMode::DryRun) => {
+                        print_file_name(file_path, contents_changed, &options)
+                    }
 
-                    (true, WriteMode::ToFile) => write_to_file(file_path, &sorted_content, options),
+                    (true, WriteMode::ToFile) => {
+                        write_to_file(file_path, &sorted_content, &options)
+                    }
                     (false, WriteMode::ToFile) => {
-                        print_file_name(file_path, contents_changed, options)
+                        print_file_name(file_path, contents_changed, &options)
                     }
 
                     // For now print the file contents to the console even if it hasn't changed to
@@ -175,8 +188,8 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
                     (true, WriteMode::ToConsole) => print_file_contents(&sorted_content),
                     (false, WriteMode::ToConsole) => print_file_contents(&sorted_content),
 
-                    (_, WriteMode::CheckFormatted) => {
-                        print_changed_files(file_path, contents_changed, options);
+                    (contents_changed, WriteMode::CheckFormatted) => {
+                        print_changed_files(file_path, contents_changed, &options);
                     }
                 }
             }
