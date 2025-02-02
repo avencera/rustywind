@@ -32,4 +32,7 @@ regex = "1.11"
 codegen-units = 1
 lto = "fat"
 opt-level = 3
-strip = true
+# strip = true
+
+debug = true
+strip = false
