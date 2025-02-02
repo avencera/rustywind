@@ -16,7 +16,7 @@ pub(crate) static SORTER_EXTRACTOR_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
 
 /// Use either our default regex in [crate::defaults::RE] or a custom regex.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FinderRegex {
     DefaultRegex,
     CustomRegex(Regex),
@@ -34,7 +34,7 @@ impl Deref for FinderRegex {
 }
 
 /// Use either our default sorter in [crate::defaults::SORTER] or a custom sorter.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Sorter {
     DefaultSorter,
     CustomSorter(HashMap<String, usize>),
