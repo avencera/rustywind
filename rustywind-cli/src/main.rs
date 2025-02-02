@@ -8,7 +8,6 @@ use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::Options;
 use options::WriteMode;
-use rayon::prelude::*;
 use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
@@ -133,13 +132,13 @@ fn main() -> Result<()> {
             eprint!("[WARN] No classes were found in STDIN");
         }
     } else {
-        options
-            .search_paths
-            .par_iter()
-            .for_each(|file_path| run_on_file_paths(file_path, &options));
+        for file_path in options.search_paths.iter() {
+            run_on_file_paths(file_path, &options)
+        }
 
+        // after running on all files, if there was an error, exit with 1
         if EXIT_ERROR.load(Ordering::Relaxed) {
-            std::process::exit(1);
+            std::process::exit(1)
         }
     }
 
@@ -154,7 +153,7 @@ fn run_on_file_paths(file_path: &Path, options: &Options) {
     }
 
     let rustywind = &options.rustywind;
-    match fs::read_to_string(file_path) {
+    match std::fs::read_to_string(file_path) {
         Ok(contents) => {
             if rustywind.has_classes(&contents) {
                 let sorted_content = rustywind.sort_file_contents(&contents);

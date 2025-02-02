@@ -33,3 +33,8 @@ codegen-units = 1
 lto = "fat"
 opt-level = 3
 strip = true
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = false

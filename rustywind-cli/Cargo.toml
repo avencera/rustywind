@@ -38,11 +38,8 @@ color-eyre = { workspace = true }
 # cli
 clap = { version = "4.3", features = ["cargo", "derive", "unstable-styles"] }
 indoc = "2.0"
-colored = "2.1"
+colored = "3.0"
 anstyle = "1.0.1"
-
-# parallel
-rayon = "1.5"
 
 # files
 ignore = "0.4"
