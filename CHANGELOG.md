@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- Remove `rayon` run everything single threaded, the biggest bottleneck is reading the file
+- Remove `rayon` and use a custom scoped thread implementation
 
 ## [0.23.1] - 2024-10-21
 
