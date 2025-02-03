@@ -10,7 +10,7 @@ use aho_corasick::{Anchored, Input};
 use regex::Captures;
 
 /// The options to pass to the sorter.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RustyWind {
     pub regex: FinderRegex,
     pub sorter: Sorter,

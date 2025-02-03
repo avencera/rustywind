@@ -47,3 +47,6 @@ ignore = "0.4"
 # parsing
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# parallelism
+num_cpus = "1.16"
