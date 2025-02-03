@@ -1,13 +1,9 @@
-use std::{path::PathBuf, sync::Arc};
-
+/// Heard is a struct that handles running the rustywind on a list of files
+/// in parallel. It uses the num_cpus crate to determine the number of
+/// physical cores on the machine. It then spawns a thread for each core
+/// and runs the rustywind on the file paths.
 use crate::options::Options;
-
-#[derive(Debug, Clone)]
-pub struct Actor {
-    pub index: usize,
-    pub total: usize,
-    pub options: Arc<Options>,
-}
+use std::{path::PathBuf, sync::Arc};
 
 #[derive(Debug)]
 pub struct Heard {

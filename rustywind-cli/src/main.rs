@@ -1,15 +1,15 @@
 mod cli;
+mod heard;
 mod options;
-pub mod par;
 
 use ahash::AHashSet as HashSet;
 use clap::Parser;
 use eyre::Result;
+use heard::Heard;
 use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::Options;
 use options::WriteMode;
-use par::Heard;
 use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
