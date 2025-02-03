@@ -8,13 +8,13 @@ use crate::options::Options;
 pub struct Actor {
     pub index: usize,
     pub total: usize,
-    pub receiver: Receiver<PathBuf>,
+    pub receiver: Receiver<Vec<PathBuf>>,
     pub options: Arc<Options>,
 }
 
 #[derive(Debug)]
 pub struct Heard {
-    pub senders: Vec<Sender<PathBuf>>,
+    pub senders: Vec<Sender<Vec<PathBuf>>>,
     pub actors: Vec<std::thread::JoinHandle<()>>,
 }
 
@@ -36,11 +36,16 @@ impl Heard {
     }
 
     pub fn run_on_file_paths(self, file_paths: Vec<PathBuf>) {
-        for (index, file_path) in file_paths.into_iter().enumerate() {
-            let sender_idx = index % self.senders.len();
-            let sender = self.senders[sender_idx].clone();
-            sender.send(file_path).unwrap();
-        }
+        let total_chunks = self.senders.len();
+        let chunks_of = file_paths.len() / total_chunks;
+
+        file_paths
+            .chunks(chunks_of)
+            .enumerate()
+            .for_each(|(index, chunk)| {
+                let senders = self.senders[index].clone();
+                senders.send(chunk.to_vec()).unwrap();
+            });
 
         self.complete();
     }
@@ -63,7 +68,7 @@ impl Actor {
     pub fn new(
         index: usize,
         total: usize,
-        receiver: Receiver<PathBuf>,
+        receiver: Receiver<Vec<PathBuf>>,
         options: Arc<Options>,
     ) -> Self {
         Self {
@@ -79,8 +84,9 @@ impl Actor {
 
         let receiver = self.receiver.clone();
         std::thread::spawn(move || {
-            for file_path in receiver.iter() {
-                crate::run_on_file_paths(file_path, options.clone());
+            let file_paths = receiver.recv().unwrap();
+            for file_path in file_paths {
+                crate::run_on_file_paths(file_path, &options);
             }
         })
     }

@@ -152,7 +152,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-pub fn run_on_file_paths(file_path: PathBuf, options: Arc<Options>) {
+pub fn run_on_file_paths(file_path: PathBuf, options: &Options) {
     let file_path = &file_path;
 
     // if the file is in the ignored_files list return early
@@ -170,15 +170,11 @@ pub fn run_on_file_paths(file_path: PathBuf, options: Arc<Options>) {
 
                 match (contents_changed, &options.write_mode) {
                     (_, WriteMode::ToStdOut) => (),
-                    (_, WriteMode::DryRun) => {
-                        print_file_name(file_path, contents_changed, &options)
-                    }
+                    (_, WriteMode::DryRun) => print_file_name(file_path, contents_changed, options),
 
-                    (true, WriteMode::ToFile) => {
-                        write_to_file(file_path, &sorted_content, &options)
-                    }
+                    (true, WriteMode::ToFile) => write_to_file(file_path, &sorted_content, options),
                     (false, WriteMode::ToFile) => {
-                        print_file_name(file_path, contents_changed, &options)
+                        print_file_name(file_path, contents_changed, options)
                     }
 
                     // For now print the file contents to the console even if it hasn't changed to
@@ -189,7 +185,7 @@ pub fn run_on_file_paths(file_path: PathBuf, options: Arc<Options>) {
                     (false, WriteMode::ToConsole) => print_file_contents(&sorted_content),
 
                     (contents_changed, WriteMode::CheckFormatted) => {
-                        print_changed_files(file_path, contents_changed, &options);
+                        print_changed_files(file_path, contents_changed, options);
                     }
                 }
             }
