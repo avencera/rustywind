@@ -25,7 +25,7 @@ impl Heard {
         let mut senders = Vec::with_capacity(physical_cores);
 
         for index in 0..physical_cores {
-            let (sender, receiver) = crossbeam::channel::bounded(1);
+            let (sender, receiver) = crossbeam::channel::bounded(1000);
             let actor = Actor::new(index, physical_cores, receiver, options.clone()).start();
 
             senders.push(sender);
