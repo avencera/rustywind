@@ -152,9 +152,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-pub fn run_on_file_paths(file_path: PathBuf, options: &Options) {
-    let file_path = &file_path;
-
+pub fn run_on_file_path(file_path: &Path, options: &Options) {
     // if the file is in the ignored_files list return early
     if should_ignore_current_file(&options.ignored_files, file_path) {
         log::debug!("file path {file_path:#?} found in ignored_files, will not sort");
