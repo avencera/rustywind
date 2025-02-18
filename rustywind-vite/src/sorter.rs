@@ -1,30 +1,25 @@
-use std::{io::BufReader, sync::Arc};
+use std::io::BufReader;
 
 use color_eyre::Help;
 use eyre::{Context, Result};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rustywind_core::sorter::Sorter;
-use ureq::AgentBuilder;
-
-use crate::tls::NoCertificateVerification;
+use ureq::tls::TlsConfig;
 
 static VITE_CSS_RE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"const __vite__css = "(.*)""#).unwrap());
 
 pub fn create_sorter(url: &str, skip_ssl_verification: bool) -> Result<Sorter> {
-    let mut agent = AgentBuilder::new();
+    let mut agent = ureq::Agent::config_builder();
 
     if skip_ssl_verification && url.starts_with("https") {
-        let ssl = rustls::ClientConfig::builder()
-            .dangerous()
-            .with_custom_certificate_verifier(Arc::new(NoCertificateVerification {}))
-            .with_no_client_auth();
-
-        agent = agent.tls_config(Arc::new(ssl));
+        let tls_config = TlsConfig::builder().disable_verification(true).build();
+        agent = agent.tls_config(tls_config);
     }
 
-    let agent = agent.build();
+    let config = agent.build();
+    let agent = ureq::Agent::new_with_config(config);
 
     let mut css_string_response = agent.get(url).call()
         .wrap_err_with(|| format!("Vite url ({url}) is not valid"))
@@ -35,7 +30,7 @@ pub fn create_sorter(url: &str, skip_ssl_verification: bool) -> Result<Sorter> {
             .with_suggestion(|| "Try running with the --skip-ssl-verification flag");
     }
 
-    let css_string = css_string_response?.into_string()?;
+    let css_string = css_string_response?.into_body().read_to_string()?;
     let css_string = VITE_CSS_RE
         .captures(&css_string)
         .ok_or_else(|| eyre::eyre!("Could not find css string in vite css file"))?

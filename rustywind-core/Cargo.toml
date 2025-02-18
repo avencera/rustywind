@@ -17,7 +17,7 @@ eyre = { workspace = true }
 
 # parsing
 aho-corasick = "1.0"
-winnow = { version = "0.6", features = ["simd"] }
+winnow = { version = "0.7", features = ["simd"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4"
