@@ -9,7 +9,6 @@
 ### Refactor
 
 - Completely refactored the public API, now all the functionality is in the `RustyWind` struct
-- Remove `rayon` and use a custom scoped thread implementation
 
 ### Changed
 
