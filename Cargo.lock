@@ -653,7 +653,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "rustywind_core",
+ "rustywind_core 0.3.0",
  "rustywind_vite",
  "serde",
  "serde_json",
@@ -674,15 +674,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustywind_core"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6de5a198ed8a092b199863c70cca4f9a4d69ef9059e9a2aadf734a11f6d38047"
+dependencies = [
+ "ahash",
+ "aho-corasick",
+ "eyre",
+ "once_cell",
+ "regex",
+ "winnow",
+]
+
+[[package]]
 name = "rustywind_vite"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "color-eyre",
  "eyre",
  "once_cell",
  "regex",
  "rustls",
- "rustywind_core",
+ "rustywind_core 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ureq",
 ]
 

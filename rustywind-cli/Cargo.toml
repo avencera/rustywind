@@ -16,11 +16,11 @@ pkg-fmt = "tgz"
 
 [dependencies]
 # rustywind
-# rustywind_core = { path = "../rustywind-core" }
-# rustywind_vite = { path = "../rustywind-vite" }
+rustywind_core = { path = "../rustywind-core" }
+rustywind_vite = { path = "../rustywind-vite" }
 
-rustywind_core = { version = "0.3" }
-rustywind_vite = { version = "0.3" }
+# rustywind_core = { version = "0.3.0" }
+# rustywind_vite = { version = "0.3.0" }
 
 # utils
 regex = { workspace = true }
