@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Remove `rayon` and use a custom scoped thread implementation
+- In MacOS limit number of threads to 4 for up to a 400% performance boost
 
 ## [0.23.1] - 2024-10-21
 
