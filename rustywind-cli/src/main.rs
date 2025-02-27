@@ -144,7 +144,6 @@ fn main() -> Result<()> {
         let available_parallelism = std::thread::available_parallelism()
             .map(|x| x.get())
             .unwrap_or(1);
-        log::debug!("available_parallelism: {available_parallelism:?}");
 
         #[cfg(target_os = "macos")]
         let threads = available_parallelism.min(4);
