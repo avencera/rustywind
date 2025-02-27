@@ -20,7 +20,12 @@ impl Heard {
     pub fn run_on_file_paths(self, file_paths: Vec<PathBuf>) {
         log::debug!("checking {} files", file_paths.len());
 
+        #[cfg(target_os = "macos")]
+        let total_chunks = self.cpus.min(4);
+
+        #[cfg(not(target_os = "macos"))]
         let total_chunks = self.cpus;
+
         let chunks_of = file_paths.len() / total_chunks;
         let options = &self.options;
 
