@@ -5,7 +5,7 @@ resolver = "2"
 
 [workspace.package]
 authors = ["Praveen Perera <praveen@avencera.com>"]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 homepage = "https://github.com/avencera/rustywind"
 repository = "https://github.com/avencera/rustywind"

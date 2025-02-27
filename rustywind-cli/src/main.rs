@@ -8,16 +8,16 @@ use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::Options;
 use options::WriteMode;
+use rayon::ThreadPoolBuilder;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator;
-use rayon::ThreadPoolBuilder;
 use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static GRAY: Lazy<colored::CustomColor> = Lazy::new(|| colored::CustomColor::new(120, 120, 120));
