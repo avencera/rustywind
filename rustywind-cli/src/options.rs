@@ -3,8 +3,8 @@ use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use regex::Regex;
-use rustywind_core::class_wrapping::ClassWrapping;
 use rustywind_core::RustyWind;
+use rustywind_core::class_wrapping::ClassWrapping;
 use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
 use std::fs;
@@ -15,8 +15,8 @@ use std::str::FromStr;
 use ahash::AHashMap as HashMap;
 use ahash::AHashSet as HashSet;
 
-use crate::sorter::{FinderRegex, Sorter};
 use crate::Cli;
+use crate::sorter::{FinderRegex, Sorter};
 
 #[derive(Debug)]
 pub enum WriteMode {

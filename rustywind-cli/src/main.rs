@@ -1,22 +1,23 @@
 mod cli;
-mod heard;
 mod options;
 
 use ahash::AHashSet as HashSet;
 use clap::Parser;
 use eyre::Result;
-use heard::Heard;
 use indoc::indoc;
 use once_cell::sync::Lazy;
 use options::Options;
 use options::WriteMode;
+use rayon::ThreadPoolBuilder;
+use rayon::iter::IntoParallelRefIterator as _;
+use rayon::iter::ParallelIterator;
 use rustywind_core::sorter;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
 
 static EXIT_ERROR: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 static GRAY: Lazy<colored::CustomColor> = Lazy::new(|| colored::CustomColor::new(120, 120, 120));
@@ -140,8 +141,24 @@ fn main() -> Result<()> {
             eprint!("[WARN] No classes were found in STDIN");
         }
     } else {
-        let heard = Heard::new(options.clone());
-        heard.run_on_file_paths(search_paths);
+        let available_parallelism = std::thread::available_parallelism()
+            .map(|x| x.get())
+            .unwrap_or(1);
+
+        #[cfg(target_os = "macos")]
+        let threads = available_parallelism.min(4);
+
+        #[cfg(not(target_os = "macos"))]
+        let threads = available_parallelism;
+
+        ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .expect("failed to build thread pool");
+
+        search_paths
+            .par_iter()
+            .for_each(|f| run_on_file_path(f, &options));
 
         // after running on all files, if there was an error, exit with 1
         if EXIT_ERROR.load(Ordering::Relaxed) {

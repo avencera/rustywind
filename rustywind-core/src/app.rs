@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
     class_wrapping::ClassWrapping,
-    consts::{VARIANTS, VARIANT_SEARCHER},
+    consts::{VARIANT_SEARCHER, VARIANTS},
     sorter::{FinderRegex, Sorter},
 };
 use ahash::AHashMap as HashMap;

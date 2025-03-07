@@ -1,6 +1,6 @@
 [package]
 name = "rustywind"
-version = "0.23.1"
+version = "0.24.0"
 description = "A CLI to sort tailwind CSS classes"
 documentation = "https://docs.rs/rustywind"
 authors.workspace = true
@@ -16,11 +16,11 @@ pkg-fmt = "tgz"
 
 [dependencies]
 # rustywind
-rustywind_core = { path = "../rustywind-core" }
-rustywind_vite = { path = "../rustywind-vite" }
+# rustywind_core = { path = "../rustywind-core" }
+# rustywind_vite = { path = "../rustywind-vite" }
 
-# rustywind_core = { version = "0.3" }
-# rustywind_vite = { version = "0.3" }
+rustywind_core = { version = "0.3.0" }
+rustywind_vite = { version = "0.3.0" }
 
 # utils
 regex = { workspace = true }
@@ -49,4 +49,4 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # parallelism
-num_cpus = "1.16"
+rayon = "1.10"
