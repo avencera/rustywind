@@ -1,6 +1,6 @@
 {
   "name": "rustywind",
-  "version": "0.24.1",
+  "version": "0.24.2",
   "description": "CLI for organizing Tailwind CSS classes",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
