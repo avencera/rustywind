@@ -4,13 +4,13 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           components: clippy
           override: true
-      - uses: clechasseur/rs-clippy-check@v3
+      - uses: clechasseur/rs-clippy-check@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
