@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.1] - 2025-08-07
+
+- Fix class extraction regex, [#119](https://github.com/avencera/rustywind/pull/119), thanks [@5need](https://github.com/5need)
+
+## [0.3.0] - 2025-02-27
 
 ### Performance
 

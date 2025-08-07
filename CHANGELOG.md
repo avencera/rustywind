@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.24.2] - 2025-08-07
+
+- Release includes builds for MacOS
+
+## [0.24.1] - 2025-08-07
+
+- Fix class extraction regex, [#119](https://github.com/avencera/rustywind/pull/119), thanks [@5need](https://github.com/5need)
+
 ## [0.24.0] - 2025-02-27
 
 - In MacOS limit number of threads to 4 for up to a 400% performance boost
