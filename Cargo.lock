@@ -689,7 +689,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind"
-version = "0.24.0"
+version = "0.24.1"
 dependencies = [
  "ahash",
  "anstyle",
