@@ -13,7 +13,7 @@ use crate::defaults::{RE, SORTER};
 use eyre::Result;
 
 pub(crate) static SORTER_EXTRACTOR_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^(\.[^\s]+)[ ]").unwrap());
+    Lazy::new(|| Regex::new(r"^\s*(\.[^\s]+)[ ]").unwrap());
 
 /// Use either our default regex in [crate::defaults::RE] or a custom regex.
 #[derive(Debug, Clone)]
@@ -87,6 +87,7 @@ impl Sorter {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+    use std::io::BufReader;
 
     #[test]
     fn extracts_all_classes() {
@@ -94,6 +95,32 @@ mod tests {
         let classes = Sorter::new_from_file(css_file).unwrap();
 
         assert_eq!(classes.get("container"), Some(&0));
-        assert_eq!(classes.len(), 221);
+        assert_eq!(classes.len(), 305);
+    }
+
+    #[test]
+    fn extracts_classes_with_leading_whitespace() {
+        let css_content = r#".no-whitespace {
+            color: red;
+        }
+  .with-spaces {
+            color: blue;
+        }
+	.with-tab {
+            color: green;
+        }
+    .multiple-spaces {
+            color: yellow;
+        }"#;
+
+        let reader = BufReader::new(css_content.as_bytes());
+        let classes = Sorter::new_from_reader(reader).unwrap();
+
+        // all classes should be extracted regardless of leading whitespace
+        assert_eq!(classes.get("no-whitespace"), Some(&0));
+        assert_eq!(classes.get("with-spaces"), Some(&1));
+        assert_eq!(classes.get("with-tab"), Some(&2));
+        assert_eq!(classes.get("multiple-spaces"), Some(&3));
+        assert_eq!(classes.len(), 4);
     }
 }
