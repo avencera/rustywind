@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.24.3] - 2025-08-07
+
+- Fix version number mismatch
+
 ## [0.24.2] - 2025-08-07
 
 - Release includes builds for MacOS
