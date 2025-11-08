@@ -12,4 +12,8 @@ pub mod defaults;
 pub mod parser;
 pub mod sorter;
 
+// Pattern-based sorting modules (Phase 1)
+pub mod property_order;
+pub mod variant_order;
+
 pub type RustyWind = app::RustyWind;
