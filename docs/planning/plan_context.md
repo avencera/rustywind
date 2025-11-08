@@ -114,6 +114,29 @@ rustywind-core/src/
 
 **Action:** Updated documentation and code to reflect 337 properties
 
+#### 2025-11-08: Multi-part utility base parsing
+
+**Challenge:** Utilities like `min-w-0`, `border-t-2`, `rounded-tl-lg` have multi-part bases that need special handling
+
+**Solution:** Implemented prefix matching before simple dash splitting
+- Check known multi-part prefixes first (min-w, max-h, border-t, etc.)
+- Falls back to simple dash splitting for single-part bases
+- Handles ~30 common multi-part patterns
+
+**Implementation:** parse_utility_parts() function in utility_map.rs
+
+#### 2025-11-08: Utility map architecture - exact match + pattern matching
+
+**Decision:** Two-tier lookup system for utility → property mapping
+
+**Rationale:**
+- Exact matches (HashMap): O(1) for static utilities like "flex", "block"
+- Pattern matching: Algorithmic fallback for parameterized utilities like "m-4", "bg-red-500"
+- Supports arbitrary values: bg-[#fff] detected by bracket notation
+- Helper predicates determine value types (color, size, weight)
+
+**Performance:** Fast path for common cases, flexible for edge cases
+
 ---
 
 ## Open Questions
