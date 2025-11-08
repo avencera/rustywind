@@ -9,7 +9,7 @@
 - [x] Planning documents imported
 - [x] Phase 1: Property Order Foundation ✅
 - [x] Phase 2: Utility Pattern Mapping ✅
-- [ ] Phase 3: Class Parser
+- [x] Phase 3: Class Parser ✅
 - [ ] Phase 4: Pattern-Based Sorter
 - [ ] Phase 5: Hybrid Optimization
 - [ ] Phase 6: Testing
@@ -83,9 +83,54 @@
 
 ---
 
-## Phase 3: Class Parser
+## Phase 3: Class Parser ✅
 
-**Status:** Not started
+**Goal:** Parse complete Tailwind class strings into their component parts
+
+### Tasks
+- [x] Create `rustywind-core/src/class_parser.rs`
+  - [x] Define ParsedClass struct
+  - [x] Implement parse_class() function
+  - [x] Parse variants from class string (md:, hover:, etc.)
+  - [x] Parse utility base and value
+  - [x] Handle important modifier (!)
+  - [x] Support arbitrary values in parsing
+  - [x] Integrate with utility_map for property lookup
+  - [x] Comprehensive test coverage (17 tests, all passing)
+- [x] Update lib.rs to include new module
+- [x] All tests passing (17/17)
+
+### Current Status
+✅ **COMPLETE** - Full class string parsing operational
+
+### Implementation Details
+- **ParsedClass struct**: Holds all parsed components with lifetime 'a
+  - original: Original class string
+  - variants: Vec of variant strings (["md", "hover"])
+  - utility: Base utility name ("mx", "bg")
+  - value: Value part ("4", "red-500", "[#fff]")
+  - important: Boolean for ! modifier
+- **Helper methods**:
+  - full_utility(): Reconstructs "mx-4" from parts
+  - has_variants(): Check if class has variants
+  - variant_count(): Count variants
+  - get_properties(): Look up CSS properties via utility_map
+- **parse_utility_value()**: Reuses multi-part base logic from utility_map
+
+### Parsing Features
+- ✅ Simple utilities: "flex", "block", "grid"
+- ✅ Parameterized: "m-4", "bg-red-500", "text-lg"
+- ✅ Single variant: "md:flex", "hover:bg-blue-500"
+- ✅ Multiple variants: "md:hover:focus:p-4"
+- ✅ Important modifier: "bg-red-500!", "md:mx-4!"
+- ✅ Arbitrary values: "bg-[#fff]", "w-[100px]"
+- ✅ Multi-part bases: "min-w-0", "border-t-2", "rounded-tl-lg"
+- ✅ Complex combinations: "dark:md:hover:text-white!"
+
+### Integration
+- Seamlessly integrates with utility_map via UTILITY_MAP static
+- ParsedClass.get_properties() provides direct access to CSS properties
+- Ready for use in pattern_sorter to determine sort order
 
 ---
 
@@ -118,3 +163,4 @@
 1. `9b38772` - Add planning documents for pattern-based static list implementation
 2. `1227620` - Phase 1: Implement property and variant order foundation
 3. `ac15964` - Phase 2: Implement utility pattern mapping
+4. (pending) - Phase 3: Implement class parser

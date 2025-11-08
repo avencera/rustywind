@@ -16,5 +16,6 @@ pub mod sorter;
 pub mod property_order; // Phase 1
 pub mod variant_order; // Phase 1
 pub mod utility_map; // Phase 2
+pub mod class_parser; // Phase 3
 
 pub type RustyWind = app::RustyWind;
