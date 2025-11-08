@@ -226,3 +226,5 @@ All previous phases now connected:
 4. `d3dfb5f` - Phase 3: Implement class parser
 5. `0014ebb` - Phase 4: Implement pattern-based sorter (WIP)
 6. `5f2762b` - Fix pattern_sorter test failures and complete Phase 4
+7. `874a7f2` - Update progress with Phase 4 completion
+8. `829c4f8` - Update context docs with Phase 4 learnings and decisions
