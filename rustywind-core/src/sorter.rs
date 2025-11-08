@@ -37,6 +37,7 @@ impl Deref for FinderRegex {
 #[derive(Debug, Clone)]
 pub enum Sorter {
     DefaultSorter,
+    PatternSorter,
     CustomSorter(HashMap<String, usize>),
 }
 
@@ -46,6 +47,9 @@ impl Deref for Sorter {
     fn deref(&self) -> &Self::Target {
         match &self {
             Self::DefaultSorter => &SORTER,
+            Self::PatternSorter => {
+                panic!("PatternSorter should not be used with HashMap-based sorting")
+            }
             Self::CustomSorter(sorter) => sorter,
         }
     }

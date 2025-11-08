@@ -23,3 +23,10 @@ winnow = { version = "0.7", features = ["simd"] }
 [dev-dependencies]
 pretty_assertions = "1.4"
 test-case = "3.3.1"
+
+[target.'cfg(not(target_env = "msvc"))'.dev-dependencies]
+tikv-jemallocator = "0.6"
+
+[[bench]]
+name = "sorting_benchmarks"
+harness = false

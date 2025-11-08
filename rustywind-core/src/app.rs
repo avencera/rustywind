@@ -3,11 +3,16 @@ use std::borrow::Cow;
 use crate::{
     class_wrapping::ClassWrapping,
     consts::{VARIANT_SEARCHER, VARIANTS},
+    hybrid_sorter::HybridSorter,
     sorter::{FinderRegex, Sorter},
 };
 use ahash::AHashMap as HashMap;
 use aho_corasick::{Anchored, Input};
+use once_cell::sync::Lazy;
 use regex::Captures;
+
+/// Global instance of the HybridSorter for pattern-based sorting.
+static PATTERN_SORTER: Lazy<HybridSorter> = Lazy::new(HybridSorter::new);
 
 /// The options to pass to the sorter.
 #[derive(Debug, Clone)]
@@ -105,6 +110,13 @@ impl RustyWind {
     }
 
     fn sort_classes_vec<'a>(&self, classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+        // Use pattern-based sorting if PatternSorter is selected
+        if matches!(self.sorter, Sorter::PatternSorter) {
+            let classes_vec: Vec<&str> = classes.collect();
+            return PATTERN_SORTER.sort_classes(&classes_vec);
+        }
+
+        // Otherwise, use the old HashMap-based approach
         let enumerated_classes = classes.map(|class| ((class), self.sorter.get(class)));
 
         let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
@@ -518,6 +530,35 @@ mod tests {
         };
 
         assert_eq!(app.rewrap_wrapped_classes(input), output)
+    }
+
+    #[test]
+    fn test_pattern_sorter_integration() {
+        // Test that PatternSorter can be used in RustyWind
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            ..RUSTYWIND_DEFAULT
+        };
+
+        let classes = "p-4 m-4 flex hover:p-1";
+        let sorted = app.sort_classes(classes);
+
+        // Pattern-based sorting: margin(25) < display(35) < padding(252) < variants
+        assert_eq!(sorted, "m-4 flex p-4 hover:p-1");
+    }
+
+    #[test]
+    fn test_pattern_sorter_with_file_contents() {
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            ..RUSTYWIND_DEFAULT
+        };
+
+        let input = r#"<div class="p-4 m-4 flex"></div>"#;
+        let output = app.sort_file_contents(input);
+
+        // Pattern-based sorting: margin(25) < display(35) < padding(252)
+        assert_eq!(output, r#"<div class="m-4 flex p-4"></div>"#);
     }
 
     #[test_case(
