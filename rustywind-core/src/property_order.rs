@@ -6,6 +6,9 @@
 //!
 //! Source: https://github.com/tailwindlabs/tailwindcss/blob/next/packages/tailwindcss/src/property-order.ts
 
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
+
 /// The canonical order of CSS properties as defined by Tailwind CSS.
 ///
 /// Classes are sorted based on the CSS properties they generate, and this array
@@ -399,11 +402,24 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "forced-color-adjust",
 ];
 
+/// Optimized HashMap for O(1) property index lookup.
+///
+/// This is lazily initialized on first use and maps property names to their indices.
+static PROPERTY_INDEX_MAP: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
+    PROPERTY_ORDER
+        .iter()
+        .enumerate()
+        .map(|(idx, &prop)| (prop, idx))
+        .collect()
+});
+
 /// Get the index of a CSS property in the canonical order.
 ///
 /// Returns `Some(index)` if the property is found, or `None` if it's not in the list.
 /// Lower indices mean the property (and classes that generate it) should appear
 /// earlier in the sorted output.
+///
+/// This uses an optimized O(1) HashMap lookup instead of linear search.
 ///
 /// # Examples
 ///
@@ -416,7 +432,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
 /// ```
 #[inline]
 pub fn get_property_index(property: &str) -> Option<usize> {
-    PROPERTY_ORDER.iter().position(|&p| p == property)
+    PROPERTY_INDEX_MAP.get(property).copied()
 }
 
 #[cfg(test)]

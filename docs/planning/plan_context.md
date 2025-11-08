@@ -198,23 +198,56 @@ static COMMON_BASE_CLASSES: Lazy<HashMap<&'static str, (u64, usize, usize)>> = .
 - Slightly more complex than pattern_sorter alone
 - But massive performance improvement for real-world usage
 
-#### 2025-11-08: Static cache property indices are approximations
+#### 2025-11-08: Removed static cache due to incorrect indices (PR review finding)
 
-**Challenge:** Pre-computing exact property indices for static cache requires looking them up at compile time, but PROPERTY_ORDER is runtime data.
+**Problem:** Static cache in hybrid_sorter.rs had approximate property indices that didn't match actual indices from PROPERTY_ORDER, causing incorrect sorting.
 
-**Solution:** Use approximate indices for static cache entries. They're only used as a fast path - if the index is slightly off, it still maintains correct relative ordering for common cases.
+**Example bug:**
+- Static cache said: overflow (48), flex (60)
+- Actual indices: flex (65), overflow (173)
+- Result: Wrong sort order (relative, overflow-auto, flex instead of relative, flex, overflow-auto)
 
-**Actual indices (from PROPERTY_ORDER):**
-- pointer-events: 1
-- visibility: 2
-- position: 3
-- display: ~60
-- z-index: 14
-- flex properties: ~68-75
-- width/height: ~119-120
-- transform: 281
+**Decision:** Remove static cache entirely, use only LRU cache + pattern sorter
 
-**Impact:** Minimal - static cache is purely for performance, not correctness. Pattern sorter provides accurate sorting for all classes.
+**Architecture change:**
+```rust
+// Before: Three-tier
+1. Static cache (broken)
+2. LRU cache
+3. Pattern sorter
+
+// After: Two-tier
+1. LRU cache (quick_cache)
+2. Pattern sorter
+```
+
+**Impact:** Cleaner code, correct sorting, still fast with LRU cache
+
+#### 2025-11-08: Optimized property lookup from O(n) to O(1)
+
+**Problem:** `get_property_index()` used linear search through 337 properties
+
+**Solution:** Add `PROPERTY_INDEX_MAP` HashMap using `once_cell::Lazy`
+
+```rust
+static PROPERTY_INDEX_MAP: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
+    PROPERTY_ORDER.iter()
+        .enumerate()
+        .map(|(idx, &prop)| (prop, idx))
+        .collect()
+});
+
+pub fn get_property_index(property: &str) -> Option<usize> {
+    PROPERTY_INDEX_MAP.get(property).copied()  // O(1) instead of O(n)
+}
+```
+
+**Performance impact:**
+- Before: O(n) linear search through 337 properties
+- After: O(1) HashMap lookup
+- Improvement: ~337x faster for property lookups
+
+**Why not enum?** 337 property variants would be impractical to maintain manually. HashMap provides same O(1) performance with much simpler implementation.
 
 ---
 
@@ -272,22 +305,18 @@ pub struct SortKey {
 }
 ```
 
-### HybridSorter (Phase 5)
+### HybridSorter (Phase 5 - Revised)
 
 ```rust
 pub struct HybridSorter {
     pattern_sorter: PatternSorter,
     cache: Arc<Cache<String, SortKey>>, // LRU cache (quick_cache)
 }
-
-// Static cache for common classes
-static COMMON_BASE_CLASSES: Lazy<HashMap<&'static str, (u64, usize, usize)>> = ...;
 ```
 
-**Three-tier lookup:**
-1. Check COMMON_BASE_CLASSES (static HashMap)
-2. Check cache (LRU)
-3. Compute with pattern_sorter and cache result
+**Two-tier lookup:**
+1. Check LRU cache (quick_cache) - O(1)
+2. Compute with pattern_sorter and cache result - O(1) with HashMap optimization
 
 ---
 
@@ -316,4 +345,4 @@ If you're picking up this implementation:
 
 ---
 
-*Last updated: 2025-11-08 - Phase 5 (Hybrid Optimization) completed*
+*Last updated: 2025-11-08 - Phase 5 optimizations (removed static cache, added HashMap property lookup)*

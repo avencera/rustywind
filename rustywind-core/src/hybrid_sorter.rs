@@ -1,15 +1,13 @@
-//! Hybrid sorting implementation combining static cache and pattern-based sorting
+//! Hybrid sorting implementation combining LRU cache and pattern-based sorting
 //!
-//! This module optimizes sorting performance by using a three-tier approach:
-//! 1. **Static cache** - Pre-computed sort keys for ~100 most common base classes
-//! 2. **LRU cache** - Runtime cache of previously computed sort keys
-//! 3. **Pattern sorter** - Fallback for uncommon/new classes
+//! This module optimizes sorting performance by using a two-tier approach:
+//! 1. **LRU cache** - Runtime cache of previously computed sort keys (quick_cache)
+//! 2. **Pattern sorter** - Fallback for uncached classes
 //!
 //! # Performance
 //!
-//! - Common base classes: O(1) static HashMap lookup
-//! - Previously seen classes: O(1) LRU cache lookup
-//! - New classes: O(1) pattern matching + O(log n) property lookup + cache insert
+//! - Cached classes: O(1) LRU cache lookup
+//! - Uncached classes: O(1) pattern matching + cache insert
 //!
 //! # Examples
 //!
@@ -21,119 +19,17 @@
 //! let sorted = sorter.sort_classes(&classes);
 //! ```
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
 use quick_cache::sync::Cache;
 
 use crate::pattern_sorter::{PatternSorter, SortKey};
 
-/// Pre-computed sort keys for the most common Tailwind base classes
-///
-/// These are static and computed at compile time for maximum performance.
-/// The values are (variant_order, property_index, property_count) tuples.
-static COMMON_BASE_CLASSES: Lazy<HashMap<&'static str, (u64, usize, usize)>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-
-    // Display utilities (property: display, index ~60-70 range in PROPERTY_ORDER)
-    // Note: Actual indices come from property_order.rs
-    map.insert("flex", (0, 60, 1));
-    map.insert("inline-flex", (0, 60, 1));
-    map.insert("block", (0, 60, 1));
-    map.insert("inline-block", (0, 60, 1));
-    map.insert("inline", (0, 60, 1));
-    map.insert("grid", (0, 60, 1));
-    map.insert("inline-grid", (0, 60, 1));
-    map.insert("hidden", (0, 60, 1));
-    map.insert("flow-root", (0, 60, 1));
-
-    // Position utilities (property: position, index ~3)
-    map.insert("static", (0, 3, 1));
-    map.insert("fixed", (0, 3, 1));
-    map.insert("absolute", (0, 3, 1));
-    map.insert("relative", (0, 3, 1));
-    map.insert("sticky", (0, 3, 1));
-
-    // Common visibility/pointer-events (indices 1-2)
-    map.insert("visible", (0, 2, 1));
-    map.insert("invisible", (0, 2, 1));
-    map.insert("pointer-events-none", (0, 1, 1));
-    map.insert("pointer-events-auto", (0, 1, 1));
-
-    // Z-index (index ~14)
-    map.insert("z-0", (0, 14, 1));
-    map.insert("z-10", (0, 14, 1));
-    map.insert("z-20", (0, 14, 1));
-    map.insert("z-30", (0, 14, 1));
-    map.insert("z-40", (0, 14, 1));
-    map.insert("z-50", (0, 14, 1));
-    map.insert("z-auto", (0, 14, 1));
-
-    // Flex direction (index ~68)
-    map.insert("flex-row", (0, 68, 1));
-    map.insert("flex-row-reverse", (0, 68, 1));
-    map.insert("flex-col", (0, 68, 1));
-    map.insert("flex-col-reverse", (0, 68, 1));
-
-    // Flex wrap (index ~69)
-    map.insert("flex-wrap", (0, 69, 1));
-    map.insert("flex-wrap-reverse", (0, 69, 1));
-    map.insert("flex-nowrap", (0, 69, 1));
-
-    // Flex/Grid alignment (indices ~70-75)
-    map.insert("items-start", (0, 73, 1));
-    map.insert("items-end", (0, 73, 1));
-    map.insert("items-center", (0, 73, 1));
-    map.insert("items-baseline", (0, 73, 1));
-    map.insert("items-stretch", (0, 73, 1));
-
-    map.insert("justify-start", (0, 72, 1));
-    map.insert("justify-end", (0, 72, 1));
-    map.insert("justify-center", (0, 72, 1));
-    map.insert("justify-between", (0, 72, 1));
-    map.insert("justify-around", (0, 72, 1));
-    map.insert("justify-evenly", (0, 72, 1));
-
-    map.insert("content-start", (0, 75, 1));
-    map.insert("content-end", (0, 75, 1));
-    map.insert("content-center", (0, 75, 1));
-    map.insert("content-between", (0, 75, 1));
-    map.insert("content-around", (0, 75, 1));
-
-    // Common text utilities
-    map.insert("text-left", (0, 200, 1));
-    map.insert("text-center", (0, 200, 1));
-    map.insert("text-right", (0, 200, 1));
-    map.insert("text-justify", (0, 200, 1));
-
-    // Overflow (index ~48-50)
-    map.insert("overflow-auto", (0, 48, 1));
-    map.insert("overflow-hidden", (0, 48, 1));
-    map.insert("overflow-visible", (0, 48, 1));
-    map.insert("overflow-scroll", (0, 48, 1));
-    map.insert("overflow-x-auto", (0, 49, 1));
-    map.insert("overflow-y-auto", (0, 50, 1));
-
-    // Common width/height values
-    map.insert("w-full", (0, 119, 1));
-    map.insert("w-auto", (0, 119, 1));
-    map.insert("h-full", (0, 120, 1));
-    map.insert("h-auto", (0, 120, 1));
-
-    // Transform
-    map.insert("transform", (0, 281, 1));
-    map.insert("transform-none", (0, 281, 1));
-
-    map
-});
-
-/// Hybrid sorter combining static cache, LRU cache, and pattern-based sorting
+/// Hybrid sorter combining LRU cache and pattern-based sorting
 ///
 /// This provides optimal performance for sorting Tailwind CSS classes by:
-/// - Using pre-computed sort keys for common base classes
 /// - Caching computed sort keys for recently seen classes
-/// - Falling back to pattern matching for uncommon classes
+/// - Falling back to pattern matching for uncached classes
 pub struct HybridSorter {
     /// Pattern-based sorter for computing new sort keys
     pattern_sorter: PatternSorter,
@@ -172,10 +68,9 @@ impl HybridSorter {
 
     /// Get the sort key for a class string
     ///
-    /// Uses three-tier lookup:
-    /// 1. Static cache (fastest)
-    /// 2. LRU cache (fast)
-    /// 3. Pattern sorter (slower, but caches result)
+    /// Uses two-tier lookup:
+    /// 1. LRU cache (fastest)
+    /// 2. Pattern sorter (fallback, result gets cached)
     ///
     /// Returns `None` if the class cannot be parsed or its properties are unknown.
     ///
@@ -186,34 +81,22 @@ impl HybridSorter {
     ///
     /// let sorter = HybridSorter::new();
     ///
-    /// // Common class - static cache hit
+    /// // First lookup - pattern matched and cached
     /// let key = sorter.get_sort_key("flex").unwrap();
     ///
-    /// // Uncommon class - pattern matched and cached
-    /// let key = sorter.get_sort_key("m-[10px]").unwrap();
+    /// // Second lookup - cache hit
+    /// let key = sorter.get_sort_key("flex").unwrap();
     ///
-    /// // Second time - cache hit
+    /// // Arbitrary values supported
     /// let key = sorter.get_sort_key("m-[10px]").unwrap();
     /// ```
     pub fn get_sort_key(&self, class: &str) -> Option<SortKey> {
-        // Tier 1: Check static cache for common base classes (fastest)
-        if let Some(&(variant_order, property_index, property_count)) =
-            COMMON_BASE_CLASSES.get(class)
-        {
-            return Some(SortKey {
-                variant_order,
-                property_index,
-                property_count,
-                class: class.to_string(),
-            });
-        }
-
-        // Tier 2: Check LRU cache for previously computed classes (fast)
+        // Tier 1: Check LRU cache for previously computed classes (fast)
         if let Some(cached_key) = self.cache.get(class) {
             return Some(cached_key);
         }
 
-        // Tier 3: Compute using pattern sorter and cache the result (slower)
+        // Tier 2: Compute using pattern sorter and cache the result
         if let Some(sort_key) = self.pattern_sorter.get_sort_key(class) {
             // Cache the computed result for future lookups
             self.cache.insert(class.to_string(), sort_key.clone());
@@ -282,7 +165,6 @@ impl HybridSorter {
 
     /// Clear the LRU cache
     ///
-    /// This does not affect the static cache of common classes.
     /// Useful for testing or memory management.
     pub fn clear_cache(&self) {
         self.cache.clear();
@@ -300,10 +182,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_common_class_static_cache() {
+    fn test_common_classes() {
         let sorter = HybridSorter::new();
 
-        // These should hit the static cache
+        // These should be computed via pattern matching and cached
         let key = sorter.get_sort_key("flex").unwrap();
         assert_eq!(key.variant_order, 0);
         assert_eq!(key.class, "flex");
@@ -314,10 +196,10 @@ mod tests {
     }
 
     #[test]
-    fn test_uncommon_class_pattern_matching() {
+    fn test_pattern_matching_and_caching() {
         let sorter = HybridSorter::new();
 
-        // This should use pattern matching (not in static cache)
+        // First lookup - pattern matching, result gets cached
         let key = sorter.get_sort_key("m-4").unwrap();
         assert_eq!(key.variant_order, 0);
         assert_eq!(key.class, "m-4");
@@ -350,8 +232,7 @@ mod tests {
         // All should be recognized
         assert_eq!(sorted.len(), 4);
 
-        // flex and grid are in static cache
-        // m-4 and p-4 will be pattern matched
+        // All classes will be pattern matched on first pass
         // Should maintain proper order
         assert!(sorted.contains(&"flex"));
         assert!(sorted.contains(&"grid"));

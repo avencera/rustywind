@@ -262,6 +262,32 @@ All previous phases now connected:
 - **Cache size**: Default 1000 entries covers typical project needs (~50KB memory)
 - **Integration**: HybridSorter wraps PatternSorter, no changes to core algorithm
 
+### Post-PR Review Optimizations (2025-11-08)
+
+**Issue #1: Static cache had incorrect property indices**
+- Problem: Hardcoded approximate indices didn't match PROPERTY_ORDER
+- Example: overflow (48) vs actual (173), flex (60) vs actual (65)
+- Solution: Removed static cache entirely, rely on LRU cache + pattern sorter
+- Impact: Simpler, correct sorting, still fast
+
+**Issue #2: Property lookup was O(n) linear search**
+- Problem: `get_property_index()` searched through all 337 properties
+- Solution: Added `PROPERTY_INDEX_MAP` HashMap using `once_cell::Lazy`
+- Performance: O(n) → O(1) lookup (~337x faster)
+- Impact: Major performance improvement for uncached classes
+
+**Revised Architecture:**
+```
+Two-tier lookup (simplified from three-tier):
+1. LRU cache (quick_cache) - O(1)
+2. Pattern sorter with HashMap property lookup - O(1)
+```
+
+**Test Results:**
+- All 154 tests passing (135 unit + 19 doc)
+- Zero clippy warnings
+- Code formatted with rustfmt
+
 ---
 
 ## Phase 6: Testing
