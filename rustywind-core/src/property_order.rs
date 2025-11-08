@@ -467,6 +467,10 @@ mod tests {
     fn test_no_duplicates() {
         use std::collections::HashSet;
         let unique: HashSet<_> = PROPERTY_ORDER.iter().collect();
-        assert_eq!(unique.len(), PROPERTY_ORDER.len(), "Property order contains duplicates");
+        assert_eq!(
+            unique.len(),
+            PROPERTY_ORDER.len(),
+            "Property order contains duplicates"
+        );
     }
 }

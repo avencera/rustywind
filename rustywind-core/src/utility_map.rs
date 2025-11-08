@@ -21,8 +21,8 @@
 //! assert_eq!(map.get_properties("bg-[#fff]"), Some(&["background-color"][..]));
 //! ```
 
-use std::collections::HashMap;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
 /// Maps utility names to the CSS properties they generate.
 ///
@@ -284,10 +284,15 @@ impl UtilityMap {
             | "justify-between" | "justify-around" | "justify-evenly" | "justify-stretch" => {
                 Some(&["justify-content"][..])
             }
-            "justify-items-start" | "justify-items-end" | "justify-items-center"
+            "justify-items-start"
+            | "justify-items-end"
+            | "justify-items-center"
             | "justify-items-stretch" => Some(&["justify-items"][..]),
-            "justify-self-auto" | "justify-self-start" | "justify-self-end"
-            | "justify-self-center" | "justify-self-stretch" => Some(&["justify-self"][..]),
+            "justify-self-auto"
+            | "justify-self-start"
+            | "justify-self-end"
+            | "justify-self-center"
+            | "justify-self-stretch" => Some(&["justify-self"][..]),
             "items-start" | "items-end" | "items-center" | "items-baseline" | "items-stretch" => {
                 Some(&["align-items"][..])
             }
@@ -361,9 +366,7 @@ impl UtilityMap {
                 Some(&["--tw-ring-shadow"][..])
             }
             "ring" if is_color_value(value) => Some(&["--tw-ring-color"][..]),
-            "ring-offset" if value.parse::<u32>().is_ok() => {
-                Some(&["--tw-ring-offset-width"][..])
-            }
+            "ring-offset" if value.parse::<u32>().is_ok() => Some(&["--tw-ring-offset-width"][..]),
             "ring-offset" if is_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
 
             // Unknown utility
@@ -398,17 +401,50 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
     // Try to match multi-part bases first
     // These need to be checked before simple dash splitting
     for prefix in &[
-        "min-w", "min-h", "max-w", "max-h",
-        "border-t", "border-r", "border-b", "border-l", "border-x", "border-y", "border-s", "border-e",
-        "rounded-t", "rounded-r", "rounded-b", "rounded-l", "rounded-s", "rounded-e",
-        "rounded-tl", "rounded-tr", "rounded-br", "rounded-bl", "rounded-ss", "rounded-se", "rounded-ee", "rounded-es",
-        "grid-cols", "grid-rows", "grid-flow",
-        "auto-cols", "auto-rows",
-        "gap-x", "gap-y",
-        "flex-row", "flex-col", "flex-wrap", "flex-nowrap",
+        "min-w",
+        "min-h",
+        "max-w",
+        "max-h",
+        "border-t",
+        "border-r",
+        "border-b",
+        "border-l",
+        "border-x",
+        "border-y",
+        "border-s",
+        "border-e",
+        "rounded-t",
+        "rounded-r",
+        "rounded-b",
+        "rounded-l",
+        "rounded-s",
+        "rounded-e",
+        "rounded-tl",
+        "rounded-tr",
+        "rounded-br",
+        "rounded-bl",
+        "rounded-ss",
+        "rounded-se",
+        "rounded-ee",
+        "rounded-es",
+        "grid-cols",
+        "grid-rows",
+        "grid-flow",
+        "auto-cols",
+        "auto-rows",
+        "gap-x",
+        "gap-y",
+        "flex-row",
+        "flex-col",
+        "flex-wrap",
+        "flex-nowrap",
         "ring-offset",
-        "col-span", "col-start", "col-end",
-        "row-span", "row-start", "row-end",
+        "col-span",
+        "col-start",
+        "col-end",
+        "row-span",
+        "row-start",
+        "row-end",
     ] {
         if utility.starts_with(prefix) {
             if utility.len() == prefix.len() {
@@ -438,6 +474,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
 }
 
 /// Check if this base+value combination indicates a multi-part base.
+#[allow(dead_code)]
 fn is_multi_part_base(base: &str, value: &str) -> bool {
     matches!(
         (base, value.split('-').next().unwrap_or("")),
@@ -445,16 +482,57 @@ fn is_multi_part_base(base: &str, value: &str) -> bool {
             | ("min", "h")
             | ("max", "w")
             | ("max", "h")
-            | ("rounded", "t" | "r" | "b" | "l" | "s" | "e" | "tl" | "tr" | "br" | "bl" | "ss" | "se" | "ee" | "es")
+            | (
+                "rounded",
+                "t" | "r"
+                    | "b"
+                    | "l"
+                    | "s"
+                    | "e"
+                    | "tl"
+                    | "tr"
+                    | "br"
+                    | "bl"
+                    | "ss"
+                    | "se"
+                    | "ee"
+                    | "es"
+            )
             | ("border", "t" | "r" | "b" | "l" | "s" | "e" | "x" | "y")
             | ("grid", "cols" | "rows" | "flow")
             | ("auto", "cols" | "rows")
             | ("gap", "x" | "y")
             | ("flex", "row" | "col" | "wrap" | "nowrap")
             | ("items", "start" | "end" | "center" | "baseline" | "stretch")
-            | ("justify", "start" | "end" | "center" | "between" | "around" | "evenly" | "normal" | "stretch" | "items" | "self")
-            | ("content", "start" | "end" | "center" | "between" | "around" | "evenly" | "normal" | "baseline" | "stretch")
-            | ("self", "auto" | "start" | "end" | "center" | "stretch" | "baseline")
+            | (
+                "justify",
+                "start"
+                    | "end"
+                    | "center"
+                    | "between"
+                    | "around"
+                    | "evenly"
+                    | "normal"
+                    | "stretch"
+                    | "items"
+                    | "self"
+            )
+            | (
+                "content",
+                "start"
+                    | "end"
+                    | "center"
+                    | "between"
+                    | "around"
+                    | "evenly"
+                    | "normal"
+                    | "baseline"
+                    | "stretch"
+            )
+            | (
+                "self",
+                "auto" | "start" | "end" | "center" | "stretch" | "baseline"
+            )
             | ("place", "content" | "items" | "self")
             | ("overflow", "x" | "y")
             | ("ring", "offset")
@@ -520,8 +598,23 @@ fn is_color_value(value: &str) -> bool {
 fn is_size_keyword(value: &str) -> bool {
     matches!(
         value,
-        "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "8xl"
-            | "9xl" | "full" | "min" | "max" | "fit" | "auto"
+        "xs" | "sm"
+            | "base"
+            | "lg"
+            | "xl"
+            | "2xl"
+            | "3xl"
+            | "4xl"
+            | "5xl"
+            | "6xl"
+            | "7xl"
+            | "8xl"
+            | "9xl"
+            | "full"
+            | "min"
+            | "max"
+            | "fit"
+            | "auto"
     )
 }
 
@@ -623,7 +716,10 @@ mod tests {
         assert_eq!(map.get_properties("text-gray-900"), Some(&["color"][..]));
 
         // Border colors
-        assert_eq!(map.get_properties("border-black"), Some(&["border-color"][..]));
+        assert_eq!(
+            map.get_properties("border-black"),
+            Some(&["border-color"][..])
+        );
     }
 
     #[test]
@@ -696,11 +792,17 @@ mod tests {
         // Border width
         assert_eq!(map.get_properties("border"), Some(&["border-width"][..]));
         assert_eq!(map.get_properties("border-2"), Some(&["border-width"][..]));
-        assert_eq!(map.get_properties("border-t"), Some(&["border-top-width"][..]));
+        assert_eq!(
+            map.get_properties("border-t"),
+            Some(&["border-top-width"][..])
+        );
 
         // Border radius
         assert_eq!(map.get_properties("rounded"), Some(&["border-radius"][..]));
-        assert_eq!(map.get_properties("rounded-lg"), Some(&["border-radius"][..]));
+        assert_eq!(
+            map.get_properties("rounded-lg"),
+            Some(&["border-radius"][..])
+        );
         assert_eq!(
             map.get_properties("rounded-tl"),
             Some(&["border-top-left-radius"][..])
@@ -712,7 +814,10 @@ mod tests {
         let map = UtilityMap::new();
 
         assert_eq!(map.get_properties("flex-1"), Some(&["flex"][..]));
-        assert_eq!(map.get_properties("flex-row"), Some(&["flex-direction"][..]));
+        assert_eq!(
+            map.get_properties("flex-row"),
+            Some(&["flex-direction"][..])
+        );
         assert_eq!(map.get_properties("flex-wrap"), Some(&["flex-wrap"][..]));
         assert_eq!(map.get_properties("grow"), Some(&["flex-grow"][..]));
         assert_eq!(map.get_properties("shrink"), Some(&["flex-shrink"][..]));

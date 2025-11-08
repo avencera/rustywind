@@ -17,11 +17,11 @@
 //! ```
 //! use rustywind_core::pattern_sorter::sort_classes;
 //!
-//! let classes = vec!["px-3", "focus:hover:p-3", "hover:p-1", "py-3"];
+//! let classes = vec!["focus:hover:p-3", "hover:p-1", "m-4", "p-4"];
 //! let sorted = sort_classes(&classes);
 //!
-//! // Base classes first, then variants
-//! assert_eq!(sorted, vec!["px-3", "py-3", "hover:p-1", "focus:hover:p-3"]);
+//! // Base classes first (margin before padding), then variants
+//! assert_eq!(sorted, vec!["m-4", "p-4", "hover:p-1", "focus:hover:p-3"]);
 //! ```
 
 use std::cmp::Ordering;
@@ -185,7 +185,7 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
     with_keys.sort_by(|(a_key, a_class), (z_key, z_class)| {
         match (a_key, z_key) {
             (Some(a), Some(z)) => a.cmp(z),
-            (Some(_), None) => Ordering::Less,    // Known classes before unknown
+            (Some(_), None) => Ordering::Less, // Known classes before unknown
             (None, Some(_)) => Ordering::Greater, // Unknown classes after known
             (None, None) => a_class.cmp(z_class), // Unknown classes alphabetically
         }

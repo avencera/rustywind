@@ -33,7 +33,6 @@ pub const VARIANT_ORDER: &[&str] = &[
     "marker",
     "selection",
     "backdrop",
-
     // Positional & structural
     "first",
     "last",
@@ -43,7 +42,6 @@ pub const VARIANT_ORDER: &[&str] = &[
     "first-of-type",
     "last-of-type",
     "only-of-type",
-
     // State variants
     "visited",
     "target",
@@ -61,18 +59,15 @@ pub const VARIANT_ORDER: &[&str] = &[
     "out-of-range",
     "read-only",
     "read-write",
-
     // Interactive variants (user interaction)
     "hover",
     "focus",
     "focus-within",
     "focus-visible",
     "active",
-
     // Disabled & enabled
     "disabled",
     "enabled",
-
     // Group & peer variants
     "group-hover",
     "group-focus",
@@ -88,14 +83,12 @@ pub const VARIANT_ORDER: &[&str] = &[
     "peer-disabled",
     "peer-invalid",
     "peer-required",
-
     // Responsive variants (breakpoints)
     "sm",
     "md",
     "lg",
     "xl",
     "2xl",
-
     // Container queries
     "@sm",
     "@md",
@@ -107,29 +100,22 @@ pub const VARIANT_ORDER: &[&str] = &[
     "@5xl",
     "@6xl",
     "@7xl",
-
     // Dark mode
     "dark",
-
     // Motion preferences
     "motion-safe",
     "motion-reduce",
-
     // Print
     "print",
-
     // Orientation
     "portrait",
     "landscape",
-
     // Contrast
     "contrast-more",
     "contrast-less",
-
     // Directionality
     "ltr",
     "rtl",
-
     // Starting style
     "starting",
 ];
@@ -250,7 +236,11 @@ mod tests {
     fn test_no_duplicates() {
         use std::collections::HashSet;
         let unique: HashSet<_> = VARIANT_ORDER.iter().collect();
-        assert_eq!(unique.len(), VARIANT_ORDER.len(), "Variant order contains duplicates");
+        assert_eq!(
+            unique.len(),
+            VARIANT_ORDER.len(),
+            "Variant order contains duplicates"
+        );
     }
 
     #[test]

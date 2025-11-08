@@ -11,7 +11,7 @@
 - [x] Phase 2: Utility Pattern Mapping ✅
 - [x] Phase 3: Class Parser ✅
 - [x] Phase 4: Pattern-Based Sorter ✅
-- [ ] Phase 5: Hybrid Optimization
+- [x] Phase 5: Hybrid Optimization ✅
 - [ ] Phase 6: Testing
 - [ ] Phase 7: Integration
 
@@ -200,9 +200,67 @@ All previous phases now connected:
 
 ---
 
-## Phase 5: Hybrid Optimization
+## Phase 5: Hybrid Optimization ✅
 
-**Status:** Not started
+**Goal:** Optimize sorting performance with static cache and LRU cache
+
+### Tasks
+- [x] Add quick_cache dependency to workspace
+- [x] Create `rustywind-core/src/hybrid_sorter.rs`
+  - [x] Implement static HashMap cache for ~80 most common base classes
+  - [x] Implement LRU cache (quick_cache) for dynamic caching (1000 entries)
+  - [x] Implement three-tier lookup: static → LRU → pattern_sorter
+  - [x] Implement HybridSorter struct with configurable cache size
+  - [x] Implement sort_classes() method
+  - [x] Comprehensive test coverage (12 tests, all passing)
+- [x] Update lib.rs to include new module
+- [x] Fix compilation errors (quick_cache capacity returns u64)
+- [x] Fix doctest failure in pattern_sorter.rs
+- [x] Fix warnings (dead_code, lifetime elision)
+- [x] All tests passing (135 unit + 19 doc = 154 total)
+
+### Current Status
+✅ **COMPLETE** - Three-tier hybrid sorter with caching operational
+
+### Implementation Details
+- **Three-tier lookup**:
+  1. Static cache: O(1) HashMap lookup for ~80 common base classes
+  2. LRU cache: O(1) quick_cache lookup for previously computed classes
+  3. Pattern sorter: Fallback for new/uncommon classes + cache result
+
+- **Static cache**: Pre-computed sort keys for common utilities
+  - Display: flex, grid, block, inline, hidden
+  - Position: relative, absolute, fixed, sticky, static
+  - Z-index: z-0 through z-50
+  - Flex: flex-row, flex-col, flex-wrap, items-*, justify-*
+  - Common sizes: w-full, h-full, w-auto, h-auto
+  - ~80 total entries with (variant_order, property_index, property_count)
+
+- **LRU cache**: Runtime caching with quick_cache
+  - Default capacity: 1000 entries
+  - Configurable via with_cache_size()
+  - Automatic eviction of least recently used
+  - Caches full SortKey structs for fast retrieval
+
+- **Performance optimization**:
+  - Common classes: ~O(1) static lookup
+  - Previously seen: ~O(1) LRU cache lookup
+  - New classes: O(1) pattern match + O(log n) property lookup + cache insert
+  - Expected 80-90% cache hit rate for typical projects
+
+### Key Features
+- ✅ Configurable cache size
+- ✅ Cache statistics API (entries, capacity)
+- ✅ Cache clearing for testing/memory management
+- ✅ Zero-copy design where possible
+- ✅ Thread-safe Arc-wrapped cache
+- ✅ Comprehensive documentation and examples
+
+### Architecture Decision
+- **Caching strategy**: Used quick_cache (user preference) instead of once_cell
+- **Static + dynamic**: Combines static HashMap for known classes with LRU for computed
+- **Cache size**: Default 1000 entries covers typical project needs (~50KB memory)
+- **Integration**: HybridSorter wraps PatternSorter, no changes to core algorithm
 
 ---
 

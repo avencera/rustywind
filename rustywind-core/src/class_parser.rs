@@ -155,7 +155,7 @@ impl<'a> ParsedClass<'a> {
 /// let parsed = parse_class("hover:focus:p-4").unwrap();
 /// assert_eq!(parsed.variants, vec!["hover", "focus"]);
 /// ```
-pub fn parse_class(class: &str) -> Option<ParsedClass> {
+pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
     if class.is_empty() {
         return None;
     }
@@ -221,17 +221,50 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
 
     // Try to match multi-part bases first
     for prefix in &[
-        "min-w", "min-h", "max-w", "max-h",
-        "border-t", "border-r", "border-b", "border-l", "border-x", "border-y", "border-s", "border-e",
-        "rounded-t", "rounded-r", "rounded-b", "rounded-l", "rounded-s", "rounded-e",
-        "rounded-tl", "rounded-tr", "rounded-br", "rounded-bl", "rounded-ss", "rounded-se", "rounded-ee", "rounded-es",
-        "grid-cols", "grid-rows", "grid-flow",
-        "auto-cols", "auto-rows",
-        "gap-x", "gap-y",
-        "flex-row", "flex-col", "flex-wrap", "flex-nowrap",
+        "min-w",
+        "min-h",
+        "max-w",
+        "max-h",
+        "border-t",
+        "border-r",
+        "border-b",
+        "border-l",
+        "border-x",
+        "border-y",
+        "border-s",
+        "border-e",
+        "rounded-t",
+        "rounded-r",
+        "rounded-b",
+        "rounded-l",
+        "rounded-s",
+        "rounded-e",
+        "rounded-tl",
+        "rounded-tr",
+        "rounded-br",
+        "rounded-bl",
+        "rounded-ss",
+        "rounded-se",
+        "rounded-ee",
+        "rounded-es",
+        "grid-cols",
+        "grid-rows",
+        "grid-flow",
+        "auto-cols",
+        "auto-rows",
+        "gap-x",
+        "gap-y",
+        "flex-row",
+        "flex-col",
+        "flex-wrap",
+        "flex-nowrap",
         "ring-offset",
-        "col-span", "col-start", "col-end",
-        "row-span", "row-start", "row-end",
+        "col-span",
+        "col-start",
+        "col-end",
+        "row-span",
+        "row-start",
+        "row-end",
     ] {
         if utility.starts_with(prefix) {
             if utility.len() == prefix.len() {
