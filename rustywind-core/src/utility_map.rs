@@ -125,6 +125,29 @@ impl UtilityMap {
         exact.insert("box-border", &["box-sizing"][..]);
         exact.insert("box-content", &["box-sizing"][..]);
 
+        // Flexbox & Grid Alignment (common utilities without values)
+        exact.insert("items-start", &["align-items"][..]);
+        exact.insert("items-end", &["align-items"][..]);
+        exact.insert("items-center", &["align-items"][..]);
+        exact.insert("items-baseline", &["align-items"][..]);
+        exact.insert("items-stretch", &["align-items"][..]);
+
+        exact.insert("justify-start", &["justify-content"][..]);
+        exact.insert("justify-end", &["justify-content"][..]);
+        exact.insert("justify-center", &["justify-content"][..]);
+        exact.insert("justify-between", &["justify-content"][..]);
+        exact.insert("justify-around", &["justify-content"][..]);
+        exact.insert("justify-evenly", &["justify-content"][..]);
+        exact.insert("justify-normal", &["justify-content"][..]);
+        exact.insert("justify-stretch", &["justify-content"][..]);
+
+        exact.insert("content-start", &["align-content"][..]);
+        exact.insert("content-end", &["align-content"][..]);
+        exact.insert("content-center", &["align-content"][..]);
+        exact.insert("content-between", &["align-content"][..]);
+        exact.insert("content-around", &["align-content"][..]);
+        exact.insert("content-evenly", &["align-content"][..]);
+
         Self { exact }
     }
 
