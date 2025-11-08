@@ -137,6 +137,36 @@ rustywind-core/src/
 
 **Performance:** Fast path for common cases, flexible for edge cases
 
+#### 2025-11-08: Property index selection for multi-property utilities
+
+**Challenge:** Utilities like `px-4` generate multiple CSS properties (padding-left + padding-right). Which property index should we use for sorting?
+
+**Solution:** Use the MINIMUM property index
+- px-4 generates [padding-left (260), padding-right (258)] → uses min = 258
+- py-4 generates [padding-top (257), padding-bottom (259)] → uses min = 257
+- This matches Tailwind's algorithm which uses the lowest property index
+
+**Implementation:**
+```rust
+let property_index = properties
+    .iter()
+    .filter_map(|&prop| get_property_index(prop))
+    .min()?;
+```
+
+**Impact:** Correct sorting for all multi-property utilities (px, py, size, etc.)
+
+#### 2025-11-08: Missing alignment utilities in utility_map
+
+**Problem:** Utilities like `items-center`, `justify-between` were not recognized because they have no values and weren't in the exact match HashMap.
+
+**Solution:** Added exact match entries for all alignment utilities:
+- items-start, items-center, items-end → align-items
+- justify-start, justify-center, justify-between → justify-content
+- content-start, content-center, content-between → align-content
+
+**Result:** These utilities now sort correctly instead of being treated as unknown classes
+
 ---
 
 ## Open Questions
