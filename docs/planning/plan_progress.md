@@ -10,7 +10,7 @@
 - [x] Phase 1: Property Order Foundation ✅
 - [x] Phase 2: Utility Pattern Mapping ✅
 - [x] Phase 3: Class Parser ✅
-- [ ] Phase 4: Pattern-Based Sorter
+- [x] Phase 4: Pattern-Based Sorter ✅
 - [ ] Phase 5: Hybrid Optimization
 - [ ] Phase 6: Testing
 - [ ] Phase 7: Integration
@@ -134,9 +134,69 @@
 
 ---
 
-## Phase 4: Pattern-Based Sorter
+## Phase 4: Pattern-Based Sorter ✅
 
-**Status:** Not started
+**Goal:** Implement Tailwind's exact sorting algorithm using pattern matching
+
+### Tasks
+- [x] Create `rustywind-core/src/pattern_sorter.rs`
+  - [x] Define SortKey struct with all comparison data
+  - [x] Implement Ord trait with four-tier comparison
+  - [x] Implement PatternSorter with get_sort_key()
+  - [x] Implement sort_classes() public API
+  - [x] Fix property index selection (use minimum for multi-property)
+  - [x] Add missing alignment utilities to utility_map
+  - [x] Comprehensive test coverage (15 tests, all passing)
+- [x] Update lib.rs to include new module
+- [x] All tests passing (15/15)
+
+### Current Status
+✅ **COMPLETE** - Full pattern-based sorter matching Tailwind's algorithm
+
+### Implementation Details
+- **SortKey struct**: Complete sorting data
+  - variant_order: u64 bitwise flags (0 for base classes)
+  - property_index: Minimum index from property-order
+  - property_count: Number of properties generated
+  - class: Original string for alphabetical sort
+- **Ord implementation**: Four-tier comparison
+  1. Variant order (base classes first)
+  2. Property index (lower first)
+  3. Property count (fewer first)
+  4. Alphabetical (tiebreaker)
+- **PatternSorter**: Main sorter class
+  - get_sort_key(): Generate sort key for any class
+  - Integrates with class_parser, variant_order, property_order
+- **sort_classes()**: Public API for sorting
+  - Unknown classes placed at end
+  - Maintains relative order for unknown classes
+
+### Key Fixes Applied
+- **Property index**: Use minimum index for multi-property utilities
+  - px-4 generates [padding-left, padding-right] → uses min(258, 260) = 258
+  - py-4 generates [padding-top, padding-bottom] → uses min(257, 259) = 257
+  - Matches Tailwind's "lowest property index first" algorithm
+- **Missing utilities**: Added alignment utilities to exact matches
+  - items-center, items-start, justify-between, content-center
+  - These have no values so require exact match entries
+
+### Sorting Capabilities
+- ✅ Base classes before variant classes
+- ✅ Property order within each group
+- ✅ Variant order (hover before focus, sm before md)
+- ✅ Multi-property utilities (px, py, size)
+- ✅ Arbitrary values (bg-[#fff], w-[100px])
+- ✅ Important modifier (!)
+- ✅ Unknown classes (sorted alphabetically at end)
+- ✅ Complex combinations (dark:md:hover:text-white!)
+
+### Integration Complete
+All previous phases now connected:
+- class_parser → ParsedClass with variants + utility + value
+- variant_order → calculate_variant_order() for bitwise flags
+- property_order → get_property_index() for property positions
+- utility_map → get_properties() for CSS property lookup
+- pattern_sorter → Combines all to generate SortKey and sort
 
 ---
 
@@ -164,3 +224,5 @@
 2. `1227620` - Phase 1: Implement property and variant order foundation
 3. `ac15964` - Phase 2: Implement utility pattern mapping
 4. `d3dfb5f` - Phase 3: Implement class parser
+5. `0014ebb` - Phase 4: Implement pattern-based sorter (WIP)
+6. `5f2762b` - Fix pattern_sorter test failures and complete Phase 4
