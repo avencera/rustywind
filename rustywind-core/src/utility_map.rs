@@ -998,8 +998,12 @@ impl UtilityMap {
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Space Between
-            "space-x" => Some(&["--tw-space-x-reverse"][..]),
-            "space-y" => Some(&["--tw-space-y-reverse"][..]),
+            // Note: Tailwind v4 uses --tw-sort property to indicate sorting order
+            // space-x has --tw-sort: row-gap
+            // space-y has --tw-sort: column-gap
+            // This is intentionally swapped from what you'd expect!
+            "space-x" => Some(&["row-gap"][..]),
+            "space-y" => Some(&["column-gap"][..]),
 
             // Divide
             "divide-x" => Some(&["divide-x-width"][..]),
@@ -1593,23 +1597,23 @@ mod tests {
         use crate::property_order::get_property_index;
         let map = UtilityMap::new();
 
-        // space-x should only map to --tw-space-x-reverse
+        // space-x should map to row-gap (per Tailwind v4's --tw-sort property)
         let space_props = map.get_properties("space-x-2").unwrap();
-        assert_eq!(space_props, &["--tw-space-x-reverse"]);
+        assert_eq!(space_props, &["row-gap"]);
 
         // touch-pan-down should map to touch-action
         let touch_props = map.get_properties("touch-pan-down").unwrap();
         assert_eq!(touch_props, &["touch-action"]);
 
-        // Verify indices - touch-action should be < --tw-space-x-reverse
+        // Verify indices - touch-action should be < row-gap
         let touch_idx = get_property_index("touch-action").unwrap();
-        let space_idx = get_property_index("--tw-space-x-reverse").unwrap();
+        let space_idx = get_property_index("row-gap").unwrap();
 
         println!("touch-action index: {}", touch_idx);
-        println!("--tw-space-x-reverse index: {}", space_idx);
+        println!("row-gap index: {}", space_idx);
 
         assert!(touch_idx < space_idx,
-            "touch-action ({}) should have lower index than --tw-space-x-reverse ({})",
+            "touch-action ({}) should have lower index than row-gap ({})",
             touch_idx, space_idx);
     }
 
