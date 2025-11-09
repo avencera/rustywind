@@ -794,7 +794,7 @@ impl UtilityMap {
             // Sizing
             "w" => Some(&["width"][..]),
             "h" => Some(&["height"][..]),
-            "size" => Some(&["width", "height"][..]),
+            "size" => Some(&["aspect-ratio"][..]), // aspect-ratio comes before height/width
             "min-w" => Some(&["min-width"][..]),
             "min-h" => Some(&["min-height"][..]),
             "max-w" => Some(&["max-width"][..]),
@@ -833,8 +833,8 @@ impl UtilityMap {
 
             // Padding
             "p" => Some(&["padding"][..]),
-            "px" => Some(&["padding-left", "padding-right"][..]),
-            "py" => Some(&["padding-top", "padding-bottom"][..]),
+            "px" => Some(&["padding-inline"][..]), // Use padding-inline for left+right
+            "py" => Some(&["padding-block"][..]), // Use padding-block for top+bottom
             "ps" => Some(&["padding-inline-start"][..]),
             "pe" => Some(&["padding-inline-end"][..]),
             "pt" => Some(&["padding-top"][..]),
@@ -873,8 +873,8 @@ impl UtilityMap {
             "border" if value.is_empty() || value.parse::<u32>().is_ok() => {
                 Some(&["border-width"][..])
             }
-            "border-x" => Some(&["border-left-width", "border-right-width"][..]),
-            "border-y" => Some(&["border-top-width", "border-bottom-width"][..]),
+            "border-x" => Some(&["border-inline-width"][..]), // Use border-inline-width for left+right
+            "border-y" => Some(&["border-block-width"][..]), // Use border-block-width for top+bottom
             "border-s" => Some(&["border-inline-start-width"][..]),
             "border-e" => Some(&["border-inline-end-width"][..]),
             "border-t" => Some(&["border-top-width"][..]),
@@ -1139,6 +1139,9 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "hue-rotate",
         "scale-x",
         "scale-y",
+        "bg-opacity", // Add opacity utilities to prevent incorrect parsing as colors
+        "text-opacity",
+        "border-opacity",
     ] {
         if utility_without_neg.starts_with(prefix) {
             if utility_without_neg.len() == prefix.len() {
@@ -1324,6 +1327,7 @@ fn is_size_keyword(value: &str) -> bool {
             | "max"
             | "fit"
             | "auto"
+            | "none" // Add 'none' as a valid size keyword for utilities like rounded-none
     )
 }
 
