@@ -14,6 +14,7 @@
 | **Variant Order Fix (Phase 1 Complete)** | **60%** | **+1%** | **Fixed focus/hover/landscape variant order to match Tailwind v4** |
 | **Value-Based Sub-Sorting (Phase 2 Complete)** | **57%** | **-3%** | **Implemented numeric value extraction and comparison for same-property utilities** |
 | **Variant Order Corrections** | **67%** | **+10%** | **Fixed empty, enabled/disabled, and landscape variant positions** |
+| **Add user-select Property** | **69%** | **+2%** | **Added user-select to property order for select-* utilities** |
 
 ## Changes Made
 
