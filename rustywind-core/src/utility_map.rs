@@ -590,11 +590,11 @@ impl UtilityMap {
         exact.insert("border-none", &["border-style"][..]);
 
         // Divide Style
-        exact.insert("divide-solid", &["border-style"][..]);
-        exact.insert("divide-dashed", &["border-style"][..]);
-        exact.insert("divide-dotted", &["border-style"][..]);
-        exact.insert("divide-double", &["border-style"][..]);
-        exact.insert("divide-none", &["border-style"][..]);
+        exact.insert("divide-solid", &["divide-style"][..]);
+        exact.insert("divide-dashed", &["divide-style"][..]);
+        exact.insert("divide-dotted", &["divide-style"][..]);
+        exact.insert("divide-double", &["divide-style"][..]);
+        exact.insert("divide-none", &["divide-style"][..]);
 
         // Outline Style
         exact.insert("outline-none", &["outline-style"][..]);
@@ -939,20 +939,20 @@ impl UtilityMap {
             // Transforms
             "rotate" => Some(&["rotate"][..]),
             "-rotate" => Some(&["rotate"][..]),
-            "scale" if !value.is_empty() => Some(&["scale"][..]),
-            "-scale" if !value.is_empty() => Some(&["scale"][..]),
-            "scale-x" => Some(&["scale"][..]),
-            "-scale-x" => Some(&["scale"][..]),
-            "scale-y" => Some(&["scale"][..]),
-            "-scale-y" => Some(&["scale"][..]),
-            "translate-x" => Some(&["translate"][..]),
-            "-translate-x" => Some(&["translate"][..]),
-            "translate-y" => Some(&["translate"][..]),
-            "-translate-y" => Some(&["translate"][..]),
-            "skew-x" => Some(&["transform"][..]),
-            "-skew-x" => Some(&["transform"][..]),
-            "skew-y" => Some(&["transform"][..]),
-            "-skew-y" => Some(&["transform"][..]),
+            "scale" if !value.is_empty() => Some(&["transform"][..]),
+            "-scale" if !value.is_empty() => Some(&["transform"][..]),
+            "scale-x" => Some(&["transform"][..]),
+            "-scale-x" => Some(&["transform"][..]),
+            "scale-y" => Some(&["transform"][..]),
+            "-scale-y" => Some(&["transform"][..]),
+            "translate-x" => Some(&["--tw-translate-x"][..]),
+            "-translate-x" => Some(&["--tw-translate-x"][..]),
+            "translate-y" => Some(&["--tw-translate-y"][..]),
+            "-translate-y" => Some(&["--tw-translate-y"][..]),
+            "skew-x" => Some(&["--tw-skew-x"][..]),
+            "-skew-x" => Some(&["--tw-skew-x"][..]),
+            "skew-y" => Some(&["--tw-skew-y"][..]),
+            "-skew-y" => Some(&["--tw-skew-y"][..]),
 
             // Filters
             "blur" => Some(&["filter"][..]),
@@ -1001,7 +1001,7 @@ impl UtilityMap {
             // Divide
             "divide-x" => Some(&["divide-x-width"][..]),
             "divide-y" => Some(&["divide-y-width"][..]),
-            "divide" if is_color_value(value) => Some(&["border-color"][..]),
+            "divide" if is_color_value(value) => Some(&["divide-color"][..]),
             "divide-opacity" => Some(&["border-opacity"][..]),
 
             // Leading (line-height)
@@ -1605,5 +1605,20 @@ mod tests {
         assert!(touch_idx < space_idx,
             "touch-action ({}) should have lower index than --tw-space-x-reverse ({})",
             touch_idx, space_idx);
+    }
+
+    #[test]
+    fn test_transform_mappings() {
+        let map = UtilityMap::new();
+
+        // Test transform utility mappings
+        assert_eq!(map.get_properties("scale-100"), Some(&["transform"][..]));
+        assert_eq!(map.get_properties("scale-x-100"), Some(&["transform"][..]));
+        assert_eq!(map.get_properties("scale-y-50"), Some(&["transform"][..]));
+        assert_eq!(map.get_properties("translate-x-0"), Some(&["--tw-translate-x"][..]));
+        assert_eq!(map.get_properties("translate-y-2"), Some(&["--tw-translate-y"][..]));
+        assert_eq!(map.get_properties("rotate-0"), Some(&["rotate"][..]));
+        assert_eq!(map.get_properties("skew-x-6"), Some(&["--tw-skew-x"][..]));
+        assert_eq!(map.get_properties("skew-y-3"), Some(&["--tw-skew-y"][..]));
     }
 }
