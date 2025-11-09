@@ -19,8 +19,8 @@
 /// ```
 /// use rustywind_core::variant_order::get_variant_index;
 ///
-/// // focus-visible comes before focus
-/// assert!(get_variant_index("focus-visible").unwrap() < get_variant_index("focus").unwrap());
+/// // focus comes before focus-visible
+/// assert!(get_variant_index("focus").unwrap() < get_variant_index("focus-visible").unwrap());
 /// ```
 pub const VARIANT_ORDER: &[&str] = &[
     // Pseudo-elements (appear first in variant hierarchy)
@@ -61,11 +61,11 @@ pub const VARIANT_ORDER: &[&str] = &[
     "read-write",
     // Empty variant (after state variants)
     "empty",
-    // Interactive variants (user interaction) - order from Tailwind v4 test suite
-    "focus-visible",
+    // Interactive variants (user interaction) - order from Tailwind v4 source (variants.ts:713-719)
     "focus-within",
-    "focus",
     "hover",
+    "focus",
+    "focus-visible",
     "active",
     // Enabled & disabled (enabled comes first)
     "enabled",
@@ -102,24 +102,24 @@ pub const VARIANT_ORDER: &[&str] = &[
     "@5xl",
     "@6xl",
     "@7xl",
-    // Motion preferences
-    "motion-reduce",
+    // Motion preferences (variants.ts:909-910)
     "motion-safe",
-    // Orientation (landscape and portrait after responsive)
-    "landscape",
+    "motion-reduce",
+    // Orientation (variants.ts:1137-1138 - portrait before landscape)
     "portrait",
-    // Print
-    "print",
-    // Dark mode (after print in Tailwind v4)
-    "dark",
-    // Contrast
-    "contrast-more",
-    "contrast-less",
+    "landscape",
     // Directionality
     "ltr",
     "rtl",
-    // Starting style
+    // Dark mode (variants.ts:1143)
+    "dark",
+    // Starting style (variants.ts:1145)
     "starting",
+    // Print (variants.ts:1147)
+    "print",
+    // Contrast (variants.ts:912-913)
+    "contrast-more",
+    "contrast-less",
 ];
 
 /// Get the index of a variant in the canonical order.
@@ -135,11 +135,12 @@ pub const VARIANT_ORDER: &[&str] = &[
 /// ```
 /// use rustywind_core::variant_order::get_variant_index;
 ///
-/// assert_eq!(get_variant_index("focus-visible"), Some(34));
+/// assert_eq!(get_variant_index("focus-within"), Some(34));
+/// assert_eq!(get_variant_index("hover"), Some(35));
 /// assert_eq!(get_variant_index("focus"), Some(36));
-/// assert_eq!(get_variant_index("hover"), Some(37));
+/// assert_eq!(get_variant_index("focus-visible"), Some(37));
 /// assert_eq!(get_variant_index("sm"), Some(55));
-/// assert_eq!(get_variant_index("landscape"), Some(72));
+/// assert_eq!(get_variant_index("portrait"), Some(72));
 /// assert_eq!(get_variant_index("unknown-variant"), None);
 /// ```
 #[inline]
@@ -202,11 +203,11 @@ mod tests {
         assert_eq!(get_variant_index("before"), Some(2));
         assert_eq!(get_variant_index("after"), Some(3));
 
-        // Test interactive variants
-        assert_eq!(get_variant_index("focus-visible"), Some(34));
-        assert_eq!(get_variant_index("focus-within"), Some(35));
+        // Test interactive variants (new order: focus-within, hover, focus, focus-visible, active)
+        assert_eq!(get_variant_index("focus-within"), Some(34));
+        assert_eq!(get_variant_index("hover"), Some(35));
         assert_eq!(get_variant_index("focus"), Some(36));
-        assert_eq!(get_variant_index("hover"), Some(37));
+        assert_eq!(get_variant_index("focus-visible"), Some(37));
         assert_eq!(get_variant_index("active"), Some(38));
 
         // Test enabled/disabled (enabled now comes before disabled)
@@ -218,8 +219,9 @@ mod tests {
         assert_eq!(get_variant_index("md"), Some(56));
         assert_eq!(get_variant_index("lg"), Some(57));
 
-        // Test landscape (now after responsive)
-        assert_eq!(get_variant_index("landscape"), Some(72));
+        // Test orientation (portrait before landscape)
+        assert_eq!(get_variant_index("portrait"), Some(72));
+        assert_eq!(get_variant_index("landscape"), Some(73));
 
         // Test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);
@@ -227,15 +229,15 @@ mod tests {
 
     #[test]
     fn test_focus_variants_order() {
-        // focus-visible, focus-within, focus should come before hover (Tailwind v4 order)
-        let focus_visible_idx = get_variant_index("focus-visible").unwrap();
+        // Correct Tailwind v4 order: focus-within < hover < focus < focus-visible
         let focus_within_idx = get_variant_index("focus-within").unwrap();
-        let focus_idx = get_variant_index("focus").unwrap();
         let hover_idx = get_variant_index("hover").unwrap();
+        let focus_idx = get_variant_index("focus").unwrap();
+        let focus_visible_idx = get_variant_index("focus-visible").unwrap();
 
-        assert!(focus_visible_idx < focus_within_idx);
-        assert!(focus_within_idx < focus_idx);
-        assert!(focus_idx < hover_idx);
+        assert!(focus_within_idx < hover_idx);
+        assert!(hover_idx < focus_idx);
+        assert!(focus_idx < focus_visible_idx);
     }
 
     #[test]
@@ -371,7 +373,7 @@ mod tests {
         assert!(dark_order > base_order);
         assert!(hover_order > base_order);
 
-        // dark (index 75) should come after hover (index 37)
+        // dark (index 74) should come after hover (index 35)
         assert!(dark_order > hover_order);
     }
 

@@ -608,7 +608,7 @@ impl UtilityMap {
         exact.insert("outline-double", &["outline"][..]);
 
         // Ring
-        exact.insert("ring-inset", &["--tw-ring-inset"][..]);
+        exact.insert("ring-inset", &["--tw-inset-ring-shadow"][..]);
 
         // Text Alignment
         exact.insert("text-left", &["text-align"][..]);
@@ -642,6 +642,9 @@ impl UtilityMap {
         exact.insert("bg-repeat-round", &["background-repeat"][..]);
         exact.insert("bg-repeat-space", &["background-repeat"][..]);
 
+        // Background Image
+        exact.insert("bg-none", &["background-image"][..]);
+
         // Background Clip
         exact.insert("bg-clip-border", &["background-clip"][..]);
         exact.insert("bg-clip-padding", &["background-clip"][..]);
@@ -671,6 +674,11 @@ impl UtilityMap {
         exact.insert("drop-shadow-xl", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-2xl", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-none", &["--tw-drop-shadow"][..]);
+
+        // Filter utilities -0 variants (exact mappings to avoid pattern match exclusion)
+        exact.insert("grayscale-0", &["--tw-grayscale"][..]);
+        exact.insert("invert-0", &["--tw-invert"][..]);
+        exact.insert("sepia-0", &["--tw-sepia"][..]);
 
         // Object Position
         exact.insert("object-bottom", &["object-position"][..]);
@@ -892,12 +900,15 @@ impl UtilityMap {
             "rounded" if value.is_empty() || value.starts_with('[') || is_size_keyword(value) => {
                 Some(&["border-radius"][..])
             }
-            "rounded-s" => Some(&["border-start-radius"][..]),
-            "rounded-e" => Some(&["border-end-radius"][..]),
-            "rounded-t" => Some(&["border-top-radius"][..]),
-            "rounded-r" => Some(&["border-right-radius"][..]),
-            "rounded-b" => Some(&["border-bottom-radius"][..]),
-            "rounded-l" => Some(&["border-left-radius"][..]),
+            // Side-specific rounded utilities map to multiple corner properties
+            // to match Tailwind v4 behavior
+            "rounded-s" => Some(&["border-start-start-radius", "border-end-start-radius"][..]),
+            "rounded-e" => Some(&["border-start-end-radius", "border-end-end-radius"][..]),
+            "rounded-t" => Some(&["border-top-left-radius", "border-top-right-radius"][..]),
+            "rounded-r" => Some(&["border-top-right-radius", "border-bottom-right-radius"][..]),
+            "rounded-b" => Some(&["border-bottom-right-radius", "border-bottom-left-radius"][..]),
+            "rounded-l" => Some(&["border-top-left-radius", "border-bottom-left-radius"][..]),
+            // Corner-specific rounded utilities map to single properties
             "rounded-ss" => Some(&["border-start-start-radius"][..]),
             "rounded-se" => Some(&["border-start-end-radius"][..]),
             "rounded-ee" => Some(&["border-end-end-radius"][..]),
@@ -1318,6 +1329,7 @@ fn is_size_keyword(value: &str) -> bool {
     matches!(
         value,
         "xs" | "sm"
+            | "md" // Add 'md' for utilities like rounded-md
             | "base"
             | "lg"
             | "xl"
@@ -1630,5 +1642,27 @@ mod tests {
         assert_eq!(map.get_properties("rotate-0"), Some(&["rotate"][..]));
         assert_eq!(map.get_properties("skew-x-6"), Some(&["--tw-skew-x"][..]));
         assert_eq!(map.get_properties("skew-y-3"), Some(&["--tw-skew-y"][..]));
+    }
+
+    #[test]
+    fn test_bg_none_mapping() {
+        use crate::property_order::get_property_index;
+        let map = UtilityMap::new();
+
+        // bg-none should map to background-image
+        assert_eq!(map.get_properties("bg-none"), Some(&["background-image"][..]));
+
+        // Verify bg-none sorts before bg-clip-* (background-image < background-clip)
+        let bg_none_idx = get_property_index("background-image").unwrap();
+        let bg_clip_idx = get_property_index("background-clip").unwrap();
+        assert!(bg_none_idx < bg_clip_idx,
+            "bg-none (background-image: {}) should sort before bg-clip-* (background-clip: {})",
+            bg_none_idx, bg_clip_idx);
+
+        // Verify bg-none sorts after bg-color (background-color < background-image)
+        let bg_color_idx = get_property_index("background-color").unwrap();
+        assert!(bg_color_idx < bg_none_idx,
+            "bg-color (background-color: {}) should sort before bg-none (background-image: {})",
+            bg_color_idx, bg_none_idx);
     }
 }

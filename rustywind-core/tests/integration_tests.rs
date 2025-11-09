@@ -294,10 +294,10 @@ fn test_pseudo_class_ordering() {
     // Base class first
     assert_eq!(sorted[0], "p-4");
 
-    // focus (36) comes before hover (37) in Tailwind v4 variant order
+    // hover (35) comes before focus (36) in Tailwind v4 variant order
     let hover_pos = sorted.iter().position(|&c| c == "hover:p-4").unwrap();
     let focus_pos = sorted.iter().position(|&c| c == "focus:p-4").unwrap();
-    assert!(focus_pos < hover_pos, "focus should come before hover");
+    assert!(hover_pos < focus_pos, "hover should come before focus");
 }
 
 #[test]

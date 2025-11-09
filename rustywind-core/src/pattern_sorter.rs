@@ -315,8 +315,8 @@ mod tests {
         let classes = vec!["focus:p-1", "hover:p-1"];
         let sorted = sort_classes(&classes);
 
-        // focus (index 35) comes before hover (index 36) in Tailwind v4
-        assert_eq!(sorted, vec!["focus:p-1", "hover:p-1"]);
+        // Tailwind v4: focus-within (34) < hover (35) < focus (36) < focus-visible (37)
+        assert_eq!(sorted, vec!["hover:p-1", "focus:p-1"]);
     }
 
     #[test]
@@ -543,10 +543,10 @@ mod tests {
         let classes = vec![
             "flex",
             "@3xl:flex",     // index 66
-            "dark:flex",     // index 75
-            "print:flex",    // index 74
-            "portrait:flex", // index 73
-            "hover:flex",    // index 37 (before 64)
+            "dark:flex",     // index 74
+            "print:flex",    // index 76
+            "portrait:flex", // index 72
+            "hover:flex",    // index 35 (before 64)
         ];
         let sorted = sort_classes(&classes);
 
@@ -554,12 +554,12 @@ mod tests {
         assert_eq!(sorted[0], "flex");
 
         // Then variants in index order:
-        // hover (37) < @3xl (66) < portrait (73) < print (74) < dark (75)
+        // hover (35) < @3xl (66) < portrait (72) < dark (74) < print (76)
         assert_eq!(sorted[1], "hover:flex");
         assert_eq!(sorted[2], "@3xl:flex");
         assert_eq!(sorted[3], "portrait:flex");
-        assert_eq!(sorted[4], "print:flex");
-        assert_eq!(sorted[5], "dark:flex");
+        assert_eq!(sorted[4], "dark:flex");
+        assert_eq!(sorted[5], "print:flex");
     }
 
     #[test]
