@@ -6,11 +6,12 @@
 //!
 //! # Algorithm
 //!
-//! Classes are sorted using a four-tier comparison:
+//! Classes are sorted using a five-tier comparison:
 //! 1. **Variant Order** - Classes without variants come first, then variants in order
 //! 2. **Property Index** - Based on the CSS properties the utility generates
-//! 3. **Property Count** - More properties = later (for stability)
-//! 4. **Alphabetical** - Final tiebreaker
+//! 3. **Numeric Value** - When both classes have numeric values (e.g., p-4 vs p-8)
+//! 4. **Property Count** - More properties = later (for stability)
+//! 5. **Alphabetical** - Final tiebreaker
 //!
 //! # Examples
 //!
@@ -30,18 +31,78 @@ use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
 use crate::variant_order::calculate_variant_order;
 
+/// Extract a numeric value from a utility class name for value-based sub-sorting.
+///
+/// This function extracts numeric values from utilities like:
+/// - `p-4` → Some(4.0)
+/// - `scale-110` → Some(110.0)
+/// - `w-1/2` → Some(0.5)
+/// - `text-lg` → None
+///
+/// Utilities with the same property are sorted by their numeric value when available.
+fn extract_numeric_value(utility: &str) -> Option<f64> {
+    // Remove variants to get just the utility part
+    let utility = utility.split(':').last()?;
+
+    // Split by dash to get potential numeric parts
+    let parts: Vec<&str> = utility.split('-').collect();
+
+    // Look for the last part which is usually the value
+    let value_part = parts.last()?;
+
+    // Handle negative values (e.g., -translate-x-4 → value is "4" with negative prefix)
+    let (is_negative, value_str) = if parts.len() > 1 && parts[0].is_empty() {
+        // Negative utility like -translate-x-4
+        (true, value_part)
+    } else {
+        (false, value_part)
+    };
+
+    // Try to parse as integer
+    if let Ok(num) = value_str.parse::<i32>() {
+        return Some(if is_negative { -(num as f64) } else { num as f64 });
+    }
+
+    // Try to parse as fraction (e.g., "1/2")
+    if value_str.contains('/') {
+        let fraction_parts: Vec<&str> = value_str.split('/').collect();
+        if fraction_parts.len() == 2 {
+            if let (Ok(numerator), Ok(denominator)) = (
+                fraction_parts[0].parse::<f64>(),
+                fraction_parts[1].parse::<f64>(),
+            ) {
+                if denominator != 0.0 {
+                    let result = numerator / denominator;
+                    return Some(if is_negative { -result } else { result });
+                }
+            }
+        }
+    }
+
+    // Try to parse as decimal (e.g., "0.5")
+    if let Ok(num) = value_str.parse::<f64>() {
+        return Some(if is_negative { -num } else { num });
+    }
+
+    None
+}
+
 /// A sort key for a Tailwind CSS class.
 ///
 /// This struct encapsulates all the information needed to sort a class according
 /// to Tailwind's algorithm. It implements `Ord` to provide the exact comparison
 /// logic used by Tailwind CSS.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SortKey {
     /// Variant order as bitwise flags (0 for no variants)
     pub variant_order: u128,
 
     /// Property index from PROPERTY_ORDER (lower = earlier)
     pub property_index: usize,
+
+    /// Numeric value for value-based sub-sorting (e.g., p-4 → 4.0)
+    /// Classes with the same property are sorted by numeric value when available
+    pub numeric_value: Option<f64>,
 
     /// Number of properties this utility generates
     pub property_count: usize,
@@ -50,19 +111,33 @@ pub struct SortKey {
     pub class: String,
 }
 
+impl Eq for SortKey {}
+
 impl Ord for SortKey {
-    /// Compare sort keys using Tailwind's exact algorithm.
+    /// Compare sort keys using Tailwind's exact algorithm with value-based sub-sorting.
     ///
     /// Order of comparison:
     /// 1. Variant order (0 first, then by bit flags)
     /// 2. Property index (lower index first)
-    /// 3. Property count (FEWER properties first - note the reversal)
-    /// 4. Alphabetical (final tiebreaker)
+    /// 3. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
+    /// 4. Property count (FEWER properties first - note the reversal)
+    /// 5. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
         self.variant_order
             .cmp(&other.variant_order)
             // Then by property index
             .then(self.property_index.cmp(&other.property_index))
+            // Then by numeric value (if both present)
+            .then_with(|| {
+                match (self.numeric_value, other.numeric_value) {
+                    (Some(a), Some(b)) => {
+                        // Use partial_cmp and default to Equal for NaN cases
+                        a.partial_cmp(&b).unwrap_or(Ordering::Equal)
+                    }
+                    // If only one has a numeric value, no preference (continue to next comparison)
+                    _ => Ordering::Equal,
+                }
+            })
             // Then by property count (fewer properties = earlier)
             // Tailwind's: zSorting.properties.count - aSorting.properties.count
             // means if z has MORE properties, result is positive, so a comes first
@@ -129,9 +204,13 @@ impl PatternSorter {
         // Count how many properties this utility generates
         let property_count = properties.len();
 
+        // Extract numeric value for value-based sub-sorting
+        let numeric_value = extract_numeric_value(class);
+
         Some(SortKey {
             variant_order,
             property_index,
+            numeric_value,
             property_count,
             class: class.to_string(),
         })
@@ -236,8 +315,8 @@ mod tests {
         let classes = vec!["focus:p-1", "hover:p-1"];
         let sorted = sort_classes(&classes);
 
-        // hover (index 33) comes before focus (index 34)
-        assert_eq!(sorted, vec!["hover:p-1", "focus:p-1"]);
+        // focus (index 35) comes before hover (index 36) in Tailwind v4
+        assert_eq!(sorted, vec!["focus:p-1", "hover:p-1"]);
     }
 
     #[test]
@@ -288,6 +367,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             property_index: 100,
+            numeric_value: None,
             property_count: 1,
             class: "flex".to_string(),
         };
@@ -295,6 +375,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 1,
             property_index: 100,
+            numeric_value: None,
             property_count: 1,
             class: "md:flex".to_string(),
         };
@@ -308,6 +389,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             property_index: 50,
+            numeric_value: None,
             property_count: 1,
             class: "a".to_string(),
         };
@@ -315,6 +397,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             property_index: 100,
+            numeric_value: None,
             property_count: 1,
             class: "b".to_string(),
         };
@@ -328,6 +411,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             property_index: 100,
+            numeric_value: None,
             property_count: 1,
             class: "a".to_string(),
         };
@@ -335,6 +419,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             property_index: 100,
+            numeric_value: None,
             property_count: 2,
             class: "b".to_string(),
         };
@@ -348,6 +433,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             property_index: 100,
+            numeric_value: None,
             property_count: 1,
             class: "aaa".to_string(),
         };
@@ -355,6 +441,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             property_index: 100,
+            numeric_value: None,
             property_count: 1,
             class: "bbb".to_string(),
         };
@@ -455,11 +542,11 @@ mod tests {
         // Test multiple variants beyond the old u64 limit
         let classes = vec![
             "flex",
-            "@3xl:flex",     // index 64
-            "dark:flex",     // index 70
-            "print:flex",    // index 73
-            "portrait:flex", // index 74
-            "hover:flex",    // index 33 (before 64)
+            "@3xl:flex",     // index 66
+            "dark:flex",     // index 75
+            "print:flex",    // index 74
+            "portrait:flex", // index 73
+            "hover:flex",    // index 37 (before 64)
         ];
         let sorted = sort_classes(&classes);
 
@@ -467,11 +554,106 @@ mod tests {
         assert_eq!(sorted[0], "flex");
 
         // Then variants in index order:
-        // hover (33) < @3xl (64) < dark (70) < print (73) < portrait (74)
+        // hover (37) < @3xl (66) < portrait (73) < print (74) < dark (75)
         assert_eq!(sorted[1], "hover:flex");
         assert_eq!(sorted[2], "@3xl:flex");
-        assert_eq!(sorted[3], "dark:flex");
+        assert_eq!(sorted[3], "portrait:flex");
         assert_eq!(sorted[4], "print:flex");
-        assert_eq!(sorted[5], "portrait:flex");
+        assert_eq!(sorted[5], "dark:flex");
+    }
+
+    #[test]
+    fn test_sort_key_numeric_value() {
+        // Test that utilities with same property but different numeric values sort correctly
+        // p-4 should come before p-8 (4 < 8)
+        let key1 = SortKey {
+            variant_order: 0,
+            property_index: 100,
+            numeric_value: Some(4.0),
+            property_count: 1,
+            class: "p-4".to_string(),
+        };
+        let key2 = SortKey {
+            variant_order: 0,
+            property_index: 100,
+            numeric_value: Some(8.0),
+            property_count: 1,
+            class: "p-8".to_string(),
+        };
+        assert!(key1 < key2);
+
+        // scale-50 should come before scale-110 (50 < 110)
+        let key3 = SortKey {
+            variant_order: 0,
+            property_index: 100,
+            numeric_value: Some(50.0),
+            property_count: 1,
+            class: "scale-50".to_string(),
+        };
+        let key4 = SortKey {
+            variant_order: 0,
+            property_index: 100,
+            numeric_value: Some(110.0),
+            property_count: 1,
+            class: "scale-110".to_string(),
+        };
+        assert!(key3 < key4);
+
+        // When one has numeric value and other doesn't, they should be equal (fall through to next tier)
+        let key5 = SortKey {
+            variant_order: 0,
+            property_index: 100,
+            numeric_value: Some(4.0),
+            property_count: 1,
+            class: "p-4".to_string(),
+        };
+        let key6 = SortKey {
+            variant_order: 0,
+            property_index: 100,
+            numeric_value: None,
+            property_count: 1,
+            class: "p-auto".to_string(),
+        };
+        // They should differ only by alphabetical order
+        assert!(key5 < key6); // "p-4" < "p-auto" alphabetically
+    }
+
+    #[test]
+    fn test_extract_numeric_value() {
+        // Basic integer values
+        assert_eq!(extract_numeric_value("p-4"), Some(4.0));
+        assert_eq!(extract_numeric_value("p-8"), Some(8.0));
+        assert_eq!(extract_numeric_value("scale-110"), Some(110.0));
+        assert_eq!(extract_numeric_value("brightness-50"), Some(50.0));
+
+        // Fraction values
+        assert_eq!(extract_numeric_value("w-1/2"), Some(0.5));
+        assert_eq!(extract_numeric_value("w-1/3"), Some(1.0 / 3.0));
+        assert_eq!(extract_numeric_value("w-3/4"), Some(0.75));
+
+        // Decimal values
+        assert_eq!(extract_numeric_value("opacity-50"), Some(50.0));
+        assert_eq!(extract_numeric_value("scale-95"), Some(95.0));
+
+        // Negative values (e.g., -translate-x-4)
+        assert_eq!(extract_numeric_value("-translate-x-4"), Some(-4.0));
+        assert_eq!(extract_numeric_value("-m-2"), Some(-2.0));
+
+        // With variants (should extract from utility part)
+        assert_eq!(extract_numeric_value("md:p-8"), Some(8.0));
+        assert_eq!(extract_numeric_value("hover:scale-110"), Some(110.0));
+        assert_eq!(extract_numeric_value("dark:w-1/2"), Some(0.5));
+
+        // Non-numeric utilities should return None
+        assert_eq!(extract_numeric_value("flex"), None);
+        assert_eq!(extract_numeric_value("p-auto"), None);
+        assert_eq!(extract_numeric_value("rounded-lg"), None);
+
+        // Color shades are numeric and get extracted (bg-blue-500 → 500)
+        assert_eq!(extract_numeric_value("bg-blue-500"), Some(500.0));
+
+        // Edge cases
+        assert_eq!(extract_numeric_value("p-0"), Some(0.0));
+        assert_eq!(extract_numeric_value("w-1/4"), Some(0.25));
     }
 }

@@ -294,22 +294,22 @@ fn test_pseudo_class_ordering() {
     // Base class first
     assert_eq!(sorted[0], "p-4");
 
-    // hover (33) comes before focus (34) in variant order
+    // focus (36) comes before hover (37) in Tailwind v4 variant order
     let hover_pos = sorted.iter().position(|&c| c == "hover:p-4").unwrap();
     let focus_pos = sorted.iter().position(|&c| c == "focus:p-4").unwrap();
-    assert!(hover_pos < focus_pos, "hover should come before focus");
+    assert!(focus_pos < hover_pos, "focus should come before hover");
 }
 
 #[test]
 fn test_property_count_ordering() {
     let sorter = HybridSorter::new();
 
-    // p generates 1 property (padding)
-    // px generates 2 properties (padding-left, padding-right)
+    // p generates 1 property (padding) at index 253
+    // px generates 1 property (padding-inline) at index 254
     let classes = vec!["px-4", "p-4"];
     let sorted = sorter.sort_classes(&classes);
 
-    // Fewer properties first: p-4 (1 property) before px-4 (2 properties)
+    // Lower property index first: p-4 (padding: 253) before px-4 (padding-inline: 254)
     assert_eq!(sorted[0], "p-4");
     assert_eq!(sorted[1], "px-4");
 }
@@ -384,15 +384,15 @@ fn test_mixed_spacing_utilities() {
     let sorted = sorter.sort_classes(&classes);
 
     // margin properties should come before padding properties
-    // Sorted by property index from property_order.rs:
-    // margin(25) < margin-inline(26) < margin-top(30)
-    // padding(252) < padding-top(257) < min(padding-left=316,padding-right=314)=314
-    assert_eq!(sorted[0], "m-4"); // margin: index 25
-    assert_eq!(sorted[1], "mx-4"); // margin-inline: index 26
-    assert_eq!(sorted[2], "mt-4"); // margin-top: index 30
-    assert_eq!(sorted[3], "p-4"); // padding: index 252
-    assert_eq!(sorted[4], "pt-4"); // padding-top: index 257
-    assert_eq!(sorted[5], "px-4"); // min(padding-left=316, padding-right=314) = 314
+    // Sorted by property index from property_order.rs (indices +1 from background-opacity at 0):
+    // margin(26) < margin-inline(27) < margin-top(31)
+    // padding(253) < padding-inline(254) < padding-top(258)
+    assert_eq!(sorted[0], "m-4");   // margin: index 26
+    assert_eq!(sorted[1], "mx-4");  // margin-inline: index 27
+    assert_eq!(sorted[2], "mt-4");  // margin-top: index 31
+    assert_eq!(sorted[3], "p-4");   // padding: index 253
+    assert_eq!(sorted[4], "px-4");  // padding-inline: index 254 (changed from padding-left/right)
+    assert_eq!(sorted[5], "pt-4");  // padding-top: index 258
 }
 
 #[test]

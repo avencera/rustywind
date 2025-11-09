@@ -737,10 +737,9 @@ impl UtilityMap {
     /// // Parameterized utility
     /// assert_eq!(map.get_properties("m-4"), Some(&["margin"][..]));
     ///
-    /// // Multiple properties
+    /// // px maps to padding-inline (modern CSS)
     /// let px_props = map.get_properties("px-4").unwrap();
-    /// assert!(px_props.contains(&"padding-left"));
-    /// assert!(px_props.contains(&"padding-right"));
+    /// assert!(px_props.contains(&"padding-inline"));
     /// ```
     pub fn get_properties(&self, utility: &str) -> Option<&'static [&'static str]> {
         // Try exact match first (fast path)
@@ -1394,14 +1393,13 @@ mod tests {
         assert_eq!(map.get_properties("p-4"), Some(&["padding"][..]));
         assert_eq!(map.get_properties("pt-2"), Some(&["padding-top"][..]));
 
-        // px and py generate multiple properties
+        // px maps to padding-inline (modern CSS for left+right)
         let px = map.get_properties("px-4").unwrap();
-        assert!(px.contains(&"padding-left"));
-        assert!(px.contains(&"padding-right"));
+        assert!(px.contains(&"padding-inline"));
 
+        // py maps to padding-block (modern CSS for top+bottom)
         let py = map.get_properties("py-8").unwrap();
-        assert!(py.contains(&"padding-top"));
-        assert!(py.contains(&"padding-bottom"));
+        assert!(py.contains(&"padding-block"));
     }
 
     #[test]

@@ -136,11 +136,11 @@ pub const VARIANT_ORDER: &[&str] = &[
 /// ```
 /// use rustywind_core::variant_order::get_variant_index;
 ///
-/// assert_eq!(get_variant_index("focus-visible"), Some(33));
-/// assert_eq!(get_variant_index("focus"), Some(35));
-/// assert_eq!(get_variant_index("hover"), Some(36));
-/// assert_eq!(get_variant_index("landscape"), Some(54));
-/// assert_eq!(get_variant_index("sm"), Some(55));
+/// assert_eq!(get_variant_index("focus-visible"), Some(34));
+/// assert_eq!(get_variant_index("focus"), Some(36));
+/// assert_eq!(get_variant_index("hover"), Some(37));
+/// assert_eq!(get_variant_index("landscape"), Some(55));
+/// assert_eq!(get_variant_index("sm"), Some(56));
 /// assert_eq!(get_variant_index("unknown-variant"), None);
 /// ```
 #[inline]
@@ -204,17 +204,17 @@ mod tests {
         assert_eq!(get_variant_index("after"), Some(3));
 
         // Test interactive variants (updated indices after reordering)
-        assert_eq!(get_variant_index("focus-visible"), Some(33));
-        assert_eq!(get_variant_index("focus-within"), Some(34));
-        assert_eq!(get_variant_index("focus"), Some(35));
-        assert_eq!(get_variant_index("hover"), Some(36));
-        assert_eq!(get_variant_index("active"), Some(37));
+        assert_eq!(get_variant_index("focus-visible"), Some(34));
+        assert_eq!(get_variant_index("focus-within"), Some(35));
+        assert_eq!(get_variant_index("focus"), Some(36));
+        assert_eq!(get_variant_index("hover"), Some(37));
+        assert_eq!(get_variant_index("active"), Some(38));
 
         // Test responsive variants (indices shifted by landscape moving before)
-        assert_eq!(get_variant_index("landscape"), Some(54));
-        assert_eq!(get_variant_index("sm"), Some(55));
-        assert_eq!(get_variant_index("md"), Some(56));
-        assert_eq!(get_variant_index("lg"), Some(57));
+        assert_eq!(get_variant_index("landscape"), Some(55));
+        assert_eq!(get_variant_index("sm"), Some(56));
+        assert_eq!(get_variant_index("md"), Some(57));
+        assert_eq!(get_variant_index("lg"), Some(58));
 
         // Test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);

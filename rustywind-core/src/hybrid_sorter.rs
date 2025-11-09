@@ -273,8 +273,8 @@ mod tests {
         let classes = vec!["focus:p-1", "hover:p-1"];
         let sorted = sorter.sort_classes(&classes);
 
-        // hover (index 33) comes before focus (index 34)
-        assert_eq!(sorted, vec!["hover:p-1", "focus:p-1"]);
+        // focus (index 36) comes before hover (index 37) in Tailwind v4
+        assert_eq!(sorted, vec!["focus:p-1", "hover:p-1"]);
     }
 
     #[test]

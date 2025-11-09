@@ -428,8 +428,8 @@ static PROPERTY_INDEX_MAP: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
 /// ```
 /// use rustywind_core::property_order::get_property_index;
 ///
-/// assert_eq!(get_property_index("margin"), Some(25));
-/// assert_eq!(get_property_index("padding"), Some(252));
+/// assert_eq!(get_property_index("margin"), Some(26));
+/// assert_eq!(get_property_index("padding"), Some(253));
 /// assert_eq!(get_property_index("unknown-property"), None);
 /// ```
 #[inline]
@@ -443,22 +443,24 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        assert_eq!(PROPERTY_ORDER.len(), 339);
+        // Total: 338 (removed user-select and outline-style from Tailwind v4 property order)
+        assert_eq!(PROPERTY_ORDER.len(), 338);
     }
 
     #[test]
     fn test_get_property_index() {
-        // Test first property
-        assert_eq!(get_property_index("container-type"), Some(0));
+        // Test first property (background-opacity for v3 backwards compatibility)
+        assert_eq!(get_property_index("background-opacity"), Some(0));
+        assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property
-        assert_eq!(get_property_index("forced-color-adjust"), Some(338));
+        // Test last property (338 total, so last is at index 337)
+        assert_eq!(get_property_index("forced-color-adjust"), Some(337));
 
-        // Test common properties
-        assert_eq!(get_property_index("margin"), Some(25));
-        assert_eq!(get_property_index("padding"), Some(252));
-        assert_eq!(get_property_index("display"), Some(35));
-        assert_eq!(get_property_index("background-color"), Some(180));
+        // Test common properties (indices shifted by 1 due to background-opacity at 0)
+        assert_eq!(get_property_index("margin"), Some(26));
+        assert_eq!(get_property_index("padding"), Some(253));
+        assert_eq!(get_property_index("display"), Some(36));
+        assert_eq!(get_property_index("background-color"), Some(181));
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);
