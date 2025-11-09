@@ -10,7 +10,8 @@
 |-----------|-----------|--------|---------|
 | Starting Point (from previous session) | 54% | - | Previous work included CLI fixes, negative transforms, property mappings, variant ordering, and Tailwind v4 upgrade |
 | Property Order Fix #1 | 61% | +7% | Moved `--tw-space-x-reverse` and `--tw-space-y-reverse` from index 115-116 to after `gap`/`row-gap` (index 166-167) |
-| Property Order Fix #2 | 59% | -2% then +4% | Fixed outline-style utilities and added divide-reverse utilities |
+| Property Order Fix #2 | 59% | -2% | Fixed outline-style utilities and added divide-reverse utilities |
+| **Variant Order Fix (Phase 1 Complete)** | **60%** | **+1%** | **Fixed focus/hover/landscape variant order to match Tailwind v4** |
 
 ## Changes Made
 
