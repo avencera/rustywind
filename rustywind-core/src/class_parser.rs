@@ -265,6 +265,19 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         "row-span",
         "row-start",
         "row-end",
+        "translate-x",
+        "translate-y",
+        "backdrop-blur",
+        "backdrop-brightness",
+        "backdrop-contrast",
+        "backdrop-grayscale",
+        "backdrop-hue-rotate",
+        "backdrop-invert",
+        "backdrop-opacity",
+        "backdrop-saturate",
+        "backdrop-sepia",
+        "will-change",
+        "outline-offset",
     ] {
         if utility.starts_with(prefix) {
             if utility.len() == prefix.len() {

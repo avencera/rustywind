@@ -480,7 +480,7 @@ impl UtilityMap {
             "will-change" => Some(&["will-change"][..]),
 
             // Outline
-            "outline" if value.is_empty() || value.parse::<u32>().is_ok() => {
+            "outline" if value.is_empty() || value == "none" || value.parse::<u32>().is_ok() => {
                 Some(&["outline-width"][..])
             }
             "outline" if is_color_value(value) => Some(&["outline-color"][..]),
@@ -570,6 +570,19 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "row-span",
         "row-start",
         "row-end",
+        "translate-x",
+        "translate-y",
+        "backdrop-blur",
+        "backdrop-brightness",
+        "backdrop-contrast",
+        "backdrop-grayscale",
+        "backdrop-hue-rotate",
+        "backdrop-invert",
+        "backdrop-opacity",
+        "backdrop-saturate",
+        "backdrop-sepia",
+        "will-change",
+        "outline-offset",
     ] {
         if utility.starts_with(prefix) {
             if utility.len() == prefix.len() {
