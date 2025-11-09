@@ -35,7 +35,10 @@ fn test_realistic_component_classes() {
     assert_eq!(variant_count, 1, "Should have 1 variant class");
 
     // Find the variant
-    let variant_idx = sorted.iter().position(|&c| c == "hover:bg-gray-100").unwrap();
+    let variant_idx = sorted
+        .iter()
+        .position(|&c| c == "hover:bg-gray-100")
+        .unwrap();
 
     // ALL base classes should come before the variant (including transition utilities)
     let all_base_classes = vec![
@@ -243,10 +246,10 @@ fn test_multi_property_utilities() {
 
     // These utilities generate multiple CSS properties
     let classes = vec![
-        "px-4", // padding-left + padding-right
-        "py-4", // padding-top + padding-bottom
+        "px-4",    // padding-left + padding-right
+        "py-4",    // padding-top + padding-bottom
         "mx-auto", // margin-left + margin-right
-        "my-4", // margin-top + margin-bottom
+        "my-4",    // margin-top + margin-bottom
     ];
 
     let sorted = sorter.sort_classes(&classes);
@@ -284,13 +287,7 @@ fn test_responsive_breakpoints() {
 fn test_pseudo_class_ordering() {
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "p-4",
-        "focus:p-4",
-        "hover:p-4",
-        "active:p-4",
-        "visited:p-4",
-    ];
+    let classes = vec!["p-4", "focus:p-4", "hover:p-4", "active:p-4", "visited:p-4"];
 
     let sorted = sorter.sort_classes(&classes);
 
@@ -376,12 +373,12 @@ fn test_mixed_spacing_utilities() {
     let sorter = HybridSorter::new();
 
     let classes = vec![
-        "p-4",   // padding
-        "px-4",  // padding-inline
-        "pt-4",  // padding-top
-        "m-4",   // margin
-        "mx-4",  // margin-inline
-        "mt-4",  // margin-top
+        "p-4",  // padding
+        "px-4", // padding-inline
+        "pt-4", // padding-top
+        "m-4",  // margin
+        "mx-4", // margin-inline
+        "mt-4", // margin-top
     ];
 
     let sorted = sorter.sort_classes(&classes);
@@ -390,12 +387,12 @@ fn test_mixed_spacing_utilities() {
     // Sorted by property index from property_order.rs:
     // margin(25) < margin-inline(26) < margin-top(30)
     // padding(252) < padding-top(257) < min(padding-left=316,padding-right=314)=314
-    assert_eq!(sorted[0], "m-4");   // margin: index 25
-    assert_eq!(sorted[1], "mx-4");  // margin-inline: index 26
-    assert_eq!(sorted[2], "mt-4");  // margin-top: index 30
-    assert_eq!(sorted[3], "p-4");   // padding: index 252
-    assert_eq!(sorted[4], "pt-4");  // padding-top: index 257
-    assert_eq!(sorted[5], "px-4");  // min(padding-left=316, padding-right=314) = 314
+    assert_eq!(sorted[0], "m-4"); // margin: index 25
+    assert_eq!(sorted[1], "mx-4"); // margin-inline: index 26
+    assert_eq!(sorted[2], "mt-4"); // margin-top: index 30
+    assert_eq!(sorted[3], "p-4"); // padding: index 252
+    assert_eq!(sorted[4], "pt-4"); // padding-top: index 257
+    assert_eq!(sorted[5], "px-4"); // min(padding-left=316, padding-right=314) = 314
 }
 
 #[test]
@@ -463,8 +460,7 @@ fn test_variants_beyond_64_sort_after_base_classes() {
         assert_eq!(
             sorted[1], variant_class,
             "Variant '{}:flex' (index {}) should come after base class",
-            variant,
-            expected_idx
+            variant, expected_idx
         );
     }
 }
@@ -493,7 +489,10 @@ fn test_transition_utilities_sort_correctly() {
         .unwrap();
 
     // Verify transition utilities are recognized and sort before variants
-    let transition_idx = sorted.iter().position(|&c| c == "transition-colors").unwrap();
+    let transition_idx = sorted
+        .iter()
+        .position(|&c| c == "transition-colors")
+        .unwrap();
     let duration_idx = sorted.iter().position(|&c| c == "duration-200").unwrap();
     let delay_idx = sorted.iter().position(|&c| c == "delay-100").unwrap();
 
@@ -505,7 +504,10 @@ fn test_transition_utilities_sort_correctly() {
         duration_idx < variant_idx,
         "duration-200 should come before variants"
     );
-    assert!(delay_idx < variant_idx, "delay-100 should come before variants");
+    assert!(
+        delay_idx < variant_idx,
+        "delay-100 should come before variants"
+    );
 
     // Verify property order: transition-property (393) < transition-delay (395) < transition-duration (396)
     // So: transition-colors < delay-100 < duration-200
@@ -551,7 +553,10 @@ fn test_dark_mode_realistic_example() {
         .unwrap();
 
     // dark: should come after hover: (dark index 70 > hover index 33)
-    assert!(dark_single_start > 3, "dark: variants should come after hover:");
+    assert!(
+        dark_single_start > 3,
+        "dark: variants should come after hover:"
+    );
 
     // Multiple variants (dark:hover:) at the end
     assert!(sorted.last().unwrap().starts_with("dark:hover:"));

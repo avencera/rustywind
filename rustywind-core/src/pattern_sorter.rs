@@ -455,11 +455,11 @@ mod tests {
         // Test multiple variants beyond the old u64 limit
         let classes = vec![
             "flex",
-            "@3xl:flex",   // index 64
-            "dark:flex",   // index 70
-            "print:flex",  // index 73
+            "@3xl:flex",     // index 64
+            "dark:flex",     // index 70
+            "print:flex",    // index 73
             "portrait:flex", // index 74
-            "hover:flex",  // index 33 (before 64)
+            "hover:flex",    // index 33 (before 64)
         ];
         let sorted = sort_classes(&classes);
 

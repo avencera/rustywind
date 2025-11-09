@@ -229,7 +229,8 @@ mod tests {
 
     #[test]
     fn test_deduplicates_classes() {
-        let input = r#"<p className="py-2 py-2 random-class underline underline underline">text</p>"#;
+        let input =
+            r#"<p className="py-2 py-2 random-class underline underline underline">text</p>"#;
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
 
         // Should have only one py-2 and one underline
@@ -239,8 +240,12 @@ mod tests {
 
     #[test]
     fn test_keeps_duplicates_when_configured() {
-        let app = RustyWind { allow_duplicates: true, ..RUSTYWIND_DEFAULT };
-        let input = r#"<section className="inline py-2 py-2 random-class italic italic italic"></section>"#;
+        let app = RustyWind {
+            allow_duplicates: true,
+            ..RUSTYWIND_DEFAULT
+        };
+        let input =
+            r#"<section className="inline py-2 py-2 random-class italic italic italic"></section>"#;
         let result = app.sort_file_contents(input);
 
         // Should have two py-2 and three italic
@@ -254,7 +259,13 @@ mod tests {
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
 
         // Extract the class content
-        let class_content = result.split("class='").nth(1).unwrap().split('\'').next().unwrap();
+        let class_content = result
+            .split("class='")
+            .nth(1)
+            .unwrap()
+            .split('\'')
+            .next()
+            .unwrap();
         let classes: Vec<&str> = class_content.split_whitespace().collect();
 
         // flex (base) should come before all variants
@@ -262,8 +273,14 @@ mod tests {
         let hover_idx = classes.iter().position(|&c| c == "hover:flex").unwrap();
         let focus_idx = classes.iter().position(|&c| c == "focus:flex").unwrap();
 
-        assert!(flex_idx < hover_idx, "Base 'flex' should come before 'hover:flex'");
-        assert!(flex_idx < focus_idx, "Base 'flex' should come before 'focus:flex'");
+        assert!(
+            flex_idx < hover_idx,
+            "Base 'flex' should come before 'hover:flex'"
+        );
+        assert!(
+            flex_idx < focus_idx,
+            "Base 'flex' should come before 'focus:flex'"
+        );
     }
 
     #[test]
@@ -281,7 +298,13 @@ mod tests {
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
 
         // Should be on one line
-        let class_content = result.split("class=\"").nth(1).unwrap().split('"').next().unwrap();
+        let class_content = result
+            .split("class=\"")
+            .nth(1)
+            .unwrap()
+            .split('"')
+            .next()
+            .unwrap();
         assert!(!class_content.contains('\n'));
     }
 

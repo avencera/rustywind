@@ -3,7 +3,7 @@ use rustywind_core::utility_map::UtilityMap;
 #[test]
 fn check_common_utilities_coverage() {
     let map = UtilityMap::new();
-    
+
     // Common utilities that SHOULD be recognized
     let should_work = vec![
         ("transition-colors", "transition-property"),
@@ -14,7 +14,7 @@ fn check_common_utilities_coverage() {
         ("bg-red-500", "background-color"),
         ("text-blue-600", "color"),
     ];
-    
+
     for (utility, expected) in &should_work {
         assert!(
             map.get_properties(utility).is_some(),
@@ -23,7 +23,7 @@ fn check_common_utilities_coverage() {
             expected
         );
     }
-    
+
     // Common utilities that might NOT be recognized yet
     let possibly_missing = vec![
         ("animate-spin", "animation-name"),
@@ -45,10 +45,10 @@ fn check_common_utilities_coverage() {
         ("brightness-50", "filter"),
         ("backdrop-blur-sm", "backdrop-filter"),
     ];
-    
+
     let mut missing = Vec::new();
     let mut found = Vec::new();
-    
+
     for (utility, expected_prop) in &possibly_missing {
         if map.get_properties(utility).is_none() {
             missing.push(format!("{} ({})", utility, expected_prop));
@@ -56,17 +56,20 @@ fn check_common_utilities_coverage() {
             found.push(*utility);
         }
     }
-    
+
     println!("\n=== Utility Coverage Report ===");
-    println!("Checked {} potentially missing utilities", possibly_missing.len());
-    
+    println!(
+        "Checked {} potentially missing utilities",
+        possibly_missing.len()
+    );
+
     if !found.is_empty() {
         println!("\n✓ Already supported ({}):", found.len());
         for util in &found {
             println!("  - {}", util);
         }
     }
-    
+
     if !missing.is_empty() {
         println!("\n✗ Not yet supported ({}):", missing.len());
         for util in &missing {

@@ -148,6 +148,72 @@ impl UtilityMap {
         exact.insert("content-around", &["align-content"][..]);
         exact.insert("content-evenly", &["align-content"][..]);
 
+        // Cursor
+        exact.insert("cursor-auto", &["cursor"][..]);
+        exact.insert("cursor-default", &["cursor"][..]);
+        exact.insert("cursor-pointer", &["cursor"][..]);
+        exact.insert("cursor-wait", &["cursor"][..]);
+        exact.insert("cursor-text", &["cursor"][..]);
+        exact.insert("cursor-move", &["cursor"][..]);
+        exact.insert("cursor-help", &["cursor"][..]);
+        exact.insert("cursor-not-allowed", &["cursor"][..]);
+        exact.insert("cursor-none", &["cursor"][..]);
+        exact.insert("cursor-context-menu", &["cursor"][..]);
+        exact.insert("cursor-progress", &["cursor"][..]);
+        exact.insert("cursor-cell", &["cursor"][..]);
+        exact.insert("cursor-crosshair", &["cursor"][..]);
+        exact.insert("cursor-vertical-text", &["cursor"][..]);
+        exact.insert("cursor-alias", &["cursor"][..]);
+        exact.insert("cursor-copy", &["cursor"][..]);
+        exact.insert("cursor-no-drop", &["cursor"][..]);
+        exact.insert("cursor-grab", &["cursor"][..]);
+        exact.insert("cursor-grabbing", &["cursor"][..]);
+        exact.insert("cursor-all-scroll", &["cursor"][..]);
+        exact.insert("cursor-col-resize", &["cursor"][..]);
+        exact.insert("cursor-row-resize", &["cursor"][..]);
+        exact.insert("cursor-n-resize", &["cursor"][..]);
+        exact.insert("cursor-e-resize", &["cursor"][..]);
+        exact.insert("cursor-s-resize", &["cursor"][..]);
+        exact.insert("cursor-w-resize", &["cursor"][..]);
+        exact.insert("cursor-ne-resize", &["cursor"][..]);
+        exact.insert("cursor-nw-resize", &["cursor"][..]);
+        exact.insert("cursor-se-resize", &["cursor"][..]);
+        exact.insert("cursor-sw-resize", &["cursor"][..]);
+        exact.insert("cursor-ew-resize", &["cursor"][..]);
+        exact.insert("cursor-ns-resize", &["cursor"][..]);
+        exact.insert("cursor-nesw-resize", &["cursor"][..]);
+        exact.insert("cursor-nwse-resize", &["cursor"][..]);
+        exact.insert("cursor-zoom-in", &["cursor"][..]);
+        exact.insert("cursor-zoom-out", &["cursor"][..]);
+
+        // User Select
+        exact.insert("select-none", &["user-select"][..]);
+        exact.insert("select-text", &["user-select"][..]);
+        exact.insert("select-all", &["user-select"][..]);
+        exact.insert("select-auto", &["user-select"][..]);
+
+        // Appearance
+        exact.insert("appearance-none", &["appearance"][..]);
+        exact.insert("appearance-auto", &["appearance"][..]);
+
+        // Resize
+        exact.insert("resize-none", &["resize"][..]);
+        exact.insert("resize-y", &["resize"][..]);
+        exact.insert("resize-x", &["resize"][..]);
+        exact.insert("resize", &["resize"][..]);
+
+        // Scroll Snap
+        exact.insert("snap-start", &["scroll-snap-align"][..]);
+        exact.insert("snap-end", &["scroll-snap-align"][..]);
+        exact.insert("snap-center", &["scroll-snap-align"][..]);
+        exact.insert("snap-align-none", &["scroll-snap-align"][..]);
+
+        // Word Break
+        exact.insert("break-normal", &["overflow-wrap", "word-break"][..]);
+        exact.insert("break-words", &["overflow-wrap"][..]);
+        exact.insert("break-all", &["word-break"][..]);
+        exact.insert("break-keep", &["word-break"][..]);
+
         Self { exact }
     }
 
@@ -374,6 +440,59 @@ impl UtilityMap {
             "duration" => Some(&["transition-duration"][..]),
             "delay" => Some(&["transition-delay"][..]),
             "ease" => Some(&["transition-timing-function"][..]),
+
+            // Animations
+            "animate" => Some(&["animation"][..]),
+
+            // Transforms
+            "rotate" => Some(&["rotate"][..]),
+            "scale" if !value.is_empty() => Some(&["scale"][..]),
+            "scale-x" => Some(&["scale"][..]),
+            "scale-y" => Some(&["scale"][..]),
+            "translate-x" => Some(&["translate"][..]),
+            "translate-y" => Some(&["translate"][..]),
+            "skew-x" => Some(&["transform"][..]),
+            "skew-y" => Some(&["transform"][..]),
+
+            // Filters
+            "blur" => Some(&["filter"][..]),
+            "brightness" => Some(&["filter"][..]),
+            "contrast" => Some(&["filter"][..]),
+            "grayscale" if value.is_empty() || value.starts_with('[') => Some(&["filter"][..]),
+            "hue-rotate" => Some(&["filter"][..]),
+            "invert" if value.is_empty() || value.starts_with('[') => Some(&["filter"][..]),
+            "saturate" => Some(&["filter"][..]),
+            "sepia" if value.is_empty() || value.starts_with('[') => Some(&["filter"][..]),
+            "drop-shadow" => Some(&["filter"][..]),
+
+            // Backdrop Filters
+            "backdrop-blur" => Some(&["backdrop-filter"][..]),
+            "backdrop-brightness" => Some(&["backdrop-filter"][..]),
+            "backdrop-contrast" => Some(&["backdrop-filter"][..]),
+            "backdrop-grayscale" => Some(&["backdrop-filter"][..]),
+            "backdrop-hue-rotate" => Some(&["backdrop-filter"][..]),
+            "backdrop-invert" => Some(&["backdrop-filter"][..]),
+            "backdrop-opacity" => Some(&["backdrop-filter"][..]),
+            "backdrop-saturate" => Some(&["backdrop-filter"][..]),
+            "backdrop-sepia" => Some(&["backdrop-filter"][..]),
+
+            // Will Change
+            "will-change" => Some(&["will-change"][..]),
+
+            // Outline
+            "outline" if value.is_empty() || value.parse::<u32>().is_ok() => {
+                Some(&["outline-width"][..])
+            }
+            "outline" if is_color_value(value) => Some(&["outline-color"][..]),
+            "outline-offset" => Some(&["outline-offset"][..]),
+
+            // Accent Color
+            "accent" if is_color_value(value) || value == "auto" || value == "current" => {
+                Some(&["accent-color"][..])
+            }
+
+            // Caret Color
+            "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Unknown utility
             _ => None,
