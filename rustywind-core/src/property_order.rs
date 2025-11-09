@@ -24,6 +24,8 @@ use std::collections::HashMap;
 /// assert!(get_property_index("margin").unwrap() < get_property_index("padding").unwrap());
 /// ```
 pub const PROPERTY_ORDER: &[&str] = &[
+    // Deprecated Tailwind v3 properties (sorted first for backwards compatibility)
+    "background-opacity",
     // Container & Layout (1-5)
     "container-type",
     "pointer-events",
@@ -290,7 +292,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "background-position",
     "background-repeat",
     "background-origin",
-    "background-opacity",
     "mask-composite",
     "mask-mode",
     "mask-type",
