@@ -29,25 +29,39 @@ fn test_realistic_component_classes() {
     // Verify complete ordering
     assert_eq!(sorted.len(), 10);
 
-    // Verify known base classes come before variants, unknown classes come last
-    // The pattern: [known base classes] [variants] [unknown classes]
+    // Verify known base classes come before variants
+    // The pattern: [known base classes] [variants]
     let variant_count = sorted.iter().filter(|c| c.contains(':')).count();
     assert_eq!(variant_count, 1, "Should have 1 variant class");
 
     // Find the variant
     let variant_idx = sorted.iter().position(|&c| c == "hover:bg-gray-100").unwrap();
 
-    // All known base classes should come before the variant
-    // (duration-200 and transition-colors may be unknown and sort last)
-    let known_base_classes = vec!["flex", "items-center", "justify-between", "p-4", "bg-white", "rounded-lg", "shadow-md"];
-    for class in known_base_classes {
+    // ALL base classes should come before the variant (including transition utilities)
+    let all_base_classes = vec![
+        "flex",
+        "items-center",
+        "justify-between",
+        "p-4",
+        "bg-white",
+        "rounded-lg",
+        "shadow-md",
+        "transition-colors",
+        "duration-200",
+    ];
+    for class in all_base_classes {
         let idx = sorted.iter().position(|&c| c == class).unwrap();
         assert!(
             idx < variant_idx,
-            "Known base class '{}' at index {} should come before variant at {}",
-            class, idx, variant_idx
+            "Base class '{}' at index {} should come before variant at {}",
+            class,
+            idx,
+            variant_idx
         );
     }
+
+    // Verify last class is the variant
+    assert_eq!(sorted.last().unwrap(), &"hover:bg-gray-100");
 }
 
 #[test]
@@ -453,6 +467,56 @@ fn test_variants_beyond_64_sort_after_base_classes() {
             expected_idx
         );
     }
+}
+
+#[test]
+fn test_transition_utilities_sort_correctly() {
+    // Regression test for transition utilities being treated as unknown
+    // Previously, transition-colors and duration-* were not recognized
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "transition-colors",
+        "duration-200",
+        "delay-100",
+        "p-4",
+        "bg-white",
+        "hover:bg-gray-100",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // All base classes should come before variants
+    let variant_idx = sorted
+        .iter()
+        .position(|&c| c == "hover:bg-gray-100")
+        .unwrap();
+
+    // Verify transition utilities are recognized and sort before variants
+    let transition_idx = sorted.iter().position(|&c| c == "transition-colors").unwrap();
+    let duration_idx = sorted.iter().position(|&c| c == "duration-200").unwrap();
+    let delay_idx = sorted.iter().position(|&c| c == "delay-100").unwrap();
+
+    assert!(
+        transition_idx < variant_idx,
+        "transition-colors should come before variants"
+    );
+    assert!(
+        duration_idx < variant_idx,
+        "duration-200 should come before variants"
+    );
+    assert!(delay_idx < variant_idx, "delay-100 should come before variants");
+
+    // Verify property order: transition-property (393) < transition-delay (395) < transition-duration (396)
+    // So: transition-colors < delay-100 < duration-200
+    assert!(
+        transition_idx < delay_idx,
+        "transition-colors (transition-property: 393) should come before delay-100 (transition-delay: 395)"
+    );
+    assert!(
+        delay_idx < duration_idx,
+        "delay-100 (transition-delay: 395) should come before duration-200 (transition-duration: 396)"
+    );
 }
 
 #[test]

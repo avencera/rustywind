@@ -369,6 +369,12 @@ impl UtilityMap {
             "ring-offset" if value.parse::<u32>().is_ok() => Some(&["--tw-ring-offset-width"][..]),
             "ring-offset" if is_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
 
+            // Transitions
+            "transition" => Some(&["transition-property"][..]),
+            "duration" => Some(&["transition-duration"][..]),
+            "delay" => Some(&["transition-delay"][..]),
+            "ease" => Some(&["transition-timing-function"][..]),
+
             // Unknown utility
             _ => None,
         }
@@ -695,6 +701,40 @@ mod tests {
         assert_eq!(map.get_properties("h-screen"), Some(&["height"][..]));
         assert_eq!(map.get_properties("min-w-0"), Some(&["min-width"][..]));
         assert_eq!(map.get_properties("max-h-96"), Some(&["max-height"][..]));
+    }
+
+    #[test]
+    fn test_transition_utilities() {
+        let map = UtilityMap::new();
+
+        assert_eq!(
+            map.get_properties("transition"),
+            Some(&["transition-property"][..])
+        );
+        assert_eq!(
+            map.get_properties("transition-colors"),
+            Some(&["transition-property"][..])
+        );
+        assert_eq!(
+            map.get_properties("transition-all"),
+            Some(&["transition-property"][..])
+        );
+        assert_eq!(
+            map.get_properties("duration-200"),
+            Some(&["transition-duration"][..])
+        );
+        assert_eq!(
+            map.get_properties("duration-300"),
+            Some(&["transition-duration"][..])
+        );
+        assert_eq!(
+            map.get_properties("delay-100"),
+            Some(&["transition-delay"][..])
+        );
+        assert_eq!(
+            map.get_properties("ease-in"),
+            Some(&["transition-timing-function"][..])
+        );
     }
 
     #[test]
