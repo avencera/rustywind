@@ -42,6 +42,8 @@ pub const VARIANT_ORDER: &[&str] = &[
     "first-of-type",
     "last-of-type",
     "only-of-type",
+    // Empty variant (structural)
+    "empty",
     // State variants
     "visited",
     "target",
@@ -189,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_variant_count() {
-        assert_eq!(VARIANT_ORDER.len(), 80);
+        assert_eq!(VARIANT_ORDER.len(), 81);
     }
 
     #[test]
