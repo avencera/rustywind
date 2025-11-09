@@ -219,7 +219,14 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         return Some((base, value));
     }
 
-    // Try to match multi-part bases first
+    // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
+    let (is_negative, utility_without_neg) = if utility.starts_with('-') {
+        (true, &utility[1..])
+    } else {
+        (false, utility)
+    };
+
+    // Try to match multi-part bases first (with or without negative sign)
     for prefix in &[
         "min-w",
         "min-h",
@@ -267,6 +274,10 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         "row-end",
         "translate-x",
         "translate-y",
+        "scale-x",
+        "scale-y",
+        "skew-x",
+        "skew-y",
         "backdrop-blur",
         "backdrop-brightness",
         "backdrop-contrast",
@@ -279,26 +290,40 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         "will-change",
         "outline-offset",
     ] {
-        if utility.starts_with(prefix) {
-            if utility.len() == prefix.len() {
+        if utility_without_neg.starts_with(prefix) {
+            if utility_without_neg.len() == prefix.len() {
                 // Exact match, no value
-                return Some((prefix, ""));
-            } else if utility.as_bytes().get(prefix.len()) == Some(&b'-') {
+                return Some((utility, ""));
+            } else if utility_without_neg.as_bytes().get(prefix.len()) == Some(&b'-') {
                 // Has a dash after the prefix
-                let value = &utility[prefix.len() + 1..];
-                return Some((prefix, value));
+                let value = &utility_without_neg[prefix.len() + 1..];
+                // Return the full utility (including negative sign) as the base
+                let base = if is_negative {
+                    // prefix.len() is relative to utility_without_neg, add 1 for initial '-'
+                    &utility[..prefix.len() + 1]  // +1 for initial '-'
+                } else {
+                    prefix
+                };
+                return Some((base, value));
             }
         }
     }
 
-    // Simple single-dash split
-    if let Some(dash_pos) = utility.find('-') {
-        let base = &utility[..dash_pos];
-        let value = &utility[dash_pos + 1..];
+    // Simple single-dash split (skip the negative sign if present)
+    if let Some(dash_pos) = utility_without_neg.find('-') {
+        let base_without_neg = &utility_without_neg[..dash_pos];
+        let value = &utility_without_neg[dash_pos + 1..];
+        let base = if is_negative {
+            // Include the negative sign in the base
+            // dash_pos is relative to utility_without_neg, add 1 to offset for the '-' prefix
+            &utility[..1 + dash_pos]  // 1 for initial '-', then dash_pos characters
+        } else {
+            base_without_neg
+        };
         return Some((base, value));
     }
 
-    // No dash found - utility with no value
+    // No dash found - utility with no value (keep negative sign if present)
     Some((utility, ""))
 }
 
@@ -486,5 +511,14 @@ mod tests {
         assert_eq!(parse_utility_value("bg-[#fff]"), Some(("bg", "[#fff]")));
         assert_eq!(parse_utility_value("min-w-0"), Some(("min-w", "0")));
         assert_eq!(parse_utility_value(""), None);
+
+        // Test negative values
+        assert_eq!(parse_utility_value("-translate-x-4"), Some(("-translate-x", "4")));
+        assert_eq!(parse_utility_value("-translate-y-1"), Some(("-translate-y", "1")));
+        assert_eq!(parse_utility_value("-skew-x-6"), Some(("-skew-x", "6")));
+        assert_eq!(parse_utility_value("-skew-y-3"), Some(("-skew-y", "3")));
+        assert_eq!(parse_utility_value("-rotate-90"), Some(("-rotate", "90")));
+        assert_eq!(parse_utility_value("-scale-x-50"), Some(("-scale-x", "50")));
+        assert_eq!(parse_utility_value("-m-4"), Some(("-m", "4")));
     }
 }

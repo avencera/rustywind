@@ -10,7 +10,7 @@ import prettier from 'prettier';
 const execAsync = promisify(exec);
 
 // Configuration
-const NUM_TESTS = 10; // Number of random class combinations to test
+const NUM_TESTS = 100; // Number of random class combinations to test
 const MIN_CLASSES = 5;
 const MAX_CLASSES = 30;
 const VARIANT_PROBABILITY = 0.3; // 30% chance of adding a variant

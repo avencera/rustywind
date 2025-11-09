@@ -597,6 +597,7 @@ impl UtilityMap {
         exact.insert("divide-none", &["border-style"][..]);
 
         // Outline Style
+        exact.insert("outline-none", &["outline-style"][..]);
         exact.insert("outline-solid", &["outline-style"][..]);
         exact.insert("outline-dashed", &["outline-style"][..]);
         exact.insert("outline-dotted", &["outline-style"][..]);
@@ -604,6 +605,111 @@ impl UtilityMap {
 
         // Ring
         exact.insert("ring-inset", &["--tw-ring-inset"][..]);
+
+        // Text Alignment
+        exact.insert("text-left", &["text-align"][..]);
+        exact.insert("text-center", &["text-align"][..]);
+        exact.insert("text-right", &["text-align"][..]);
+        exact.insert("text-justify", &["text-align"][..]);
+        exact.insert("text-start", &["text-align"][..]);
+        exact.insert("text-end", &["text-align"][..]);
+
+        // Background Size
+        exact.insert("bg-auto", &["background-size"][..]);
+        exact.insert("bg-cover", &["background-size"][..]);
+        exact.insert("bg-contain", &["background-size"][..]);
+
+        // Background Position
+        exact.insert("bg-bottom", &["background-position"][..]);
+        exact.insert("bg-center", &["background-position"][..]);
+        exact.insert("bg-left", &["background-position"][..]);
+        exact.insert("bg-left-bottom", &["background-position"][..]);
+        exact.insert("bg-left-top", &["background-position"][..]);
+        exact.insert("bg-right", &["background-position"][..]);
+        exact.insert("bg-right-bottom", &["background-position"][..]);
+        exact.insert("bg-right-top", &["background-position"][..]);
+        exact.insert("bg-top", &["background-position"][..]);
+
+        // Background Repeat
+        exact.insert("bg-repeat", &["background-repeat"][..]);
+        exact.insert("bg-no-repeat", &["background-repeat"][..]);
+        exact.insert("bg-repeat-x", &["background-repeat"][..]);
+        exact.insert("bg-repeat-y", &["background-repeat"][..]);
+        exact.insert("bg-repeat-round", &["background-repeat"][..]);
+        exact.insert("bg-repeat-space", &["background-repeat"][..]);
+
+        // Background Clip
+        exact.insert("bg-clip-border", &["background-clip"][..]);
+        exact.insert("bg-clip-padding", &["background-clip"][..]);
+        exact.insert("bg-clip-content", &["background-clip"][..]);
+        exact.insert("bg-clip-text", &["background-clip"][..]);
+
+        // Background Origin
+        exact.insert("bg-origin-border", &["background-origin"][..]);
+        exact.insert("bg-origin-padding", &["background-origin"][..]);
+        exact.insert("bg-origin-content", &["background-origin"][..]);
+
+        // Gradient Direction
+        exact.insert("bg-gradient-to-t", &["background-image"][..]);
+        exact.insert("bg-gradient-to-tr", &["background-image"][..]);
+        exact.insert("bg-gradient-to-r", &["background-image"][..]);
+        exact.insert("bg-gradient-to-br", &["background-image"][..]);
+        exact.insert("bg-gradient-to-b", &["background-image"][..]);
+        exact.insert("bg-gradient-to-bl", &["background-image"][..]);
+        exact.insert("bg-gradient-to-l", &["background-image"][..]);
+        exact.insert("bg-gradient-to-tl", &["background-image"][..]);
+
+        // Drop Shadow
+        exact.insert("drop-shadow", &["filter"][..]);
+        exact.insert("drop-shadow-sm", &["filter"][..]);
+        exact.insert("drop-shadow-md", &["filter"][..]);
+        exact.insert("drop-shadow-lg", &["filter"][..]);
+        exact.insert("drop-shadow-xl", &["filter"][..]);
+        exact.insert("drop-shadow-2xl", &["filter"][..]);
+        exact.insert("drop-shadow-none", &["filter"][..]);
+
+        // Object Position
+        exact.insert("object-bottom", &["object-position"][..]);
+        exact.insert("object-center", &["object-position"][..]);
+        exact.insert("object-left", &["object-position"][..]);
+        exact.insert("object-left-bottom", &["object-position"][..]);
+        exact.insert("object-left-top", &["object-position"][..]);
+        exact.insert("object-right", &["object-position"][..]);
+        exact.insert("object-right-bottom", &["object-position"][..]);
+        exact.insert("object-right-top", &["object-position"][..]);
+        exact.insert("object-top", &["object-position"][..]);
+
+        // Aspect Ratio
+        exact.insert("aspect-auto", &["aspect-ratio"][..]);
+        exact.insert("aspect-square", &["aspect-ratio"][..]);
+        exact.insert("aspect-video", &["aspect-ratio"][..]);
+
+        // Text Decoration Style
+        exact.insert("decoration-solid", &["text-decoration-style"][..]);
+        exact.insert("decoration-double", &["text-decoration-style"][..]);
+        exact.insert("decoration-dotted", &["text-decoration-style"][..]);
+        exact.insert("decoration-dashed", &["text-decoration-style"][..]);
+        exact.insert("decoration-wavy", &["text-decoration-style"][..]);
+
+        // Text Decoration Thickness
+        exact.insert("decoration-auto", &["text-decoration-thickness"][..]);
+        exact.insert("decoration-from-font", &["text-decoration-thickness"][..]);
+
+        // Transition Property
+        exact.insert("transition-none", &["transition-property"][..]);
+        exact.insert("transition-all", &["transition-property"][..]);
+        exact.insert("transition-colors", &["transition-property"][..]);
+        exact.insert("transition-opacity", &["transition-property"][..]);
+        exact.insert("transition-shadow", &["transition-property"][..]);
+        exact.insert("transition-transform", &["transition-property"][..]);
+
+        // Font Family
+        exact.insert("font-sans", &["font-family"][..]);
+        exact.insert("font-serif", &["font-family"][..]);
+        exact.insert("font-mono", &["font-family"][..]);
+
+        // Scroll Snap Align (already exists but consolidating here)
+        // Snap utilities are already defined above at lines 206-209
 
         Self { exact }
     }
@@ -801,12 +907,6 @@ impl UtilityMap {
             // Text
             "text" if is_color_value(value) => Some(&["color"][..]),
             "text" if is_size_keyword(value) => Some(&["font-size"][..]),
-            "text-left" => Some(&["text-align"][..]),
-            "text-center" => Some(&["text-align"][..]),
-            "text-right" => Some(&["text-align"][..]),
-            "text-justify" => Some(&["text-align"][..]),
-            "text-start" => Some(&["text-align"][..]),
-            "text-end" => Some(&["text-align"][..]),
 
             // Font
             "font" if is_weight_keyword(value) => Some(&["font-weight"][..]),
@@ -816,7 +916,7 @@ impl UtilityMap {
             "opacity" => Some(&["opacity"][..]),
 
             // Shadow
-            "shadow" if is_color_value(value) => Some(&["box-shadow-color"][..]),
+            "shadow" if is_color_value(value) => Some(&["--tw-shadow-color"][..]),
             "shadow" => Some(&["box-shadow"][..]),
 
             // Ring (uses multiple properties)
@@ -838,13 +938,21 @@ impl UtilityMap {
 
             // Transforms
             "rotate" => Some(&["rotate"][..]),
+            "-rotate" => Some(&["rotate"][..]),
             "scale" if !value.is_empty() => Some(&["scale"][..]),
+            "-scale" if !value.is_empty() => Some(&["scale"][..]),
             "scale-x" => Some(&["scale"][..]),
+            "-scale-x" => Some(&["scale"][..]),
             "scale-y" => Some(&["scale"][..]),
+            "-scale-y" => Some(&["scale"][..]),
             "translate-x" => Some(&["translate"][..]),
+            "-translate-x" => Some(&["translate"][..]),
             "translate-y" => Some(&["translate"][..]),
+            "-translate-y" => Some(&["translate"][..]),
             "skew-x" => Some(&["transform"][..]),
+            "-skew-x" => Some(&["transform"][..]),
             "skew-y" => Some(&["transform"][..]),
+            "-skew-y" => Some(&["transform"][..]),
 
             // Filters
             "blur" => Some(&["filter"][..]),
@@ -907,72 +1015,15 @@ impl UtilityMap {
 
             // Background utilities
             "bg-opacity" => Some(&["background-opacity"][..]),
-            "bg" if value.starts_with("gradient-") => Some(&["background-image"][..]),
             "from" if is_color_value(value) => Some(&["--tw-gradient-from"][..]),
             "via" if is_color_value(value) => Some(&["--tw-gradient-via"][..]),
             "to" if is_color_value(value) => Some(&["--tw-gradient-to"][..]),
 
-            // Background size
-            "bg-auto" => Some(&["background-size"][..]),
-            "bg-cover" => Some(&["background-size"][..]),
-            "bg-contain" => Some(&["background-size"][..]),
-
-            // Background position
-            "bg-bottom" => Some(&["background-position"][..]),
-            "bg-center" => Some(&["background-position"][..]),
-            "bg-left" => Some(&["background-position"][..]),
-            "bg-left-bottom" => Some(&["background-position"][..]),
-            "bg-left-top" => Some(&["background-position"][..]),
-            "bg-right" => Some(&["background-position"][..]),
-            "bg-right-bottom" => Some(&["background-position"][..]),
-            "bg-right-top" => Some(&["background-position"][..]),
-            "bg-top" => Some(&["background-position"][..]),
-
-            // Background repeat
-            "bg-repeat" => Some(&["background-repeat"][..]),
-            "bg-no-repeat" => Some(&["background-repeat"][..]),
-            "bg-repeat-x" => Some(&["background-repeat"][..]),
-            "bg-repeat-y" => Some(&["background-repeat"][..]),
-            "bg-repeat-round" => Some(&["background-repeat"][..]),
-            "bg-repeat-space" => Some(&["background-repeat"][..]),
-
-            // Background clip
-            "bg-clip-border" => Some(&["background-clip"][..]),
-            "bg-clip-padding" => Some(&["background-clip"][..]),
-            "bg-clip-content" => Some(&["background-clip"][..]),
-            "bg-clip-text" => Some(&["background-clip"][..]),
-
-            // Background origin
-            "bg-origin-border" => Some(&["background-origin"][..]),
-            "bg-origin-padding" => Some(&["background-origin"][..]),
-            "bg-origin-content" => Some(&["background-origin"][..]),
-
-            // Object Position
-            "object-bottom" => Some(&["object-position"][..]),
-            "object-center" => Some(&["object-position"][..]),
-            "object-left" => Some(&["object-position"][..]),
-            "object-left-bottom" => Some(&["object-position"][..]),
-            "object-left-top" => Some(&["object-position"][..]),
-            "object-right" => Some(&["object-position"][..]),
-            "object-right-bottom" => Some(&["object-position"][..]),
-            "object-right-top" => Some(&["object-position"][..]),
-            "object-top" => Some(&["object-position"][..]),
-
-            // Aspect Ratio
-            "aspect-auto" => Some(&["aspect-ratio"][..]),
-            "aspect-square" => Some(&["aspect-ratio"][..]),
-            "aspect-video" => Some(&["aspect-ratio"][..]),
+            // Aspect Ratio (arbitrary values)
             "aspect" => Some(&["aspect-ratio"][..]),
 
             // Text Decoration
             "decoration" if is_color_value(value) => Some(&["text-decoration-color"][..]),
-            "decoration-solid" => Some(&["text-decoration-style"][..]),
-            "decoration-double" => Some(&["text-decoration-style"][..]),
-            "decoration-dotted" => Some(&["text-decoration-style"][..]),
-            "decoration-dashed" => Some(&["text-decoration-style"][..]),
-            "decoration-wavy" => Some(&["text-decoration-style"][..]),
-            "decoration-auto" => Some(&["text-decoration-thickness"][..]),
-            "decoration-from-font" => Some(&["text-decoration-thickness"][..]),
             "decoration" => Some(&["text-decoration-thickness"][..]),
 
             // Underline Offset
@@ -980,19 +1031,6 @@ impl UtilityMap {
 
             // Text Indent
             "indent" => Some(&["text-indent"][..]),
-
-            // Transition
-            "transition-none" => Some(&["transition-property"][..]),
-            "transition-all" => Some(&["transition-property"][..]),
-            "transition-colors" => Some(&["transition-property"][..]),
-            "transition-opacity" => Some(&["transition-property"][..]),
-            "transition-shadow" => Some(&["transition-property"][..]),
-            "transition-transform" => Some(&["transition-property"][..]),
-
-            // Font Family
-            "font-sans" => Some(&["font-family"][..]),
-            "font-serif" => Some(&["font-family"][..]),
-            "font-mono" => Some(&["font-family"][..]),
 
             // Unknown utility
             _ => None,
@@ -1022,6 +1060,13 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         let value = &utility[bracket_start..];
         return Some((base, value));
     }
+
+    // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
+    let (is_negative, utility_without_neg) = if utility.starts_with('-') {
+        (true, &utility[1..])
+    } else {
+        (false, utility)
+    };
 
     // Try to match multi-part bases first
     // These need to be checked before simple dash splitting
@@ -1072,6 +1117,8 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "row-end",
         "translate-x",
         "translate-y",
+        "skew-x",
+        "skew-y",
         "backdrop-blur",
         "backdrop-brightness",
         "backdrop-contrast",
@@ -1089,54 +1136,49 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "divide-y",
         "divide-opacity",
         "underline-offset",
-        "bg-gradient",
-        "bg-clip",
-        "bg-origin",
-        "bg-repeat",
-        "bg-left",
-        "bg-right",
-        "bg-right-bottom",
-        "bg-right-top",
-        "bg-left-bottom",
-        "bg-left-top",
-        "object-left",
-        "object-right",
-        "object-left-bottom",
-        "object-left-top",
-        "object-right-bottom",
-        "object-right-top",
-        "col-span",
-        "col-start",
-        "col-end",
-        "row-span",
-        "row-start",
-        "row-end",
-        "grid-flow",
+        "hue-rotate",
+        "scale-x",
+        "scale-y",
     ] {
-        if utility.starts_with(prefix) {
-            if utility.len() == prefix.len() {
+        if utility_without_neg.starts_with(prefix) {
+            if utility_without_neg.len() == prefix.len() {
                 // Exact match, no value
-                return Some((prefix, ""));
-            } else if utility.as_bytes().get(prefix.len()) == Some(&b'-') {
+                return Some((utility, ""));
+            } else if utility_without_neg.as_bytes().get(prefix.len()) == Some(&b'-') {
                 // Has a dash after the prefix
-                let value = &utility[prefix.len() + 1..];
-                return Some((prefix, value));
+                let value = &utility_without_neg[prefix.len() + 1..];
+                let base = if is_negative {
+                    &utility[..prefix.len() + 1]  // +1 for initial '-'
+                } else {
+                    prefix
+                };
+                return Some((base, value));
             } else if prefix.ends_with('-') {
                 // Prefix ends with dash (shouldn't happen with our list, but safe)
-                let value = &utility[prefix.len()..];
-                return Some((prefix, value));
+                let value = &utility_without_neg[prefix.len()..];
+                let base = if is_negative {
+                    &utility[..prefix.len() + 1]  // +1 for initial '-'
+                } else {
+                    prefix
+                };
+                return Some((base, value));
             }
         }
     }
 
-    // Simple single-dash split
-    if let Some(dash_pos) = utility.find('-') {
-        let base = &utility[..dash_pos];
-        let value = &utility[dash_pos + 1..];
+    // Simple single-dash split (skip the negative sign if present)
+    if let Some(dash_pos) = utility_without_neg.find('-') {
+        let base_without_neg = &utility_without_neg[..dash_pos];
+        let value = &utility_without_neg[dash_pos + 1..];
+        let base = if is_negative {
+            &utility[..1 + dash_pos]  // 1 for initial '-', then dash_pos characters
+        } else {
+            base_without_neg
+        };
         return Some((base, value));
     }
 
-    // No dash found - utility with no value
+    // No dash found - utility with no value (keep negative sign if present)
     Some((utility, ""))
 }
 
