@@ -957,27 +957,27 @@ impl UtilityMap {
             "skew-y" => Some(&["--tw-skew-y"][..]),
             "-skew-y" => Some(&["--tw-skew-y"][..]),
 
-            // Filters
-            "blur" => Some(&["filter"][..]),
-            "brightness" => Some(&["filter"][..]),
-            "contrast" => Some(&["filter"][..]),
-            "grayscale" if value.is_empty() || value.starts_with('[') => Some(&["filter"][..]),
-            "hue-rotate" => Some(&["filter"][..]),
-            "invert" if value.is_empty() || value.starts_with('[') => Some(&["filter"][..]),
-            "saturate" => Some(&["filter"][..]),
-            "sepia" if value.is_empty() || value.starts_with('[') => Some(&["filter"][..]),
-            "drop-shadow" => Some(&["filter"][..]),
+            // Filters - map to specific custom properties for correct sorting
+            "blur" => Some(&["--tw-blur"][..]),
+            "brightness" => Some(&["--tw-brightness"][..]),
+            "contrast" => Some(&["--tw-contrast"][..]),
+            "grayscale" if value.is_empty() || value.starts_with('[') => Some(&["--tw-grayscale"][..]),
+            "hue-rotate" => Some(&["--tw-hue-rotate"][..]),
+            "invert" if value.is_empty() || value.starts_with('[') => Some(&["--tw-invert"][..]),
+            "saturate" => Some(&["--tw-saturate"][..]),
+            "sepia" if value.is_empty() || value.starts_with('[') => Some(&["--tw-sepia"][..]),
+            "drop-shadow" => Some(&["--tw-drop-shadow"][..]),
 
-            // Backdrop Filters
-            "backdrop-blur" => Some(&["backdrop-filter"][..]),
-            "backdrop-brightness" => Some(&["backdrop-filter"][..]),
-            "backdrop-contrast" => Some(&["backdrop-filter"][..]),
-            "backdrop-grayscale" => Some(&["backdrop-filter"][..]),
-            "backdrop-hue-rotate" => Some(&["backdrop-filter"][..]),
-            "backdrop-invert" => Some(&["backdrop-filter"][..]),
-            "backdrop-opacity" => Some(&["backdrop-filter"][..]),
-            "backdrop-saturate" => Some(&["backdrop-filter"][..]),
-            "backdrop-sepia" => Some(&["backdrop-filter"][..]),
+            // Backdrop Filters - map to specific custom properties for correct sorting
+            "backdrop-blur" => Some(&["--tw-backdrop-blur"][..]),
+            "backdrop-brightness" => Some(&["--tw-backdrop-brightness"][..]),
+            "backdrop-contrast" => Some(&["--tw-backdrop-contrast"][..]),
+            "backdrop-grayscale" => Some(&["--tw-backdrop-grayscale"][..]),
+            "backdrop-hue-rotate" => Some(&["--tw-backdrop-hue-rotate"][..]),
+            "backdrop-invert" => Some(&["--tw-backdrop-invert"][..]),
+            "backdrop-opacity" => Some(&["--tw-backdrop-opacity"][..]),
+            "backdrop-saturate" => Some(&["--tw-backdrop-saturate"][..]),
+            "backdrop-sepia" => Some(&["--tw-backdrop-sepia"][..]),
 
             // Will Change
             "will-change" => Some(&["will-change"][..]),
