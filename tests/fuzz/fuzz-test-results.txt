@@ -1,0 +1,50 @@
+
+> rustywind-fuzz-test@1.0.0 test
+> node compare.js
+
+
+🧪 Starting fuzz test with 100 random class combinations...
+📋 Class pool: 932 classes (legacy classes filtered)
+
+.......... 10/100
+....F..... 20/100
+.......... 30/100
+.......... 40/100
+...FF..... 50/100
+.......... 60/100
+.......... 70/100
+.......... 80/100
+.......... 90/100
+.......F.. 100/100
+
+
+================================================================================
+
+📊 Results: 96 passed, 4 failed (96.0% pass rate)
+
+❌ Failures:
+
+Test #15:
+  Mismatch at position 7: Prettier="ring-1", RustyWind="shadow-blue-500"
+  Original:  [grid-flow-col-dense, last-of-type:m-4, divide-dotted, hover:caret-gray-500, xl:bg-bottom, whitespace-pre-line, place-items-end, autofill:max-h-fit, outline-0, shadow-blue-500, last:checked:bg-contain, ring-1, p-1, focus-within:scale-y-100, checked:cursor-zoom-out, overscroll-contain, box-decoration-slice, read-only:snap-align-none, brightness-50]
+  Prettier:  [grid-flow-col-dense, place-items-end, divide-dotted, overscroll-contain, box-decoration-slice, p-1, whitespace-pre-line, ring-1, shadow-blue-500, outline-0, brightness-50, last-of-type:m-4, checked:cursor-zoom-out, last:checked:bg-contain, autofill:max-h-fit, read-only:snap-align-none, focus-within:scale-y-100, hover:caret-gray-500, xl:bg-bottom]
+  RustyWind: [grid-flow-col-dense, place-items-end, divide-dotted, overscroll-contain, box-decoration-slice, p-1, whitespace-pre-line, shadow-blue-500, ring-1, outline-0, brightness-50, last-of-type:m-4, checked:cursor-zoom-out, last:checked:bg-contain, autofill:max-h-fit, read-only:snap-align-none, focus-within:scale-y-100, hover:caret-gray-500, xl:bg-bottom]
+
+Test #44:
+  Mismatch at position 3: Prettier="place-self-start", RustyWind="divide-x-reverse"
+  Original:  [place-self-start, break-before-avoid-page, before:auto-cols-fr, first:ml-2, my-2, focus-visible:h-fit, after:blur-3xl, shadow-gray-500, break-before-column, portrait:p-2, visited:text-start, backdrop-invert-0, before:pointer-events-auto, divide-x-reverse, bg-right-bottom, focus:divide-y, empty:text-right]
+  Prettier:  [my-2, break-before-avoid-page, break-before-column, place-self-start, bg-right-bottom, shadow-gray-500, backdrop-invert-0, divide-x-reverse, before:pointer-events-auto, before:auto-cols-fr, after:blur-3xl, first:ml-2, visited:text-start, empty:text-right, focus:divide-y, focus-visible:h-fit, portrait:p-2]
+  RustyWind: [my-2, break-before-avoid-page, break-before-column, divide-x-reverse, place-self-start, bg-right-bottom, shadow-gray-500, backdrop-invert-0, before:pointer-events-auto, before:auto-cols-fr, after:blur-3xl, first:ml-2, visited:text-start, empty:text-right, focus:divide-y, focus-visible:h-fit, portrait:p-2]
+
+Test #45:
+  Mismatch at position 9: Prettier="rounded-t", RustyWind="rounded-tl-none"
+  Original:  [lg:shadow-lg, hover:rounded-none, target:object-right, target:dark:cursor-n-resize, object-top, active:bg-blend-normal, -rotate-1, translate-y-2, outline-1, rotate-6, xl:place-content-start, rounded-tl-none, appearance-none, whitespace-nowrap, rotate-6, text-sm, only-of-type:align-text-bottom, max-w-screen-sm, dark:backdrop-sepia-0, grid-rows-6, placeholder-shown:border-t-0, shadow-md, last:checked:col-end-2, rounded-t, flex-col-reverse, grid-rows-2, border-y-2, touch-pan-y]
+  Prettier:  [max-w-screen-sm, translate-y-2, -rotate-1, rotate-6, touch-pan-y, appearance-none, grid-rows-2, grid-rows-6, flex-col-reverse, rounded-t, rounded-tl-none, border-y-2, object-top, text-sm, whitespace-nowrap, shadow-md, outline-1, only-of-type:align-text-bottom, target:object-right, last:checked:col-end-2, placeholder-shown:border-t-0, hover:rounded-none, active:bg-blend-normal, lg:shadow-lg, xl:place-content-start, dark:backdrop-sepia-0, target:dark:cursor-n-resize]
+  RustyWind: [max-w-screen-sm, translate-y-2, -rotate-1, rotate-6, touch-pan-y, appearance-none, grid-rows-2, grid-rows-6, flex-col-reverse, rounded-tl-none, rounded-t, border-y-2, object-top, text-sm, whitespace-nowrap, shadow-md, outline-1, only-of-type:align-text-bottom, target:object-right, last:checked:col-end-2, placeholder-shown:border-t-0, hover:rounded-none, active:bg-blend-normal, lg:shadow-lg, xl:place-content-start, dark:backdrop-sepia-0, target:dark:cursor-n-resize]
+
+Test #98:
+  Mismatch at position 7: Prettier="overscroll-y-auto", RustyWind="divide-x-reverse"
+  Original:  [visited:divide-y, h-0, auto-cols-fr, rotate-3, whitespace-nowrap, flow-root, table-cell, cursor-ew-resize, divide-x-reverse, max-w-screen-xl, bg-gradient-to-tl, overscroll-y-auto, saturate-50, only:float-right]
+  Prettier:  [flow-root, table-cell, h-0, max-w-screen-xl, rotate-3, cursor-ew-resize, auto-cols-fr, overscroll-y-auto, bg-gradient-to-tl, whitespace-nowrap, saturate-50, divide-x-reverse, only:float-right, visited:divide-y]
+  RustyWind: [flow-root, table-cell, h-0, max-w-screen-xl, rotate-3, cursor-ew-resize, auto-cols-fr, divide-x-reverse, overscroll-y-auto, bg-gradient-to-tl, whitespace-nowrap, saturate-50, only:float-right, visited:divide-y]
+

@@ -165,17 +165,18 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "row-gap",
     "--tw-space-x-reverse",
     "--tw-space-y-reverse",
-    // Space & Divide (122-128)
+    // Space & Divide (122-129)
     "divide-x-width",
+    "--tw-divide-x-reverse",
     "divide-y-width",
     "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
-    // Alignment (129-131)
+    // Alignment (130-132)
     "place-self",
     "align-self",
     "justify-self",
-    // Overflow (132-138)
+    // Overflow (133-139)
     "overflow",
     "overflow-x",
     "overflow-y",
@@ -183,7 +184,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "overscroll-behavior-x",
     "overscroll-behavior-y",
     "scroll-behavior",
-    // Border Radius (139-153)
+    // Border Radius (140-154)
     "border-radius",
     "border-start-radius",
     "border-end-radius",
@@ -199,7 +200,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-top-right-radius",
     "border-bottom-right-radius",
     "border-bottom-left-radius",
-    // Border Width (154-162)
+    // Border Width (155-163)
     "border-width",
     "border-inline-width",
     "border-block-width",
@@ -209,7 +210,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-width",
     "border-bottom-width",
     "border-left-width",
-    // Border Style (163-171)
+    // Border Style (164-172)
     "border-style",
     "border-inline-style",
     "border-block-style",
@@ -219,7 +220,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-style",
     "border-bottom-style",
     "border-left-style",
-    // Border Color (172-180)
+    // Border Color (173-181)
     "border-color",
     "border-inline-color",
     "border-block-color",
@@ -229,7 +230,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-color",
     "border-bottom-color",
     "border-left-color",
-    // Background (181-191)
+    // Background (182-192)
     "background-color",
     "background-image",
     "--tw-gradient-position",
@@ -241,7 +242,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-gradient-via-position",
     "--tw-gradient-to",
     "--tw-gradient-to-position",
-    // Mask Image & Gradients (192-232)
+    // Mask Image & Gradients (193-233)
     "mask-image",
     "--tw-mask-top",
     "--tw-mask-top-from-color",
@@ -283,7 +284,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-mask-conic-from-position",
     "--tw-mask-conic-to-color",
     "--tw-mask-conic-to-position",
-    // Background Properties (233-247)
+    // Background Properties (234-248)
     "box-decoration-break",
     "background-size",
     "background-attachment",
@@ -299,14 +300,14 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "mask-position",
     "mask-repeat",
     "mask-origin",
-    // SVG (248-250)
+    // SVG (249-251)
     "fill",
     "stroke",
     "stroke-width",
-    // Object (251-252)
+    // Object (252-253)
     "object-fit",
     "object-position",
-    // Spacing - Padding (253-261)
+    // Spacing - Padding (254-262)
     "padding",
     "padding-inline",
     "padding-block",
@@ -316,11 +317,11 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "padding-right",
     "padding-bottom",
     "padding-left",
-    // Typography - Alignment (262-264)
+    // Typography - Alignment (263-265)
     "text-align",
     "text-indent",
     "vertical-align",
-    // Typography - Font (265-280)
+    // Typography - Font (266-281)
     "font-family",
     "font-size",
     "line-height",
@@ -337,23 +338,23 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "font-style",
     "font-stretch",
     "font-variant-numeric",
-    // Typography - Decoration (281-285)
+    // Typography - Decoration (282-286)
     "text-decoration-line",
     "text-decoration-color",
     "text-decoration-style",
     "text-decoration-thickness",
     "text-underline-offset",
-    // Typography - Misc (286-290)
+    // Typography - Misc (287-291)
     "-webkit-font-smoothing",
     "placeholder-color",
     "caret-color",
     "accent-color",
     "color-scheme",
-    // Visual Effects - Opacity & Blend (291-293)
+    // Visual Effects - Opacity & Blend (292-294)
     "opacity",
     "background-blend-mode",
     "mix-blend-mode",
-    // Shadows (294-304)
+    // Shadows (295-305)
     "box-shadow",
     "--tw-shadow",
     "--tw-shadow-color",
@@ -365,12 +366,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
-    // Outline (305-309)
+    // Outline (306-309)
     "outline",
     "outline-width",
     "outline-offset",
     "outline-color",
-    // Filters (309-328)
+    // Filters (310-329)
     "--tw-blur",
     "--tw-brightness",
     "--tw-contrast",
@@ -391,16 +392,18 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-backdrop-saturate",
     "--tw-backdrop-sepia",
     "backdrop-filter",
-    // Transitions & Animations (334-338)
+    // Additional properties for proper sorting
+    "outline-style",
+    // Transitions & Animations (331-335)
     "transition-property",
     "transition-behavior",
     "transition-delay",
     "transition-duration",
     "transition-timing-function",
-    // User Interaction (339)
-    "user-select",
-    // Misc (340-343)
+    // Misc (341-346)
     "will-change",
+    "user-select",
+    "--tw-ring-inset",
     "contain",
     "content",
     "forced-color-adjust",
@@ -431,7 +434,7 @@ static PROPERTY_INDEX_MAP: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
 /// use rustywind_core::property_order::get_property_index;
 ///
 /// assert_eq!(get_property_index("margin"), Some(26));
-/// assert_eq!(get_property_index("padding"), Some(253));
+/// assert_eq!(get_property_index("padding"), Some(254));
 /// assert_eq!(get_property_index("unknown-property"), None);
 /// ```
 #[inline]
@@ -445,8 +448,8 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 339 (added user-select back for select-* utilities)
-        assert_eq!(PROPERTY_ORDER.len(), 339);
+        // Total: 342 (added outline-style, user-select, --tw-ring-inset, --tw-divide-x-reverse for proper sorting)
+        assert_eq!(PROPERTY_ORDER.len(), 342);
     }
 
     #[test]
@@ -455,14 +458,14 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (339 total, so last is at index 338)
-        assert_eq!(get_property_index("forced-color-adjust"), Some(338));
+        // Test last property (342 total, so last is at index 341)
+        assert_eq!(get_property_index("forced-color-adjust"), Some(341));
 
-        // Test common properties (indices shifted by 1 due to background-opacity at 0)
+        // Test common properties (indices shifted due to extra properties)
         assert_eq!(get_property_index("margin"), Some(26));
-        assert_eq!(get_property_index("padding"), Some(253));
+        assert_eq!(get_property_index("padding"), Some(254));
         assert_eq!(get_property_index("display"), Some(36));
-        assert_eq!(get_property_index("background-color"), Some(181));
+        assert_eq!(get_property_index("background-color"), Some(182));
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);

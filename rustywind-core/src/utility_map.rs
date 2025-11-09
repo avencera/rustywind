@@ -40,8 +40,8 @@ impl UtilityMap {
     pub fn new() -> Self {
         let mut exact = HashMap::new();
 
-        // Container
-        exact.insert("container", &["container-type"][..]);
+        // Container (maps to --tw-container-component for proper sorting after grid utilities)
+        exact.insert("container", &["--tw-container-component"][..]);
 
         // Display utilities
         exact.insert("block", &["display"][..]);
@@ -597,18 +597,22 @@ impl UtilityMap {
         exact.insert("divide-none", &["divide-style"][..]);
 
         // Divide Reverse
-        exact.insert("divide-x-reverse", &["divide-x-width"][..]);
+        exact.insert("divide-x-reverse", &["--tw-divide-x-reverse"][..]);
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
-        // Outline Style (maps to outline since outline-style is not in property order)
-        exact.insert("outline-none", &["outline"][..]);
-        exact.insert("outline-solid", &["outline"][..]);
-        exact.insert("outline-dashed", &["outline"][..]);
-        exact.insert("outline-dotted", &["outline"][..]);
-        exact.insert("outline-double", &["outline"][..]);
+        // Space Reverse (static utilities, not covered by space-x/space-y patterns)
+        exact.insert("space-x-reverse", &["row-gap"][..]);
+        exact.insert("space-y-reverse", &["column-gap"][..]);
 
-        // Ring
-        exact.insert("ring-inset", &["--tw-inset-ring-shadow"][..]);
+        // Outline Style (maps to outline-style property)
+        exact.insert("outline-none", &["outline-style"][..]);
+        exact.insert("outline-solid", &["outline-style"][..]);
+        exact.insert("outline-dashed", &["outline-style"][..]);
+        exact.insert("outline-dotted", &["outline-style"][..]);
+        exact.insert("outline-double", &["outline-style"][..]);
+
+        // Ring (ring-inset sets --tw-ring-inset property)
+        exact.insert("ring-inset", &["--tw-ring-inset"][..]);
 
         // Text Alignment
         exact.insert("text-left", &["text-align"][..]);
@@ -708,7 +712,15 @@ impl UtilityMap {
         exact.insert("decoration-from-font", &["text-decoration-thickness"][..]);
 
         // Transition Property
-        exact.insert("transition-none", &["transition-property"][..]);
+        // transition-none maps to all transition properties so it sorts last
+        // (utilities with more properties sort after those with fewer properties)
+        exact.insert("transition-none", &[
+            "transition-property",
+            "transition-behavior",
+            "transition-delay",
+            "transition-duration",
+            "transition-timing-function",
+        ][..]);
         exact.insert("transition-all", &["transition-property"][..]);
         exact.insert("transition-colors", &["transition-property"][..]);
         exact.insert("transition-opacity", &["transition-property"][..]);
