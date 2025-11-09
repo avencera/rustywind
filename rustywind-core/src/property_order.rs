@@ -290,6 +290,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "background-position",
     "background-repeat",
     "background-origin",
+    "background-opacity",
     "mask-composite",
     "mask-mode",
     "mask-type",

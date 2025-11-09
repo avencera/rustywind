@@ -939,12 +939,12 @@ impl UtilityMap {
             // Transforms
             "rotate" => Some(&["rotate"][..]),
             "-rotate" => Some(&["rotate"][..]),
-            "scale" if !value.is_empty() => Some(&["transform"][..]),
-            "-scale" if !value.is_empty() => Some(&["transform"][..]),
-            "scale-x" => Some(&["transform"][..]),
-            "-scale-x" => Some(&["transform"][..]),
-            "scale-y" => Some(&["transform"][..]),
-            "-scale-y" => Some(&["transform"][..]),
+            "scale" if !value.is_empty() => Some(&["scale"][..]),
+            "-scale" if !value.is_empty() => Some(&["scale"][..]),
+            "scale-x" => Some(&["--tw-scale-x"][..]),
+            "-scale-x" => Some(&["--tw-scale-x"][..]),
+            "scale-y" => Some(&["--tw-scale-y"][..]),
+            "-scale-y" => Some(&["--tw-scale-y"][..]),
             "translate-x" => Some(&["--tw-translate-x"][..]),
             "-translate-x" => Some(&["--tw-translate-x"][..]),
             "translate-y" => Some(&["--tw-translate-y"][..]),
@@ -1612,9 +1612,9 @@ mod tests {
         let map = UtilityMap::new();
 
         // Test transform utility mappings
-        assert_eq!(map.get_properties("scale-100"), Some(&["transform"][..]));
-        assert_eq!(map.get_properties("scale-x-100"), Some(&["transform"][..]));
-        assert_eq!(map.get_properties("scale-y-50"), Some(&["transform"][..]));
+        assert_eq!(map.get_properties("scale-100"), Some(&["scale"][..]));
+        assert_eq!(map.get_properties("scale-x-100"), Some(&["--tw-scale-x"][..]));
+        assert_eq!(map.get_properties("scale-y-50"), Some(&["--tw-scale-y"][..]));
         assert_eq!(map.get_properties("translate-x-0"), Some(&["--tw-translate-x"][..]));
         assert_eq!(map.get_properties("translate-y-2"), Some(&["--tw-translate-y"][..]));
         assert_eq!(map.get_properties("rotate-0"), Some(&["rotate"][..]));
