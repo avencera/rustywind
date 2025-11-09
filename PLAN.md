@@ -1,127 +1,154 @@
-# Implementation Plan
+# RustyWind Fuzz Test Improvement Plan
 
-## Recent User Requests (Priority Order)
+**Current Status:** 69% pass rate (up from 54%)
+**Goal:** 75-85% pass rate
+**Branch:** `claude/figure-out-where-to-011CUxiCX4zzbD2tAvsGm2Vw`
 
-### 1. ✅ Add Support for All Missing Utilities
-**Status**: Complete (100% coverage)
+## Execution Order
 
-- [x] Add comprehensive benchmarks with Criterion
-- [x] Add high-priority utilities:
-  - [x] cursor-* (cursor-pointer, cursor-not-allowed, etc.)
-  - [x] appearance-* (appearance-none, appearance-auto)
-  - [x] select-* (select-none, select-text, select-all, select-auto)
-  - [x] outline-* (outline-none, outline-2, outline-offset)
-  - [x] resize-* (resize-none, resize-y, resize-x, resize)
-- [x] Add medium-priority utilities:
-  - [x] animate-* (animate-spin, animate-pulse, etc.)
-  - [x] break-* (break-words, break-all, break-normal, break-keep)
-  - [x] snap-* (snap-start, snap-center, snap-end, snap-align-none)
-- [x] Add transform utilities:
-  - [x] rotate-* (rotate-45, etc.)
-  - [x] scale-* (scale-100, scale-x, scale-y)
-  - [x] translate-* (translate-x-4, translate-y-4)
-  - [x] skew-* (skew-x-12, skew-y-12)
-- [x] Add filter utilities:
-  - [x] blur-* (blur-sm, blur-md, etc.)
-  - [x] brightness-* (brightness-50, etc.)
-  - [x] contrast-* (contrast-100, etc.)
-  - [x] grayscale, saturate, sepia, invert, hue-rotate, drop-shadow
-- [x] Add backdrop-filter utilities:
-  - [x] backdrop-blur-*, backdrop-brightness-*, etc.
-- [x] Add misc utilities:
-  - [x] will-change-* (will-change-auto, will-change-transform)
-  - [x] accent-* (accent-blue-500, accent-auto, accent-current)
-  - [x] caret-* (caret-blue-500, caret-current)
-- [x] Fix multi-part parsing for:
-  - [x] translate-x-*, translate-y-*
-  - [x] backdrop-blur-*, backdrop-brightness-*, etc.
-  - [x] will-change-*
-  - [x] outline-*
-- [x] Run comprehensive tests
-- [x] Verify 100% coverage (18/18 utilities recognized)
+### Phase 6: Update PROGRESS.md and Create Summary ✅ (Start Here)
 
-### 2. 🔄 Fuzz Testing Against Prettier
-**Status**: Not Started
+**Goal:** Document all work completed so far and create comprehensive summary
 
-**Goal**: Create a fuzz test that generates random valid Tailwind classes and compares RustyWind's output with Prettier's output.
+**Tasks:**
+- [ ] Update PROGRESS.md with test coverage milestone
+- [ ] Document the 4 new integration tests added
+- [ ] Create summary section of all fixes from 54% → 69%
+- [ ] List all commits with their impact
+- [ ] Document current test coverage (164 tests passing)
 
-**Implementation Plan**:
-1. **Generate Random Tailwind Classes**:
-   - Option A: Use `tailwindcss` npm package to get all valid classes
-   - Option B: Use Tailwind's class list or autocomplete data
-   - Option C: Create our own class generator based on Tailwind's patterns
-
-2. **Test Infrastructure**:
-   - Create a Node.js test harness that:
-     - Generates HTML with random Tailwind classes
-     - Runs Prettier with `prettier-plugin-tailwindcss`
-     - Runs RustyWind via CLI or bindings
-     - Compares the class order from both tools
-
-3. **Integration**:
-   - Add as part of test suite (maybe cargo test with node dependency?)
-   - Or create separate script in `tests/fuzz/` directory
-   - Document how to run it
-
-**Questions to Address**:
-- How to get comprehensive list of valid Tailwind classes?
-- How to handle arbitrary values (e.g., `bg-[#123456]`)?
-- Should we test against Tailwind v3, v4, or both?
-- How many random combinations to test?
-
-### 3. ✅ Verify Basic Utilities (bg, margin, padding)
-**Status**: Complete
-
-**Question**: Do we have bg, margin, padding utilities? Are they called "utility" too?
-
-**Answer**: YES! All supported:
-- **Background** (`bg-*`): `bg-red-500`, `bg-white`, `bg-[#fff]`
-- **Margin** (`m-*`): `m-4`, `mx-auto`, `my-8`, `mt-2`, `mr-4`, `mb-6`, `ml-1`
-- **Padding** (`p-*`): `p-4`, `px-6`, `py-8`, `pt-2`, `pr-4`, `pb-6`, `pl-1`
-- **Text/Color**: `text-gray-900`, `text-white`, `text-sm`
-- **Layout**: `flex`, `grid`, `block`, `hidden`
-- **Sizing**: `w-full`, `h-screen`, `min-w-0`, `max-h-96`
-- **Border**: `border`, `border-2`, `border-gray-200`, `rounded-lg`
-
-Yes, they're all called "utilities" in Tailwind CSS terminology.
-
-### 4. ✅ Comprehensive Benchmarks
-**Status**: Complete
-
-Created `comprehensive_benchmarks.rs` with Criterion benchmarks comparing:
-- Pattern sorter (no cache)
-- Hybrid sorter (with LRU cache)
-- Custom sorter (old HashMap approach)
-- Cold vs warm cache performance
-- Realistic component performance
-
-Run with: `cargo bench`
+**Expected Outcome:** Clear documentation of progress for future reference
 
 ---
 
-## Next Steps
+### Phase 5: Utility Mapping Deep Audit
 
-1. **Immediate** (Today):
-   - [ ] Fix multi-part parsing issue for remaining 4 utilities
-   - [ ] Run all tests and verify coverage
-   - [ ] Commit and push changes
+**Goal:** Systematically verify all utilities map to correct CSS properties
 
-2. **Short-term** (This Week):
-   - [ ] Design fuzz testing approach
-   - [ ] Research Tailwind class generation methods
-   - [ ] Create initial fuzz test prototype
+**Tasks:**
+- [ ] Compare `rustywind-core/src/utility_map.rs` with Tailwind v4 source
+- [ ] Create checklist of all utility categories (layout, flexbox, grid, spacing, sizing, typography, backgrounds, borders, effects, filters, tables, transitions, transforms)
+- [ ] For each category, verify mappings match Tailwind v4
+- [ ] Look for utilities that map to generic properties when they should map to specific CSS custom properties
+- [ ] Document any discrepancies found
+- [ ] Fix incorrect mappings
 
-3. **Medium-term** (Next Week):
-   - [ ] Implement complete fuzz test suite
-   - [ ] Run extensive comparisons with Prettier
-   - [ ] Fix any discrepancies found
-   - [ ] Document results and compatibility
+**Known Areas to Check:**
+- Filter utilities (already fixed, but verify)
+- Transform utilities (scale, rotate, translate, skew)
+- Ring utilities (ring-inset, ring-offset)
+- Border utilities (border-spacing, divide utilities)
+
+**Expected Outcome:** All utilities correctly mapped, potential 2-5% improvement
 
 ---
+
+### Phase 4: Property Order Deep Audit
+
+**Goal:** Ensure rustywind's property order exactly matches Tailwind v4
+
+**Tasks:**
+- [ ] Extract complete property list from Tailwind v4's `packages/tailwindcss/src/property-order.ts`
+- [ ] Extract complete property list from `rustywind-core/src/property_order.rs`
+- [ ] Create side-by-side comparison (could write a script)
+- [ ] Verify indices match exactly
+- [ ] Check for missing properties in rustywind
+- [ ] Check for extra properties in rustywind that aren't in Tailwind
+- [ ] Fix any misalignments
+
+**Known Information:**
+- Tailwind v4 has 337 properties
+- We've already removed user-select, outline-style
+- We've already moved --tw-space-*-reverse
+
+**Expected Outcome:** Perfect alignment with Tailwind v4, potential 1-3% improvement
+
+---
+
+### Phase 3: Add Fuzz Test Failures as Regression Tests
+
+**Goal:** Capture specific failing patterns as permanent tests
+
+**Tasks:**
+- [ ] Run fuzz tests and collect 10-20 failing examples
+- [ ] Analyze each failure to understand the pattern
+- [ ] Create new test file: `rustywind-core/tests/fuzz_regression_tests.rs`
+- [ ] Add each failing case as a test with expected output
+- [ ] Document why each case was failing
+- [ ] These tests will fail initially - that's expected
+- [ ] As we fix issues in phases 1-2, these should start passing
+
+**Expected Outcome:** Comprehensive test coverage of real-world edge cases
+
+---
+
+### Phase 2: Investigate Specific Utility Categories
+
+**Goal:** Deep dive into problematic utility categories
+
+**Tasks:**
+- [ ] **Filter Utilities:** Test brightness-50 vs brightness-100, grayscale-0, sepia-0
+- [ ] **Ring Utilities:** Investigate ring-inset sorting, ring-offset-* utilities
+- [ ] **Border Radius:** Test rounded-tr vs rounded-b, rounded-tl vs rounded-l
+- [ ] **Transform Utilities:** Test scale-y-50 vs scale-y-100, rotate values
+- [ ] For each category:
+  - [ ] Write failing test case
+  - [ ] Identify root cause (property mapping vs value sorting vs variant order)
+  - [ ] Implement fix
+  - [ ] Verify test passes
+
+**Expected Outcome:** Category-specific fixes, potential 3-7% improvement
+
+---
+
+### Phase 1: Run Fuzz Tests to Identify Remaining Issues
+
+**Goal:** Get concrete data on what's still failing at 69%
+
+**Tasks:**
+- [ ] Run fuzz tests multiple times to get average pass rate
+- [ ] Collect and categorize all failures:
+  - [ ] Variant ordering issues
+  - [ ] Property ordering issues
+  - [ ] Value-based sorting issues
+  - [ ] Unknown utilities
+- [ ] Create frequency analysis of failure types
+- [ ] Identify top 5 most common failure patterns
+- [ ] Prioritize fixes based on impact
+
+**Command to run:**
+```bash
+cargo test --release --package rustywind_core -- --nocapture fuzz_test_sort
+```
+
+**Expected Outcome:** Clear roadmap of highest-impact fixes for reaching 75-85%
+
+---
+
+## Success Criteria
+
+- [ ] PROGRESS.md fully updated with all work completed
+- [ ] All utility mappings verified and corrected
+- [ ] Property order perfectly aligned with Tailwind v4
+- [ ] 10-20 fuzz regression tests added
+- [ ] All specific utility categories investigated and fixed
+- [ ] Fuzz test pass rate: **75-85%**
+- [ ] All unit/integration tests passing (target: 180+ tests)
 
 ## Notes
 
-- Current coverage: 14/18 utilities now recognized (78% → 93%)
-- Remaining 4 utilities need multi-part base parsing fix
-- All basic utilities (bg, margin, padding, etc.) fully supported
-- Benchmark infrastructure in place using Criterion
+- Each phase builds on the previous one
+- Starting with documentation ensures we don't lose track of progress
+- Audits (phases 5-4) will identify issues to fix in phases 3-2
+- Phase 1 validates that all fixes worked
+
+## Time Estimate
+
+- Phase 6: 30 minutes
+- Phase 5: 2-3 hours
+- Phase 4: 2-3 hours
+- Phase 3: 1-2 hours
+- Phase 2: 3-4 hours
+- Phase 1: 1-2 hours + iterations
+
+**Total: ~10-15 hours of work**
