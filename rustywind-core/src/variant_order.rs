@@ -356,4 +356,50 @@ mod tests {
         // dark (index 70) should come after hover (index 33)
         assert!(dark_order > hover_order);
     }
+
+    #[test]
+    fn test_all_variants_have_unique_nonzero_order() {
+        // This test would have caught the u64 overflow bug!
+        // It verifies that EVERY variant in VARIANT_ORDER has a unique,
+        // non-zero variant order.
+
+        use std::collections::HashSet;
+
+        let base_order = calculate_variant_order(&[]);
+        assert_eq!(base_order, 0, "Base order should be 0");
+
+        let mut seen_orders = HashSet::new();
+        seen_orders.insert(base_order);
+
+        for (idx, variant) in VARIANT_ORDER.iter().enumerate() {
+            let order = calculate_variant_order(&[variant]);
+
+            // CRITICAL: Every variant must have non-zero order
+            // (This assertion would have FAILED for variants at index >= 64 with u64)
+            assert_ne!(
+                order, 0,
+                "Variant '{}' at index {} has order 0 (same as base classes!) - this breaks sorting",
+                variant, idx
+            );
+
+            // Every variant must have a unique order
+            assert!(
+                !seen_orders.contains(&order),
+                "Variant '{}' at index {} has duplicate order {} - this breaks sorting",
+                variant,
+                idx,
+                order
+            );
+
+            seen_orders.insert(order);
+        }
+
+        // Verify we have unique orders for all 80 variants + base (0)
+        assert_eq!(
+            seen_orders.len(),
+            VARIANT_ORDER.len() + 1,
+            "Should have {} unique orders (80 variants + base)",
+            VARIANT_ORDER.len() + 1
+        );
+    }
 }

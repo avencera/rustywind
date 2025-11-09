@@ -400,3 +400,83 @@ fn test_duplicate_classes() {
     assert_eq!(sorted.iter().filter(|&&c| c == "flex").count(), 2);
     assert_eq!(sorted.iter().filter(|&&c| c == "p-4").count(), 2);
 }
+
+#[test]
+fn test_variants_beyond_64_sort_after_base_classes() {
+    // This test would have caught the u64 overflow bug!
+    // It verifies that variants at indices >= 64 sort correctly.
+    //
+    // With the old u64 bug, these variants had variant_order = 0
+    // (same as base classes), causing them to sort incorrectly.
+    let sorter = HybridSorter::new();
+
+    // Test each problematic variant separately to give clear error messages
+    let test_cases = vec![
+        ("dark", 70),
+        ("@3xl", 64),
+        ("@4xl", 65),
+        ("print", 73),
+        ("portrait", 74),
+        ("landscape", 75),
+        ("motion-safe", 71),
+        ("motion-reduce", 72),
+    ];
+
+    for (variant, expected_idx) in test_cases {
+        let variant_class = format!("{}:flex", variant);
+        let classes = vec!["flex", variant_class.as_str()];
+        let sorted = sorter.sort_classes(&classes);
+
+        // CRITICAL: Base class MUST come first, variant MUST come second
+        // With the u64 bug, the variant class would sometimes come first!
+        assert_eq!(
+            sorted[0], "flex",
+            "Base class 'flex' should come before '{}:flex' (variant at index {})",
+            variant, expected_idx
+        );
+        assert_eq!(
+            sorted[1], variant_class,
+            "Variant '{}:flex' (index {}) should come after base class",
+            variant,
+            expected_idx
+        );
+    }
+}
+
+#[test]
+fn test_dark_mode_realistic_example() {
+    // Realistic test case: dark mode is commonly used and was broken with u64
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "p-4",
+        "bg-white",
+        "text-gray-900",
+        "dark:bg-gray-800",
+        "dark:text-white",
+        "hover:bg-gray-100",
+        "dark:hover:bg-gray-700",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // Base classes first (no :)
+    assert!(!sorted[0].contains(':'));
+    assert!(!sorted[1].contains(':'));
+    assert!(!sorted[2].contains(':'));
+
+    // Then single variants (hover < dark)
+    assert!(sorted[3].contains(':') && sorted[3].starts_with("hover:"));
+
+    // dark: variants (single variant)
+    let dark_single_start = sorted
+        .iter()
+        .position(|c| c.starts_with("dark:") && !c.contains("hover:"))
+        .unwrap();
+
+    // dark: should come after hover: (dark index 70 > hover index 33)
+    assert!(dark_single_start > 3, "dark: variants should come after hover:");
+
+    // Multiple variants (dark:hover:) at the end
+    assert!(sorted.last().unwrap().starts_with("dark:hover:"));
+}
