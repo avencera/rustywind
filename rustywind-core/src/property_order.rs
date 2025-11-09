@@ -391,13 +391,15 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-backdrop-saturate",
     "--tw-backdrop-sepia",
     "backdrop-filter",
-    // Transitions & Animations (329-333)
+    // Transitions & Animations (334-338)
     "transition-property",
     "transition-behavior",
     "transition-delay",
     "transition-duration",
     "transition-timing-function",
-    // Misc (334-337)
+    // User Interaction (339)
+    "user-select",
+    // Misc (340-343)
     "will-change",
     "contain",
     "content",
@@ -443,8 +445,8 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 338 (removed user-select and outline-style from Tailwind v4 property order)
-        assert_eq!(PROPERTY_ORDER.len(), 338);
+        // Total: 339 (added user-select back for select-* utilities)
+        assert_eq!(PROPERTY_ORDER.len(), 339);
     }
 
     #[test]
@@ -453,8 +455,8 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (338 total, so last is at index 337)
-        assert_eq!(get_property_index("forced-color-adjust"), Some(337));
+        // Test last property (339 total, so last is at index 338)
+        assert_eq!(get_property_index("forced-color-adjust"), Some(338));
 
         // Test common properties (indices shifted by 1 due to background-opacity at 0)
         assert_eq!(get_property_index("margin"), Some(26));
