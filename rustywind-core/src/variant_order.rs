@@ -146,7 +146,7 @@ pub fn get_variant_index(variant: &str) -> Option<usize> {
 /// Calculate the variant order as a bitwise flag for sorting.
 ///
 /// This mimics Tailwind's variant order calculation where each variant is represented
-/// as a bit in a u64. Multiple variants are combined with bitwise OR.
+/// as a bit in a u128. Multiple variants are combined with bitwise OR.
 ///
 /// Classes without variants return 0, ensuring they appear first in sorted output.
 ///
@@ -165,20 +165,18 @@ pub fn get_variant_index(variant: &str) -> Option<usize> {
 /// let order = calculate_variant_order(&["hover", "focus"]);
 /// assert!(order > calculate_variant_order(&["hover"]));
 /// ```
-pub fn calculate_variant_order(variants: &[&str]) -> u64 {
+pub fn calculate_variant_order(variants: &[&str]) -> u128 {
     if variants.is_empty() {
         return 0;
     }
 
-    let mut order = 0u64;
+    let mut order = 0u128;
     for variant in variants {
         if let Some(idx) = get_variant_index(variant) {
             // Set bit at position idx
-            // Note: We're limited to 64 bits with u64, so variants beyond index 63
-            // won't be represented. This is acceptable for now as we have 96 variants
-            // and would need u128 for full support. We'll handle this if it becomes an issue.
-            if idx < 64 {
-                order |= 1u64 << idx;
+            // u128 supports up to 128 variants, which is sufficient for our current 80 variants
+            if idx < 128 {
+                order |= 1u128 << idx;
             }
         }
     }
@@ -296,5 +294,66 @@ mod tests {
 
         // Base order should be less than any variant order
         assert!(base_order < hover_order);
+    }
+
+    #[test]
+    fn test_variants_beyond_64() {
+        // Test variants at index >= 64 (the old u64 limit)
+        // @3xl is at index 64, dark is at index 70, etc.
+
+        // Get the actual indices
+        let at_3xl_idx = get_variant_index("@3xl").unwrap();
+        let dark_idx = get_variant_index("dark").unwrap();
+        let portrait_idx = get_variant_index("portrait").unwrap();
+
+        // Verify they're beyond the old u64 limit
+        assert!(at_3xl_idx >= 64, "@3xl should be at index >= 64");
+        assert!(dark_idx >= 64, "dark should be at index >= 64");
+        assert!(portrait_idx >= 64, "portrait should be at index >= 64");
+
+        // Calculate variant orders - these should NOT be 0
+        let at_3xl_order = calculate_variant_order(&["@3xl"]);
+        let dark_order = calculate_variant_order(&["dark"]);
+        let portrait_order = calculate_variant_order(&["portrait"]);
+
+        // All should have non-zero variant order
+        assert!(at_3xl_order > 0, "@3xl should have non-zero variant order");
+        assert!(dark_order > 0, "dark should have non-zero variant order");
+        assert!(
+            portrait_order > 0,
+            "portrait should have non-zero variant order"
+        );
+
+        // They should all have different orders
+        assert_ne!(at_3xl_order, dark_order);
+        assert_ne!(dark_order, portrait_order);
+        assert_ne!(at_3xl_order, portrait_order);
+
+        // Base classes should still have order 0
+        let base_order = calculate_variant_order(&[]);
+        assert_eq!(base_order, 0);
+
+        // All variant orders should be greater than base order
+        assert!(at_3xl_order > base_order);
+        assert!(dark_order > base_order);
+        assert!(portrait_order > base_order);
+    }
+
+    #[test]
+    fn test_dark_variant_order() {
+        // Specific test for the dark variant mentioned in the bug report
+        let dark_order = calculate_variant_order(&["dark"]);
+        let hover_order = calculate_variant_order(&["hover"]);
+        let base_order = calculate_variant_order(&[]);
+
+        // dark should have a different order than hover
+        assert_ne!(dark_order, hover_order);
+
+        // Both should be greater than base order (0)
+        assert!(dark_order > base_order);
+        assert!(hover_order > base_order);
+
+        // dark (index 70) should come after hover (index 33)
+        assert!(dark_order > hover_order);
     }
 }

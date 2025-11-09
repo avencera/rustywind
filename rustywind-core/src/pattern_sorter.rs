@@ -38,7 +38,7 @@ use crate::variant_order::calculate_variant_order;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SortKey {
     /// Variant order as bitwise flags (0 for no variants)
-    pub variant_order: u64,
+    pub variant_order: u128,
 
     /// Property index from PROPERTY_ORDER (lower = earlier)
     pub property_index: usize,
@@ -432,5 +432,46 @@ mod tests {
 
         // Last class should be the variant class
         assert_eq!(sorted[sorted.len() - 1], "hover:bg-gray-100");
+    }
+
+    #[test]
+    fn test_dark_variant_beyond_u64_limit() {
+        // Regression test for the bug where dark (index 70) was treated
+        // as having variant_order = 0 due to u64 overflow
+        let classes = vec!["flex", "dark:flex", "hover:flex"];
+        let sorted = sort_classes(&classes);
+
+        // Base class MUST come first
+        assert_eq!(sorted[0], "flex");
+
+        // Variant classes MUST come after base class
+        // hover (index 33) should come before dark (index 70)
+        assert_eq!(sorted[1], "hover:flex");
+        assert_eq!(sorted[2], "dark:flex");
+    }
+
+    #[test]
+    fn test_variants_beyond_64_all_work() {
+        // Test multiple variants beyond the old u64 limit
+        let classes = vec![
+            "flex",
+            "@3xl:flex",   // index 64
+            "dark:flex",   // index 70
+            "print:flex",  // index 73
+            "portrait:flex", // index 74
+            "hover:flex",  // index 33 (before 64)
+        ];
+        let sorted = sort_classes(&classes);
+
+        // Base class first
+        assert_eq!(sorted[0], "flex");
+
+        // Then variants in index order:
+        // hover (33) < @3xl (64) < dark (70) < print (73) < portrait (74)
+        assert_eq!(sorted[1], "hover:flex");
+        assert_eq!(sorted[2], "@3xl:flex");
+        assert_eq!(sorted[3], "dark:flex");
+        assert_eq!(sorted[4], "print:flex");
+        assert_eq!(sorted[5], "portrait:flex");
     }
 }
