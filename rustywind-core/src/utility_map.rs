@@ -214,6 +214,397 @@ impl UtilityMap {
         exact.insert("break-all", &["word-break"][..]);
         exact.insert("break-keep", &["word-break"][..]);
 
+        // Break Before/After/Inside
+        exact.insert("break-before-auto", &["break-before"][..]);
+        exact.insert("break-before-avoid", &["break-before"][..]);
+        exact.insert("break-before-all", &["break-before"][..]);
+        exact.insert("break-before-avoid-page", &["break-before"][..]);
+        exact.insert("break-before-page", &["break-before"][..]);
+        exact.insert("break-before-left", &["break-before"][..]);
+        exact.insert("break-before-right", &["break-before"][..]);
+        exact.insert("break-before-column", &["break-before"][..]);
+        exact.insert("break-after-auto", &["break-after"][..]);
+        exact.insert("break-after-avoid", &["break-after"][..]);
+        exact.insert("break-after-all", &["break-after"][..]);
+        exact.insert("break-after-avoid-page", &["break-after"][..]);
+        exact.insert("break-after-page", &["break-after"][..]);
+        exact.insert("break-after-left", &["break-after"][..]);
+        exact.insert("break-after-right", &["break-after"][..]);
+        exact.insert("break-after-column", &["break-after"][..]);
+        exact.insert("break-inside-auto", &["break-inside"][..]);
+        exact.insert("break-inside-avoid", &["break-inside"][..]);
+        exact.insert("break-inside-avoid-page", &["break-inside"][..]);
+        exact.insert("break-inside-avoid-column", &["break-inside"][..]);
+
+        // Box Decoration Break
+        exact.insert("box-decoration-clone", &["box-decoration-break"][..]);
+        exact.insert("box-decoration-slice", &["box-decoration-break"][..]);
+
+        // Overscroll
+        exact.insert("overscroll-auto", &["overscroll-behavior"][..]);
+        exact.insert("overscroll-contain", &["overscroll-behavior"][..]);
+        exact.insert("overscroll-none", &["overscroll-behavior"][..]);
+        exact.insert("overscroll-x-auto", &["overscroll-behavior-x"][..]);
+        exact.insert("overscroll-x-contain", &["overscroll-behavior-x"][..]);
+        exact.insert("overscroll-x-none", &["overscroll-behavior-x"][..]);
+        exact.insert("overscroll-y-auto", &["overscroll-behavior-y"][..]);
+        exact.insert("overscroll-y-contain", &["overscroll-behavior-y"][..]);
+        exact.insert("overscroll-y-none", &["overscroll-behavior-y"][..]);
+
+        // Scroll Behavior
+        exact.insert("scroll-auto", &["scroll-behavior"][..]);
+        exact.insert("scroll-smooth", &["scroll-behavior"][..]);
+
+        // Scroll Snap Type
+        exact.insert("snap-none", &["scroll-snap-type"][..]);
+        exact.insert("snap-x", &["scroll-snap-type"][..]);
+        exact.insert("snap-y", &["scroll-snap-type"][..]);
+        exact.insert("snap-both", &["scroll-snap-type"][..]);
+        exact.insert("snap-mandatory", &["scroll-snap-type"][..]);
+        exact.insert("snap-proximity", &["scroll-snap-type"][..]);
+
+        // Scroll Snap Stop
+        exact.insert("snap-normal", &["scroll-snap-stop"][..]);
+        exact.insert("snap-always", &["scroll-snap-stop"][..]);
+
+        // Touch Action
+        exact.insert("touch-auto", &["touch-action"][..]);
+        exact.insert("touch-none", &["touch-action"][..]);
+        exact.insert("touch-pan-x", &["touch-action"][..]);
+        exact.insert("touch-pan-left", &["touch-action"][..]);
+        exact.insert("touch-pan-right", &["touch-action"][..]);
+        exact.insert("touch-pan-y", &["touch-action"][..]);
+        exact.insert("touch-pan-up", &["touch-action"][..]);
+        exact.insert("touch-pan-down", &["touch-action"][..]);
+        exact.insert("touch-pinch-zoom", &["touch-action"][..]);
+        exact.insert("touch-manipulation", &["touch-action"][..]);
+
+        // Pointer Events
+        exact.insert("pointer-events-none", &["pointer-events"][..]);
+        exact.insert("pointer-events-auto", &["pointer-events"][..]);
+
+        // Content (align-content additions)
+        exact.insert("content-normal", &["align-content"][..]);
+        exact.insert("content-baseline", &["align-content"][..]);
+        exact.insert("content-stretch", &["align-content"][..]);
+
+        // Place Content
+        exact.insert("place-content-center", &["place-content"][..]);
+        exact.insert("place-content-start", &["place-content"][..]);
+        exact.insert("place-content-end", &["place-content"][..]);
+        exact.insert("place-content-between", &["place-content"][..]);
+        exact.insert("place-content-around", &["place-content"][..]);
+        exact.insert("place-content-evenly", &["place-content"][..]);
+        exact.insert("place-content-baseline", &["place-content"][..]);
+        exact.insert("place-content-stretch", &["place-content"][..]);
+
+        // Place Items
+        exact.insert("place-items-start", &["place-items"][..]);
+        exact.insert("place-items-end", &["place-items"][..]);
+        exact.insert("place-items-center", &["place-items"][..]);
+        exact.insert("place-items-baseline", &["place-items"][..]);
+        exact.insert("place-items-stretch", &["place-items"][..]);
+
+        // Place Self
+        exact.insert("place-self-auto", &["place-self"][..]);
+        exact.insert("place-self-start", &["place-self"][..]);
+        exact.insert("place-self-end", &["place-self"][..]);
+        exact.insert("place-self-center", &["place-self"][..]);
+        exact.insert("place-self-stretch", &["place-self"][..]);
+
+        // Justify Items
+        exact.insert("justify-items-start", &["justify-items"][..]);
+        exact.insert("justify-items-end", &["justify-items"][..]);
+        exact.insert("justify-items-center", &["justify-items"][..]);
+        exact.insert("justify-items-stretch", &["justify-items"][..]);
+
+        // Justify Self
+        exact.insert("justify-self-auto", &["justify-self"][..]);
+        exact.insert("justify-self-start", &["justify-self"][..]);
+        exact.insert("justify-self-end", &["justify-self"][..]);
+        exact.insert("justify-self-center", &["justify-self"][..]);
+        exact.insert("justify-self-stretch", &["justify-self"][..]);
+
+        // Align Self
+        exact.insert("self-auto", &["align-self"][..]);
+        exact.insert("self-start", &["align-self"][..]);
+        exact.insert("self-end", &["align-self"][..]);
+        exact.insert("self-center", &["align-self"][..]);
+        exact.insert("self-stretch", &["align-self"][..]);
+        exact.insert("self-baseline", &["align-self"][..]);
+
+        // Flex Direction
+        exact.insert("flex-row", &["flex-direction"][..]);
+        exact.insert("flex-row-reverse", &["flex-direction"][..]);
+        exact.insert("flex-col", &["flex-direction"][..]);
+        exact.insert("flex-col-reverse", &["flex-direction"][..]);
+
+        // Flex Wrap
+        exact.insert("flex-wrap", &["flex-wrap"][..]);
+        exact.insert("flex-wrap-reverse", &["flex-wrap"][..]);
+        exact.insert("flex-nowrap", &["flex-wrap"][..]);
+
+        // Flex
+        exact.insert("flex-1", &["flex"][..]);
+        exact.insert("flex-auto", &["flex"][..]);
+        exact.insert("flex-initial", &["flex"][..]);
+        exact.insert("flex-none", &["flex"][..]);
+
+        // Flex Grow
+        exact.insert("grow", &["flex-grow"][..]);
+        exact.insert("grow-0", &["flex-grow"][..]);
+
+        // Flex Shrink
+        exact.insert("shrink", &["flex-shrink"][..]);
+        exact.insert("shrink-0", &["flex-shrink"][..]);
+
+        // Order
+        exact.insert("order-1", &["order"][..]);
+        exact.insert("order-2", &["order"][..]);
+        exact.insert("order-3", &["order"][..]);
+        exact.insert("order-4", &["order"][..]);
+        exact.insert("order-5", &["order"][..]);
+        exact.insert("order-6", &["order"][..]);
+        exact.insert("order-7", &["order"][..]);
+        exact.insert("order-8", &["order"][..]);
+        exact.insert("order-9", &["order"][..]);
+        exact.insert("order-10", &["order"][..]);
+        exact.insert("order-11", &["order"][..]);
+        exact.insert("order-12", &["order"][..]);
+        exact.insert("order-first", &["order"][..]);
+        exact.insert("order-last", &["order"][..]);
+        exact.insert("order-none", &["order"][..]);
+
+        // Grid Template Columns
+        exact.insert("grid-cols-1", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-2", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-3", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-4", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-5", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-6", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-7", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-8", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-9", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-10", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-11", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-12", &["grid-template-columns"][..]);
+        exact.insert("grid-cols-none", &["grid-template-columns"][..]);
+
+        // Grid Template Rows
+        exact.insert("grid-rows-1", &["grid-template-rows"][..]);
+        exact.insert("grid-rows-2", &["grid-template-rows"][..]);
+        exact.insert("grid-rows-3", &["grid-template-rows"][..]);
+        exact.insert("grid-rows-4", &["grid-template-rows"][..]);
+        exact.insert("grid-rows-5", &["grid-template-rows"][..]);
+        exact.insert("grid-rows-6", &["grid-template-rows"][..]);
+        exact.insert("grid-rows-none", &["grid-template-rows"][..]);
+
+        // Grid Auto Flow
+        exact.insert("grid-flow-row", &["grid-auto-flow"][..]);
+        exact.insert("grid-flow-col", &["grid-auto-flow"][..]);
+        exact.insert("grid-flow-dense", &["grid-auto-flow"][..]);
+        exact.insert("grid-flow-row-dense", &["grid-auto-flow"][..]);
+        exact.insert("grid-flow-col-dense", &["grid-auto-flow"][..]);
+
+        // Grid Auto Columns
+        exact.insert("auto-cols-auto", &["grid-auto-columns"][..]);
+        exact.insert("auto-cols-min", &["grid-auto-columns"][..]);
+        exact.insert("auto-cols-max", &["grid-auto-columns"][..]);
+        exact.insert("auto-cols-fr", &["grid-auto-columns"][..]);
+
+        // Grid Auto Rows
+        exact.insert("auto-rows-auto", &["grid-auto-rows"][..]);
+        exact.insert("auto-rows-min", &["grid-auto-rows"][..]);
+        exact.insert("auto-rows-max", &["grid-auto-rows"][..]);
+        exact.insert("auto-rows-fr", &["grid-auto-rows"][..]);
+
+        // Column Span
+        exact.insert("col-auto", &["grid-column"][..]);
+        exact.insert("col-span-1", &["grid-column"][..]);
+        exact.insert("col-span-2", &["grid-column"][..]);
+        exact.insert("col-span-3", &["grid-column"][..]);
+        exact.insert("col-span-4", &["grid-column"][..]);
+        exact.insert("col-span-5", &["grid-column"][..]);
+        exact.insert("col-span-6", &["grid-column"][..]);
+        exact.insert("col-span-7", &["grid-column"][..]);
+        exact.insert("col-span-8", &["grid-column"][..]);
+        exact.insert("col-span-9", &["grid-column"][..]);
+        exact.insert("col-span-10", &["grid-column"][..]);
+        exact.insert("col-span-11", &["grid-column"][..]);
+        exact.insert("col-span-12", &["grid-column"][..]);
+        exact.insert("col-span-full", &["grid-column"][..]);
+        exact.insert("col-start-1", &["grid-column-start"][..]);
+        exact.insert("col-start-2", &["grid-column-start"][..]);
+        exact.insert("col-start-3", &["grid-column-start"][..]);
+        exact.insert("col-start-4", &["grid-column-start"][..]);
+        exact.insert("col-start-5", &["grid-column-start"][..]);
+        exact.insert("col-start-6", &["grid-column-start"][..]);
+        exact.insert("col-start-7", &["grid-column-start"][..]);
+        exact.insert("col-start-8", &["grid-column-start"][..]);
+        exact.insert("col-start-9", &["grid-column-start"][..]);
+        exact.insert("col-start-10", &["grid-column-start"][..]);
+        exact.insert("col-start-11", &["grid-column-start"][..]);
+        exact.insert("col-start-12", &["grid-column-start"][..]);
+        exact.insert("col-start-13", &["grid-column-start"][..]);
+        exact.insert("col-start-auto", &["grid-column-start"][..]);
+        exact.insert("col-end-1", &["grid-column-end"][..]);
+        exact.insert("col-end-2", &["grid-column-end"][..]);
+        exact.insert("col-end-3", &["grid-column-end"][..]);
+        exact.insert("col-end-4", &["grid-column-end"][..]);
+        exact.insert("col-end-5", &["grid-column-end"][..]);
+        exact.insert("col-end-6", &["grid-column-end"][..]);
+        exact.insert("col-end-7", &["grid-column-end"][..]);
+        exact.insert("col-end-8", &["grid-column-end"][..]);
+        exact.insert("col-end-9", &["grid-column-end"][..]);
+        exact.insert("col-end-10", &["grid-column-end"][..]);
+        exact.insert("col-end-11", &["grid-column-end"][..]);
+        exact.insert("col-end-12", &["grid-column-end"][..]);
+        exact.insert("col-end-13", &["grid-column-end"][..]);
+        exact.insert("col-end-auto", &["grid-column-end"][..]);
+
+        // Row Span
+        exact.insert("row-auto", &["grid-row"][..]);
+        exact.insert("row-span-1", &["grid-row"][..]);
+        exact.insert("row-span-2", &["grid-row"][..]);
+        exact.insert("row-span-3", &["grid-row"][..]);
+        exact.insert("row-span-4", &["grid-row"][..]);
+        exact.insert("row-span-5", &["grid-row"][..]);
+        exact.insert("row-span-6", &["grid-row"][..]);
+        exact.insert("row-span-full", &["grid-row"][..]);
+        exact.insert("row-start-1", &["grid-row-start"][..]);
+        exact.insert("row-start-2", &["grid-row-start"][..]);
+        exact.insert("row-start-3", &["grid-row-start"][..]);
+        exact.insert("row-start-4", &["grid-row-start"][..]);
+        exact.insert("row-start-5", &["grid-row-start"][..]);
+        exact.insert("row-start-6", &["grid-row-start"][..]);
+        exact.insert("row-start-7", &["grid-row-start"][..]);
+        exact.insert("row-start-auto", &["grid-row-start"][..]);
+        exact.insert("row-end-1", &["grid-row-end"][..]);
+        exact.insert("row-end-2", &["grid-row-end"][..]);
+        exact.insert("row-end-3", &["grid-row-end"][..]);
+        exact.insert("row-end-4", &["grid-row-end"][..]);
+        exact.insert("row-end-5", &["grid-row-end"][..]);
+        exact.insert("row-end-6", &["grid-row-end"][..]);
+        exact.insert("row-end-7", &["grid-row-end"][..]);
+        exact.insert("row-end-auto", &["grid-row-end"][..]);
+
+        // Transform Origin
+        exact.insert("origin-center", &["transform-origin"][..]);
+        exact.insert("origin-top", &["transform-origin"][..]);
+        exact.insert("origin-top-right", &["transform-origin"][..]);
+        exact.insert("origin-right", &["transform-origin"][..]);
+        exact.insert("origin-bottom-right", &["transform-origin"][..]);
+        exact.insert("origin-bottom", &["transform-origin"][..]);
+        exact.insert("origin-bottom-left", &["transform-origin"][..]);
+        exact.insert("origin-left", &["transform-origin"][..]);
+        exact.insert("origin-top-left", &["transform-origin"][..]);
+
+        // Typography
+        exact.insert(
+            "truncate",
+            &["overflow", "text-overflow", "white-space"][..],
+        );
+        exact.insert("text-ellipsis", &["text-overflow"][..]);
+        exact.insert("text-clip", &["text-overflow"][..]);
+
+        exact.insert("italic", &["font-style"][..]);
+        exact.insert("not-italic", &["font-style"][..]);
+
+        exact.insert("uppercase", &["text-transform"][..]);
+        exact.insert("lowercase", &["text-transform"][..]);
+        exact.insert("capitalize", &["text-transform"][..]);
+        exact.insert("normal-case", &["text-transform"][..]);
+
+        exact.insert("underline", &["text-decoration-line"][..]);
+        exact.insert("overline", &["text-decoration-line"][..]);
+        exact.insert("line-through", &["text-decoration-line"][..]);
+        exact.insert("no-underline", &["text-decoration-line"][..]);
+
+        exact.insert("whitespace-normal", &["white-space"][..]);
+        exact.insert("whitespace-nowrap", &["white-space"][..]);
+        exact.insert("whitespace-pre", &["white-space"][..]);
+        exact.insert("whitespace-pre-line", &["white-space"][..]);
+        exact.insert("whitespace-pre-wrap", &["white-space"][..]);
+        exact.insert("whitespace-break-spaces", &["white-space"][..]);
+
+        exact.insert("list-none", &["list-style-type"][..]);
+        exact.insert("list-disc", &["list-style-type"][..]);
+        exact.insert("list-decimal", &["list-style-type"][..]);
+
+        exact.insert("list-inside", &["list-style-position"][..]);
+        exact.insert("list-outside", &["list-style-position"][..]);
+
+        // Vertical Align
+        exact.insert("align-baseline", &["vertical-align"][..]);
+        exact.insert("align-top", &["vertical-align"][..]);
+        exact.insert("align-middle", &["vertical-align"][..]);
+        exact.insert("align-bottom", &["vertical-align"][..]);
+        exact.insert("align-text-top", &["vertical-align"][..]);
+        exact.insert("align-text-bottom", &["vertical-align"][..]);
+        exact.insert("align-sub", &["vertical-align"][..]);
+        exact.insert("align-super", &["vertical-align"][..]);
+
+        // Mix Blend Mode
+        exact.insert("mix-blend-normal", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-multiply", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-screen", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-overlay", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-darken", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-lighten", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-color-dodge", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-color-burn", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-hard-light", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-soft-light", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-difference", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-exclusion", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-hue", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-saturation", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-color", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-luminosity", &["mix-blend-mode"][..]);
+        exact.insert("mix-blend-plus-lighter", &["mix-blend-mode"][..]);
+
+        // Background Blend Mode
+        exact.insert("bg-blend-normal", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-multiply", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-screen", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-overlay", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-darken", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-lighten", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-color-dodge", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-color-burn", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-hard-light", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-soft-light", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-difference", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-exclusion", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-hue", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-saturation", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-color", &["background-blend-mode"][..]);
+        exact.insert("bg-blend-luminosity", &["background-blend-mode"][..]);
+
+        // Border Style
+        exact.insert("border-solid", &["border-style"][..]);
+        exact.insert("border-dashed", &["border-style"][..]);
+        exact.insert("border-dotted", &["border-style"][..]);
+        exact.insert("border-double", &["border-style"][..]);
+        exact.insert("border-hidden", &["border-style"][..]);
+        exact.insert("border-none", &["border-style"][..]);
+
+        // Divide Style
+        exact.insert("divide-solid", &["border-style"][..]);
+        exact.insert("divide-dashed", &["border-style"][..]);
+        exact.insert("divide-dotted", &["border-style"][..]);
+        exact.insert("divide-double", &["border-style"][..]);
+        exact.insert("divide-none", &["border-style"][..]);
+
+        // Outline Style
+        exact.insert("outline-solid", &["outline-style"][..]);
+        exact.insert("outline-dashed", &["outline-style"][..]);
+        exact.insert("outline-dotted", &["outline-style"][..]);
+        exact.insert("outline-double", &["outline-style"][..]);
+
+        // Ring
+        exact.insert("ring-inset", &["--tw-ring-inset"][..]);
+
         Self { exact }
     }
 
@@ -425,6 +816,7 @@ impl UtilityMap {
             "opacity" => Some(&["opacity"][..]),
 
             // Shadow
+            "shadow" if is_color_value(value) => Some(&["box-shadow-color"][..]),
             "shadow" => Some(&["box-shadow"][..]),
 
             // Ring (uses multiple properties)
@@ -493,6 +885,114 @@ impl UtilityMap {
 
             // Caret Color
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
+
+            // Space Between
+            "space-x" => Some(&["--tw-space-x-reverse", "margin-inline"][..]),
+            "space-y" => Some(&["--tw-space-y-reverse", "margin-block"][..]),
+
+            // Divide
+            "divide-x" => Some(&["border-left-width", "border-right-width"][..]),
+            "divide-y" => Some(&["border-top-width", "border-bottom-width"][..]),
+            "divide" if is_color_value(value) => Some(&["border-color"][..]),
+            "divide-opacity" => Some(&["border-opacity"][..]),
+
+            // Leading (line-height)
+            "leading" => Some(&["line-height"][..]),
+
+            // Tracking (letter-spacing)
+            "tracking" => Some(&["letter-spacing"][..]),
+
+            // Columns
+            "columns" => Some(&["columns"][..]),
+
+            // Background utilities
+            "bg-opacity" => Some(&["background-opacity"][..]),
+            "bg" if value.starts_with("gradient-") => Some(&["background-image"][..]),
+            "from" if is_color_value(value) => Some(&["--tw-gradient-from"][..]),
+            "via" if is_color_value(value) => Some(&["--tw-gradient-via"][..]),
+            "to" if is_color_value(value) => Some(&["--tw-gradient-to"][..]),
+
+            // Background size
+            "bg-auto" => Some(&["background-size"][..]),
+            "bg-cover" => Some(&["background-size"][..]),
+            "bg-contain" => Some(&["background-size"][..]),
+
+            // Background position
+            "bg-bottom" => Some(&["background-position"][..]),
+            "bg-center" => Some(&["background-position"][..]),
+            "bg-left" => Some(&["background-position"][..]),
+            "bg-left-bottom" => Some(&["background-position"][..]),
+            "bg-left-top" => Some(&["background-position"][..]),
+            "bg-right" => Some(&["background-position"][..]),
+            "bg-right-bottom" => Some(&["background-position"][..]),
+            "bg-right-top" => Some(&["background-position"][..]),
+            "bg-top" => Some(&["background-position"][..]),
+
+            // Background repeat
+            "bg-repeat" => Some(&["background-repeat"][..]),
+            "bg-no-repeat" => Some(&["background-repeat"][..]),
+            "bg-repeat-x" => Some(&["background-repeat"][..]),
+            "bg-repeat-y" => Some(&["background-repeat"][..]),
+            "bg-repeat-round" => Some(&["background-repeat"][..]),
+            "bg-repeat-space" => Some(&["background-repeat"][..]),
+
+            // Background clip
+            "bg-clip-border" => Some(&["background-clip"][..]),
+            "bg-clip-padding" => Some(&["background-clip"][..]),
+            "bg-clip-content" => Some(&["background-clip"][..]),
+            "bg-clip-text" => Some(&["background-clip"][..]),
+
+            // Background origin
+            "bg-origin-border" => Some(&["background-origin"][..]),
+            "bg-origin-padding" => Some(&["background-origin"][..]),
+            "bg-origin-content" => Some(&["background-origin"][..]),
+
+            // Object Position
+            "object-bottom" => Some(&["object-position"][..]),
+            "object-center" => Some(&["object-position"][..]),
+            "object-left" => Some(&["object-position"][..]),
+            "object-left-bottom" => Some(&["object-position"][..]),
+            "object-left-top" => Some(&["object-position"][..]),
+            "object-right" => Some(&["object-position"][..]),
+            "object-right-bottom" => Some(&["object-position"][..]),
+            "object-right-top" => Some(&["object-position"][..]),
+            "object-top" => Some(&["object-position"][..]),
+
+            // Aspect Ratio
+            "aspect-auto" => Some(&["aspect-ratio"][..]),
+            "aspect-square" => Some(&["aspect-ratio"][..]),
+            "aspect-video" => Some(&["aspect-ratio"][..]),
+            "aspect" => Some(&["aspect-ratio"][..]),
+
+            // Text Decoration
+            "decoration" if is_color_value(value) => Some(&["text-decoration-color"][..]),
+            "decoration-solid" => Some(&["text-decoration-style"][..]),
+            "decoration-double" => Some(&["text-decoration-style"][..]),
+            "decoration-dotted" => Some(&["text-decoration-style"][..]),
+            "decoration-dashed" => Some(&["text-decoration-style"][..]),
+            "decoration-wavy" => Some(&["text-decoration-style"][..]),
+            "decoration-auto" => Some(&["text-decoration-thickness"][..]),
+            "decoration-from-font" => Some(&["text-decoration-thickness"][..]),
+            "decoration" => Some(&["text-decoration-thickness"][..]),
+
+            // Underline Offset
+            "underline-offset" => Some(&["text-underline-offset"][..]),
+
+            // Text Indent
+            "indent" => Some(&["text-indent"][..]),
+
+            // Transition
+            "transition-none" => Some(&["transition-property"][..]),
+            "transition-all" => Some(&["transition-property"][..]),
+            "transition-colors" => Some(&["transition-property"][..]),
+            "transition-opacity" => Some(&["transition-property"][..]),
+            "transition-shadow" => Some(&["transition-property"][..]),
+            "transition-transform" => Some(&["transition-property"][..]),
+
+            // Font Family
+            "font-sans" => Some(&["font-family"][..]),
+            "font-serif" => Some(&["font-family"][..]),
+            "font-mono" => Some(&["font-family"][..]),
 
             // Unknown utility
             _ => None,
@@ -583,6 +1083,35 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "backdrop-sepia",
         "will-change",
         "outline-offset",
+        "space-x",
+        "space-y",
+        "divide-x",
+        "divide-y",
+        "divide-opacity",
+        "underline-offset",
+        "bg-gradient",
+        "bg-clip",
+        "bg-origin",
+        "bg-repeat",
+        "bg-left",
+        "bg-right",
+        "bg-right-bottom",
+        "bg-right-top",
+        "bg-left-bottom",
+        "bg-left-top",
+        "object-left",
+        "object-right",
+        "object-left-bottom",
+        "object-left-top",
+        "object-right-bottom",
+        "object-right-top",
+        "col-span",
+        "col-start",
+        "col-end",
+        "row-span",
+        "row-start",
+        "row-end",
+        "grid-flow",
     ] {
         if utility.starts_with(prefix) {
             if utility.len() == prefix.len() {
