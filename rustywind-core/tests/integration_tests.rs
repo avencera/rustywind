@@ -561,3 +561,159 @@ fn test_dark_mode_realistic_example() {
     // Multiple variants (dark:hover:) at the end
     assert!(sorted.last().unwrap().starts_with("dark:hover:"));
 }
+
+#[test]
+fn test_empty_variant_ordering() {
+    // Regression test for empty variant positioning
+    // empty (index 33) should come after visited (17), target (18), checked (21)
+    // Using same base utility (hidden) so variants are the primary sort key
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "p-4",
+        "empty:hidden",
+        "visited:hidden",
+        "target:hidden",
+        "checked:hidden",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // Base class first
+    assert_eq!(sorted[0], "p-4");
+
+    // Get positions
+    let visited_pos = sorted.iter().position(|&c| c == "visited:hidden").unwrap();
+    let target_pos = sorted.iter().position(|&c| c == "target:hidden").unwrap();
+    let checked_pos = sorted.iter().position(|&c| c == "checked:hidden").unwrap();
+    let empty_pos = sorted.iter().position(|&c| c == "empty:hidden").unwrap();
+
+    // Verify order: visited (17) < target (18) < checked (21) < empty (33)
+    assert!(visited_pos < target_pos, "visited (17) should come before target (18)");
+    assert!(target_pos < checked_pos, "target (18) should come before checked (21)");
+    assert!(checked_pos < empty_pos, "checked (21) should come before empty (33)");
+}
+
+#[test]
+fn test_enabled_disabled_variant_ordering() {
+    // Regression test for enabled/disabled variant ordering
+    // enabled (index 39) should come before disabled (40)
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "flex",
+        "enabled:hover:bg-blue-700",
+        "disabled:opacity-50",
+        "disabled:cursor-not-allowed",
+        "enabled:cursor-pointer",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // Base class first
+    assert_eq!(sorted[0], "flex");
+
+    // Get positions of single-variant enabled and disabled
+    let enabled_pos = sorted.iter().position(|&c| c == "enabled:cursor-pointer").unwrap();
+    let disabled_pos1 = sorted.iter().position(|&c| c == "disabled:opacity-50").unwrap();
+    let disabled_pos2 = sorted.iter().position(|&c| c == "disabled:cursor-not-allowed").unwrap();
+
+    // Verify enabled (39) comes before disabled (40)
+    assert!(enabled_pos < disabled_pos1, "enabled (39) should come before disabled (40)");
+    assert!(enabled_pos < disabled_pos2, "enabled (39) should come before disabled (40)");
+}
+
+#[test]
+fn test_landscape_variant_ordering() {
+    // Regression test for landscape variant positioning
+    // landscape (index 72) should come after all responsive breakpoints
+    // and after container queries (@3xl, @4xl, etc.)
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "flex",
+        "landscape:flex-row",
+        "sm:grid",
+        "md:block",
+        "lg:flex-col",
+        "xl:inline-flex",
+        "2xl:table",
+        "@3xl:hidden",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // Base class first
+    assert_eq!(sorted[0], "flex");
+
+    // Get positions
+    let sm_pos = sorted.iter().position(|&c| c == "sm:grid").unwrap();
+    let md_pos = sorted.iter().position(|&c| c == "md:block").unwrap();
+    let lg_pos = sorted.iter().position(|&c| c == "lg:flex-col").unwrap();
+    let xl_pos = sorted.iter().position(|&c| c == "xl:inline-flex").unwrap();
+    let xxl_pos = sorted.iter().position(|&c| c == "2xl:table").unwrap();
+    let container_pos = sorted.iter().position(|&c| c == "@3xl:hidden").unwrap();
+    let landscape_pos = sorted.iter().position(|&c| c == "landscape:flex-row").unwrap();
+
+    // Verify landscape (72) comes after all responsive breakpoints
+    // sm (54) < md (55) < lg (56) < xl (57) < 2xl (58) < @3xl (64) < landscape (72)
+    assert!(sm_pos < landscape_pos, "sm (54) should come before landscape (72)");
+    assert!(md_pos < landscape_pos, "md (55) should come before landscape (72)");
+    assert!(lg_pos < landscape_pos, "lg (56) should come before landscape (72)");
+    assert!(xl_pos < landscape_pos, "xl (57) should come before landscape (72)");
+    assert!(xxl_pos < landscape_pos, "2xl (58) should come before landscape (72)");
+    assert!(container_pos < landscape_pos, "@3xl (64) should come before landscape (72)");
+}
+
+#[test]
+fn test_user_select_utilities_ordering() {
+    // Regression test for user-select property addition
+    // select-* utilities should map to user-select property (index 339)
+    // and sort after transition utilities but before will-change
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "select-none",
+        "select-text",
+        "select-all",
+        "select-auto",
+        "transition-colors",
+        "duration-200",
+        "will-change-transform",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // All should be recognized (no unknowns)
+    assert_eq!(sorted.len(), 7);
+
+    // Get positions
+    let transition_pos = sorted.iter().position(|&c| c == "transition-colors").unwrap();
+
+    // Find any select utility position
+    let select_positions: Vec<usize> = sorted.iter()
+        .enumerate()
+        .filter(|(_, c)| c.starts_with("select-"))
+        .map(|(i, _)| i)
+        .collect();
+
+    // Verify select utilities come after transition properties
+    // transition-property (393) < user-select (339)
+    for select_pos in &select_positions {
+        assert!(
+            transition_pos < *select_pos,
+            "select-* utilities should come after transition-property (393)"
+        );
+    }
+
+    // Verify select utilities are alphabetically sorted among themselves
+    let select_classes: Vec<&str> = sorted.iter()
+        .filter(|c| c.starts_with("select-"))
+        .copied()
+        .collect();
+
+    assert_eq!(select_classes[0], "select-all");
+    assert_eq!(select_classes[1], "select-auto");
+    assert_eq!(select_classes[2], "select-none");
+    assert_eq!(select_classes[3], "select-text");
+}
