@@ -112,9 +112,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-pan-y",
     "--tw-pinch-zoom",
     "resize",
-    "--tw-space-x-reverse", // Move spacing before user-select for correct sort order
-    "--tw-space-y-reverse",
-    "user-select",
     // Scroll Snap (76-97)
     "scroll-snap-type",
     "--tw-scroll-snap-strictness",
@@ -166,6 +163,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "gap",
     "column-gap",
     "row-gap",
+    "--tw-space-x-reverse",
+    "--tw-space-y-reverse",
     // Space & Divide (122-128)
     "divide-x-width",
     "divide-y-width",
@@ -369,7 +368,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     // Outline (305-309)
     "outline",
     "outline-width",
-    "outline-style",
     "outline-offset",
     "outline-color",
     // Filters (309-328)

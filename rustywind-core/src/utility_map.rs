@@ -596,12 +596,16 @@ impl UtilityMap {
         exact.insert("divide-double", &["divide-style"][..]);
         exact.insert("divide-none", &["divide-style"][..]);
 
-        // Outline Style
-        exact.insert("outline-none", &["outline-style"][..]);
-        exact.insert("outline-solid", &["outline-style"][..]);
-        exact.insert("outline-dashed", &["outline-style"][..]);
-        exact.insert("outline-dotted", &["outline-style"][..]);
-        exact.insert("outline-double", &["outline-style"][..]);
+        // Divide Reverse
+        exact.insert("divide-x-reverse", &["divide-x-width"][..]);
+        exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
+
+        // Outline Style (maps to outline since outline-style is not in property order)
+        exact.insert("outline-none", &["outline"][..]);
+        exact.insert("outline-solid", &["outline"][..]);
+        exact.insert("outline-dashed", &["outline"][..]);
+        exact.insert("outline-dotted", &["outline"][..]);
+        exact.insert("outline-double", &["outline"][..]);
 
         // Ring
         exact.insert("ring-inset", &["--tw-ring-inset"][..]);
