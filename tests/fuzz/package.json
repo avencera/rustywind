@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node compare.js"
+    "test": "node compare.js",
+    "test:with-legacy": "FILTER_LEGACY=false node compare.js"
   },
   "dependencies": {
     "prettier": "^3.0.0",

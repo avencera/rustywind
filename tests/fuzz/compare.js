@@ -5,6 +5,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { allClasses, variants } from './tailwind-classes.js';
+import { filterLegacyClasses, isLegacyClass } from './legacy-classes.js';
 import prettier from 'prettier';
 
 const execAsync = promisify(exec);
@@ -14,6 +15,10 @@ const NUM_TESTS = 100; // Number of random class combinations to test
 const MIN_CLASSES = 5;
 const MAX_CLASSES = 30;
 const VARIANT_PROBABILITY = 0.3; // 30% chance of adding a variant
+const FILTER_LEGACY = process.env.FILTER_LEGACY !== 'false'; // Filter legacy classes by default
+
+// Filter classes if needed
+const classPool = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
 
 /**
  * Generate a random integer between min and max (inclusive)
@@ -33,7 +38,7 @@ function randomPick(array) {
  * Generate a random Tailwind class, possibly with variant(s)
  */
 function generateRandomClass() {
-  let className = randomPick(allClasses);
+  let className = randomPick(classPool);
 
   // Maybe add a variant (30% chance)
   if (Math.random() < VARIANT_PROBABILITY) {
@@ -134,7 +139,8 @@ function compareClasses(prettier, rustywind, original) {
  * Run the fuzz test
  */
 async function runFuzzTest() {
-  console.log(`\n🧪 Starting fuzz test with ${NUM_TESTS} random class combinations...\n`);
+  console.log(`\n🧪 Starting fuzz test with ${NUM_TESTS} random class combinations...`);
+  console.log(`📋 Class pool: ${classPool.length} classes (${FILTER_LEGACY ? 'legacy classes filtered' : 'including legacy classes'})\n`);
 
   let passed = 0;
   let failed = 0;

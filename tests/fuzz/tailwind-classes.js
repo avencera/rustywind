@@ -222,7 +222,8 @@ export const backgrounds = [
   'bg-blue-50', 'bg-blue-500', 'bg-blue-900',
   'bg-green-50', 'bg-green-500', 'bg-green-900',
 
-  // Background Opacity
+  // Background Opacity (v3 LEGACY - use bg-color/opacity in v4)
+  // Kept for backwards compatibility testing, filtered by default
   'bg-opacity-0', 'bg-opacity-50', 'bg-opacity-100',
 
   // Background Image
