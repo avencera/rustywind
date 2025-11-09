@@ -995,12 +995,12 @@ impl UtilityMap {
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Space Between
-            "space-x" => Some(&["--tw-space-x-reverse", "margin-inline"][..]),
-            "space-y" => Some(&["--tw-space-y-reverse", "margin-block"][..]),
+            "space-x" => Some(&["--tw-space-x-reverse"][..]),
+            "space-y" => Some(&["--tw-space-y-reverse"][..]),
 
             // Divide
-            "divide-x" => Some(&["border-left-width", "border-right-width"][..]),
-            "divide-y" => Some(&["border-top-width", "border-bottom-width"][..]),
+            "divide-x" => Some(&["divide-x-width"][..]),
+            "divide-y" => Some(&["divide-y-width"][..]),
             "divide" if is_color_value(value) => Some(&["border-color"][..]),
             "divide-opacity" => Some(&["border-opacity"][..]),
 
@@ -1580,5 +1580,30 @@ mod tests {
         );
         assert_eq!(map.get_properties("gap-4"), Some(&["gap"][..]));
         assert_eq!(map.get_properties("gap-x-2"), Some(&["column-gap"][..]));
+    }
+
+    #[test]
+    fn test_space_x_mapping() {
+        use crate::property_order::get_property_index;
+        let map = UtilityMap::new();
+
+        // space-x should only map to --tw-space-x-reverse
+        let space_props = map.get_properties("space-x-2").unwrap();
+        assert_eq!(space_props, &["--tw-space-x-reverse"]);
+
+        // touch-pan-down should map to touch-action
+        let touch_props = map.get_properties("touch-pan-down").unwrap();
+        assert_eq!(touch_props, &["touch-action"]);
+
+        // Verify indices - touch-action should be < --tw-space-x-reverse
+        let touch_idx = get_property_index("touch-action").unwrap();
+        let space_idx = get_property_index("--tw-space-x-reverse").unwrap();
+
+        println!("touch-action index: {}", touch_idx);
+        println!("--tw-space-x-reverse index: {}", space_idx);
+
+        assert!(touch_idx < space_idx,
+            "touch-action ({}) should have lower index than --tw-space-x-reverse ({})",
+            touch_idx, space_idx);
     }
 }

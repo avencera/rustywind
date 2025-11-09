@@ -110,6 +110,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-pan-y",
     "--tw-pinch-zoom",
     "resize",
+    "user-select",
     // Scroll Snap (76-97)
     "scroll-snap-type",
     "--tw-scroll-snap-strictness",
@@ -363,9 +364,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
-    // Outline (305-308)
+    // Outline (305-309)
     "outline",
     "outline-width",
+    "outline-style",
     "outline-offset",
     "outline-color",
     // Filters (309-328)
@@ -441,7 +443,7 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        assert_eq!(PROPERTY_ORDER.len(), 337);
+        assert_eq!(PROPERTY_ORDER.len(), 339);
     }
 
     #[test]
@@ -450,7 +452,7 @@ mod tests {
         assert_eq!(get_property_index("container-type"), Some(0));
 
         // Test last property
-        assert_eq!(get_property_index("forced-color-adjust"), Some(336));
+        assert_eq!(get_property_index("forced-color-adjust"), Some(338));
 
         // Test common properties
         assert_eq!(get_property_index("margin"), Some(25));
