@@ -26,25 +26,27 @@
 
 ## Phase 5: Utility Mapping Deep Audit
 
-**Status:** ✅ COMPLETED
+**Status:** ✅ COMPLETED (with Phase 2 additions)
 
 **Tasks:**
 - [x] Compare `rustywind-core/src/utility_map.rs` with Tailwind v4 source
 - [x] Create checklist of all utility categories
 - [x] Verify mappings match Tailwind v4
 - [x] Fix incorrect mappings
+- [x] Fix exact mappings for drop-shadow variants
 
 **Issues Found and Fixed:**
 - Filter utilities (9): blur, brightness, contrast, grayscale, hue-rotate, invert, saturate, sepia, drop-shadow
-  - Changed from `filter` → specific `--tw-*` properties
+  - Changed pattern mappings from `filter` → specific `--tw-*` properties
+  - Fixed exact mappings for drop-shadow-{sm,md,lg,xl,2xl,none} from `filter` → `--tw-drop-shadow`
 - Backdrop filter utilities (9): backdrop-blur, backdrop-brightness, etc.
   - Changed from `backdrop-filter` → specific `--tw-backdrop-*` properties
 
 **Files Modified:**
-- `rustywind-core/src/utility_map.rs` - Updated 18 utility mappings
+- `rustywind-core/src/utility_map.rs` - Updated 25 utility mappings (18 pattern + 7 exact)
 - `phase5_audit.md` - Created comprehensive audit document
 
-**Test Results:** All 164 tests passing ✅
+**Test Results:** All 175 tests passing ✅
 
 **Expected Outcome:** 2-5% improvement
 
@@ -78,7 +80,7 @@
 
 ## Phase 2: Investigate Specific Utility Categories
 
-**Status:** 🔜 NOT STARTED
+**Status:** ✅ COMPLETED
 
 **Tasks:**
 - [ ] Investigate filter utilities

@@ -664,13 +664,13 @@ impl UtilityMap {
         exact.insert("bg-gradient-to-tl", &["background-image"][..]);
 
         // Drop Shadow
-        exact.insert("drop-shadow", &["filter"][..]);
-        exact.insert("drop-shadow-sm", &["filter"][..]);
-        exact.insert("drop-shadow-md", &["filter"][..]);
-        exact.insert("drop-shadow-lg", &["filter"][..]);
-        exact.insert("drop-shadow-xl", &["filter"][..]);
-        exact.insert("drop-shadow-2xl", &["filter"][..]);
-        exact.insert("drop-shadow-none", &["filter"][..]);
+        exact.insert("drop-shadow", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-sm", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-md", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-lg", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-xl", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-2xl", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-none", &["--tw-drop-shadow"][..]);
 
         // Object Position
         exact.insert("object-bottom", &["object-position"][..]);
