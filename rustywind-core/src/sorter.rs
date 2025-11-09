@@ -9,7 +9,7 @@ use ahash::AHashMap as HashMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-use crate::defaults::{RE, SORTER};
+use crate::defaults::RE;
 use eyre::Result;
 
 pub(crate) static SORTER_EXTRACTOR_RE: Lazy<Regex> =
@@ -33,11 +33,12 @@ impl Deref for FinderRegex {
     }
 }
 
-/// Use either our default sorter in [crate::defaults::SORTER] or a custom sorter.
+/// Use either pattern-based sorting or a custom sorter from a CSS file.
 #[derive(Debug, Clone)]
 pub enum Sorter {
-    DefaultSorter,
+    /// Pattern-based sorting matching Tailwind CSS v4's canonical algorithm
     PatternSorter,
+    /// Custom sorter loaded from a CSS file
     CustomSorter(HashMap<String, usize>),
 }
 
@@ -46,7 +47,6 @@ impl Deref for Sorter {
 
     fn deref(&self) -> &Self::Target {
         match &self {
-            Self::DefaultSorter => &SORTER,
             Self::PatternSorter => {
                 panic!("PatternSorter should not be used with HashMap-based sorting")
             }

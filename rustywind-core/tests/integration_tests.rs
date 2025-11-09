@@ -10,7 +10,7 @@ use rustywind_core::pattern_sorter::sort_classes;
 fn test_realistic_component_classes() {
     let sorter = HybridSorter::new();
 
-    // Realistic component with mixed utilities
+    // UNSORTED realistic component with mixed utilities
     let classes = vec![
         "hover:bg-gray-100",
         "flex",
@@ -26,16 +26,28 @@ fn test_realistic_component_classes() {
 
     let sorted = sorter.sort_classes(&classes);
 
-    // Verify base classes come before variants
-    let base_count = sorted.iter().filter(|c| !c.contains(':')).count();
-    assert_eq!(base_count, 9);
+    // Verify complete ordering
+    assert_eq!(sorted.len(), 10);
 
-    // At least one variant class exists
+    // Verify known base classes come before variants, unknown classes come last
+    // The pattern: [known base classes] [variants] [unknown classes]
     let variant_count = sorted.iter().filter(|c| c.contains(':')).count();
-    assert_eq!(variant_count, 1);
+    assert_eq!(variant_count, 1, "Should have 1 variant class");
 
-    // Verify sorting separates base and variant classes
-    assert!(sorted.contains(&"hover:bg-gray-100"));
+    // Find the variant
+    let variant_idx = sorted.iter().position(|&c| c == "hover:bg-gray-100").unwrap();
+
+    // All known base classes should come before the variant
+    // (duration-200 and transition-colors may be unknown and sort last)
+    let known_base_classes = vec!["flex", "items-center", "justify-between", "p-4", "bg-white", "rounded-lg", "shadow-md"];
+    for class in known_base_classes {
+        let idx = sorted.iter().position(|&c| c == class).unwrap();
+        assert!(
+            idx < variant_idx,
+            "Known base class '{}' at index {} should come before variant at {}",
+            class, idx, variant_idx
+        );
+    }
 }
 
 #[test]
