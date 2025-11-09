@@ -42,8 +42,6 @@ pub const VARIANT_ORDER: &[&str] = &[
     "first-of-type",
     "last-of-type",
     "only-of-type",
-    // Empty variant (structural)
-    "empty",
     // State variants
     "visited",
     "target",
@@ -61,15 +59,17 @@ pub const VARIANT_ORDER: &[&str] = &[
     "out-of-range",
     "read-only",
     "read-write",
+    // Empty variant (after state variants)
+    "empty",
     // Interactive variants (user interaction) - order from Tailwind v4 test suite
     "focus-visible",
     "focus-within",
     "focus",
     "hover",
     "active",
-    // Disabled & enabled
-    "disabled",
+    // Enabled & disabled (enabled comes first)
     "enabled",
+    "disabled",
     // Group & peer variants
     "group-hover",
     "group-focus",
@@ -85,8 +85,6 @@ pub const VARIANT_ORDER: &[&str] = &[
     "peer-disabled",
     "peer-invalid",
     "peer-required",
-    // Orientation (before responsive) - Tailwind v4 order
-    "landscape",
     // Responsive variants (breakpoints)
     "sm",
     "md",
@@ -107,7 +105,8 @@ pub const VARIANT_ORDER: &[&str] = &[
     // Motion preferences
     "motion-reduce",
     "motion-safe",
-    // Orientation (portrait after landscape)
+    // Orientation (landscape and portrait after responsive)
+    "landscape",
     "portrait",
     // Print
     "print",
@@ -139,8 +138,8 @@ pub const VARIANT_ORDER: &[&str] = &[
 /// assert_eq!(get_variant_index("focus-visible"), Some(34));
 /// assert_eq!(get_variant_index("focus"), Some(36));
 /// assert_eq!(get_variant_index("hover"), Some(37));
-/// assert_eq!(get_variant_index("landscape"), Some(55));
-/// assert_eq!(get_variant_index("sm"), Some(56));
+/// assert_eq!(get_variant_index("sm"), Some(55));
+/// assert_eq!(get_variant_index("landscape"), Some(72));
 /// assert_eq!(get_variant_index("unknown-variant"), None);
 /// ```
 #[inline]
@@ -203,18 +202,24 @@ mod tests {
         assert_eq!(get_variant_index("before"), Some(2));
         assert_eq!(get_variant_index("after"), Some(3));
 
-        // Test interactive variants (updated indices after reordering)
+        // Test interactive variants
         assert_eq!(get_variant_index("focus-visible"), Some(34));
         assert_eq!(get_variant_index("focus-within"), Some(35));
         assert_eq!(get_variant_index("focus"), Some(36));
         assert_eq!(get_variant_index("hover"), Some(37));
         assert_eq!(get_variant_index("active"), Some(38));
 
-        // Test responsive variants (indices shifted by landscape moving before)
-        assert_eq!(get_variant_index("landscape"), Some(55));
-        assert_eq!(get_variant_index("sm"), Some(56));
-        assert_eq!(get_variant_index("md"), Some(57));
-        assert_eq!(get_variant_index("lg"), Some(58));
+        // Test enabled/disabled (enabled now comes before disabled)
+        assert_eq!(get_variant_index("enabled"), Some(39));
+        assert_eq!(get_variant_index("disabled"), Some(40));
+
+        // Test responsive variants
+        assert_eq!(get_variant_index("sm"), Some(55));
+        assert_eq!(get_variant_index("md"), Some(56));
+        assert_eq!(get_variant_index("lg"), Some(57));
+
+        // Test landscape (now after responsive)
+        assert_eq!(get_variant_index("landscape"), Some(72));
 
         // Test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);
@@ -366,7 +371,7 @@ mod tests {
         assert!(dark_order > base_order);
         assert!(hover_order > base_order);
 
-        // dark (index 71 after reordering) should come after hover (index 36)
+        // dark (index 75) should come after hover (index 37)
         assert!(dark_order > hover_order);
     }
 
