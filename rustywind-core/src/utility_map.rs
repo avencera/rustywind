@@ -603,8 +603,9 @@ impl UtilityMap {
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
         // Space Reverse (static utilities, not covered by space-x/space-y patterns)
-        exact.insert("space-x-reverse", &["--tw-space-x-reverse"][..]);
-        exact.insert("space-y-reverse", &["--tw-space-y-reverse"][..]);
+        // Like their base utilities, use column-gap/row-gap for correct cross-axis sorting
+        exact.insert("space-x-reverse", &["row-gap"][..]);
+        exact.insert("space-y-reverse", &["column-gap"][..]);
 
         // Outline Style (maps to outline-style property)
         exact.insert("outline-none", &["outline-style"][..]);
@@ -914,17 +915,16 @@ impl UtilityMap {
             "rounded" if value.is_empty() || value.starts_with('[') || is_size_keyword(value) => {
                 Some(&["border-radius"][..])
             }
-            // Side-specific rounded utilities use synthetic side properties (e.g. border-top-radius)
-            // These properties are defined in property_order.rs and sort before corner-specific properties
-            // This ensures rounded-t sorts before rounded-tl, as expected
+            // Side-specific rounded utilities
             "rounded-s" => Some(&["border-start-radius"][..]),
             "rounded-e" => Some(&["border-end-radius"][..]),
-            "rounded-t" => Some(&["border-top-radius"][..]),
-            "rounded-r" => Some(&["border-right-radius"][..]),
-            "rounded-b" => Some(&["border-bottom-radius"][..]),
-            "rounded-l" => Some(&["border-left-radius"][..]),
+            // Side rounded utilities map to their minimum corner property for proper sorting
+            // This ensures they sort by the first corner they affect (matching Tailwind v4)
+            "rounded-t" => Some(&["border-top-left-radius"][..]),      // min(189, 190) = 189
+            "rounded-r" => Some(&["border-top-right-radius"][..]),     // min(190, 191) = 190
+            "rounded-b" => Some(&["border-bottom-right-radius"][..]),  // min(191, 192) = 191
+            "rounded-l" => Some(&["border-top-left-radius"][..]),      // min(189, 192) = 189
             // Corner-specific rounded utilities map to individual corner properties
-            // These sort after side utilities because corner properties have higher indices
             "rounded-ss" => Some(&["border-start-start-radius"][..]),
             "rounded-se" => Some(&["border-start-end-radius"][..]),
             "rounded-ee" => Some(&["border-end-end-radius"][..]),
@@ -1025,11 +1025,11 @@ impl UtilityMap {
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Space Between
-            // Per Tailwind v4, --tw-space-x and --tw-space-y are NOT in property-order.ts
-            // Map to the corresponding -reverse properties for correct cross-axis sorting
-            // space-x uses --tw-space-x-reverse (154), space-y uses --tw-space-y-reverse (155)
-            "space-x" => Some(&["--tw-space-x-reverse"][..]),
-            "space-y" => Some(&["--tw-space-y-reverse"][..]),
+            // Per Tailwind v4, space-x and space-y use different --tw-sort properties:
+            // space-x uses row-gap (index 153), space-y uses column-gap (index 152)
+            // Since 152 < 153, space-y correctly sorts BEFORE space-x
+            "space-x" => Some(&["row-gap"][..]),
+            "space-y" => Some(&["column-gap"][..]),
 
             // Divide
             "divide-x" => Some(&["divide-x-width"][..]),
@@ -1624,22 +1624,22 @@ mod tests {
         use crate::property_order::get_property_index;
         let map = UtilityMap::new();
 
-        // space-x should map to --tw-space-x-reverse for cross-axis sorting
+        // space-x should map to row-gap for cross-axis sorting
         let space_x_props = map.get_properties("space-x-2").unwrap();
-        assert_eq!(space_x_props, &["--tw-space-x-reverse"]);
+        assert_eq!(space_x_props, &["row-gap"]);
 
-        // space-y should map to --tw-space-y-reverse for cross-axis sorting
+        // space-y should map to column-gap for cross-axis sorting
         let space_y_props = map.get_properties("space-y-2").unwrap();
-        assert_eq!(space_y_props, &["--tw-space-y-reverse"]);
+        assert_eq!(space_y_props, &["column-gap"]);
 
-        // Verify correct ordering: space-x before space-y
-        let space_x_idx = get_property_index("--tw-space-x-reverse").unwrap();
-        let space_y_idx = get_property_index("--tw-space-y-reverse").unwrap();
+        // Verify correct ordering: space-y before space-x
+        let column_gap_idx = get_property_index("column-gap").unwrap();
+        let row_gap_idx = get_property_index("row-gap").unwrap();
 
-        // space-x-reverse (154) should come before space-y-reverse (155)
-        assert!(space_x_idx < space_y_idx,
-            "--tw-space-x-reverse ({}) should sort before --tw-space-y-reverse ({})",
-            space_x_idx, space_y_idx);
+        // column-gap (152) should come before row-gap (153)
+        assert!(column_gap_idx < row_gap_idx,
+            "column-gap ({}) should sort before row-gap ({})",
+            column_gap_idx, row_gap_idx);
     }
 
     #[test]

@@ -187,16 +187,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "overscroll-behavior-x",
     "overscroll-behavior-y",
     "scroll-behavior",
-    // Border Radius (140-154)
-    // Synthetic side properties (border-top-radius, etc.) come before corner properties
-    // This ensures rounded-t sorts before rounded-tl for correct CSS specificity
+    // Border Radius (140-150)
+    // Removed synthetic side properties (border-top-radius, etc.) - not real in Tailwind v4
+    // Side utilities (rounded-t) now map to their minimum corner property for proper sorting
     "border-radius",
     "border-start-radius",
     "border-end-radius",
-    "border-top-radius",
-    "border-right-radius",
-    "border-bottom-radius",
-    "border-left-radius",
     "border-start-start-radius",
     "border-start-end-radius",
     "border-end-end-radius",
@@ -454,10 +450,10 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 342 (removed --tw-space-x, --tw-space-y, and --tw-divide-x-reverse per Tailwind v4)
-        // Includes outline-style, user-select, --tw-ring-inset,
-        // border-top-radius, border-right-radius, border-bottom-radius, border-left-radius, and border-opacity
-        assert_eq!(PROPERTY_ORDER.len(), 342);
+        // Total: 338 (removed synthetic border radius properties per Tailwind v4)
+        // Removed: border-top-radius, border-right-radius, border-bottom-radius, border-left-radius
+        // These were marked as "not real" in Tailwind v4's property-order.ts
+        assert_eq!(PROPERTY_ORDER.len(), 338);
     }
 
     #[test]
@@ -466,14 +462,14 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (342 total, so last is at index 341)
-        assert_eq!(get_property_index("forced-color-adjust"), Some(341));
+        // Test last property (338 total, so last is at index 337)
+        assert_eq!(get_property_index("forced-color-adjust"), Some(337));
 
-        // Test common properties (indices shifted due to property reordering)
+        // Test common properties (indices shifted by -4 after border-radius section due to removed synthetics)
         assert_eq!(get_property_index("margin"), Some(26));
-        assert_eq!(get_property_index("padding"), Some(254));
+        assert_eq!(get_property_index("padding"), Some(250)); // Was 254, now 250 (removed 4)
         assert_eq!(get_property_index("display"), Some(36));
-        assert_eq!(get_property_index("background-color"), Some(182));
+        assert_eq!(get_property_index("background-color"), Some(178)); // Was 182, now 178 (removed 4)
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);
