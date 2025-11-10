@@ -736,6 +736,17 @@ impl UtilityMap {
         exact.insert("font-serif", &["font-family"][..]);
         exact.insert("font-mono", &["font-family"][..]);
 
+        // Typography plugin (prose)
+        // These are from @tailwindcss/typography plugin but we treat them as known utilities
+        // so they sort with other text/typography utilities, not as custom classes
+        exact.insert("prose", &["--tw-prose-component"][..]);
+        exact.insert("prose-sm", &["--tw-prose-component"][..]);
+        exact.insert("prose-base", &["--tw-prose-component"][..]);
+        exact.insert("prose-lg", &["--tw-prose-component"][..]);
+        exact.insert("prose-xl", &["--tw-prose-component"][..]);
+        exact.insert("prose-2xl", &["--tw-prose-component"][..]);
+        exact.insert("prose-invert", &["--tw-prose-invert"][..]);
+
         // Scroll Snap Align (already exists but consolidating here)
         // Snap utilities are already defined above at lines 206-209
 
@@ -793,8 +804,8 @@ impl UtilityMap {
             "bottom" => Some(&["bottom"][..]),
             "left" => Some(&["left"][..]),
 
-            // Z-index
-            "z" => Some(&["z-index"][..]),
+            // Z-index (including negative values)
+            "z" | "-z" => Some(&["z-index"][..]),
 
             // Order
             "order" => Some(&["order"][..]),
@@ -948,7 +959,6 @@ impl UtilityMap {
 
             // Shadow
             "shadow" if is_color_value(value) => Some(&["--tw-shadow-color"][..]),
-            "shadow" => Some(&["box-shadow"][..]),
 
             // Ring (uses multiple properties)
             "ring" if value.is_empty() || value.parse::<u32>().is_ok() => {
@@ -1090,19 +1100,29 @@ impl Default for UtilityMap {
 /// - `"bg-[#fff]"` → `("bg", "[#fff]")`
 /// - `"min-w-0"` → `("min-w", "0")`
 fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
+    // Handle opacity modifiers: text-white/60, bg-primary/20, dark:text-white/90
+    // Strip the opacity part (everything after and including '/') for property lookup
+    // but keep the original class name for sorting purposes
+    let utility_without_opacity = if let Some(slash_pos) = utility.find('/') {
+        &utility[..slash_pos]
+    } else {
+        utility
+    };
+
     // Handle arbitrary values: bg-[#fff], w-[100px]
-    if let Some(bracket_start) = utility.find('[') {
-        let base = &utility[..bracket_start.saturating_sub(1)]; // Remove the '-' before '['
-        let value = &utility[bracket_start..];
+    if let Some(bracket_start) = utility_without_opacity.find('[') {
+        let base = &utility_without_opacity[..bracket_start.saturating_sub(1)]; // Remove the '-' before '['
+        let value = &utility_without_opacity[bracket_start..];
         return Some((base, value));
     }
 
     // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
-    let (is_negative, utility_without_neg) = if let Some(stripped) = utility.strip_prefix('-') {
-        (true, stripped)
-    } else {
-        (false, utility)
-    };
+    let (is_negative, utility_without_neg) =
+        if let Some(stripped) = utility_without_opacity.strip_prefix('-') {
+            (true, stripped)
+        } else {
+            (false, utility_without_opacity)
+        };
 
     // Try to match multi-part bases first
     // These need to be checked before simple dash splitting
@@ -1182,12 +1202,12 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         if let Some(stripped) = utility_without_neg.strip_prefix(prefix) {
             if stripped.is_empty() {
                 // Exact match, no value
-                return Some((utility, ""));
+                return Some((utility_without_opacity, ""));
             } else if stripped.as_bytes().first() == Some(&b'-') {
                 // Has a dash after the prefix
                 let value = &stripped[1..];
                 let base = if is_negative {
-                    &utility[..prefix.len() + 1] // +1 for initial '-'
+                    &utility_without_opacity[..prefix.len() + 1] // +1 for initial '-'
                 } else {
                     prefix
                 };
@@ -1196,7 +1216,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
                 // Prefix ends with dash (shouldn't happen with our list, but safe)
                 let value = stripped;
                 let base = if is_negative {
-                    &utility[..prefix.len() + 1] // +1 for initial '-'
+                    &utility_without_opacity[..prefix.len() + 1] // +1 for initial '-'
                 } else {
                     prefix
                 };
@@ -1210,7 +1230,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         let base_without_neg = &utility_without_neg[..dash_pos];
         let value = &utility_without_neg[dash_pos + 1..];
         let base = if is_negative {
-            &utility[..1 + dash_pos] // 1 for initial '-', then dash_pos characters
+            &utility_without_opacity[..1 + dash_pos] // 1 for initial '-', then dash_pos characters
         } else {
             base_without_neg
         };
@@ -1218,7 +1238,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
     }
 
     // No dash found - utility with no value (keep negative sign if present)
-    Some((utility, ""))
+    Some((utility_without_opacity, ""))
 }
 
 /// Check if this base+value combination indicates a multi-part base.

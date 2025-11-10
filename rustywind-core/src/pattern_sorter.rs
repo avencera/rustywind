@@ -463,20 +463,27 @@ impl Default for PatternSorter {
 /// Sort a list of Tailwind CSS classes according to the canonical ordering.
 ///
 /// This function sorts classes using Tailwind's exact algorithm:
-/// 1. Base classes (no variants) come first
-/// 2. Classes with variants come after, sorted by variant order
-/// 3. Within each group, sort by property order
-/// 4. Tiebreak by property count, then alphabetically
+/// 1. Unknown/custom classes come first (sorted by variant order, then alphabetically)
+/// 2. Known Tailwind base classes (no variants) come next
+/// 3. Known classes with variants come after, sorted by variant order
+/// 4. Within each group, sort by property order
+/// 5. Tiebreak by property count, then alphabetically
 ///
-/// Classes that cannot be parsed or have unknown properties are placed at the end,
-/// maintaining their relative order.
+/// Unknown classes are those that cannot be parsed or have unknown properties.
+/// This matches the Prettier plugin behavior where getClassOrder() returns null
+/// for unknown classes, which are sorted to the front.
 ///
 /// # Examples
 ///
 /// ```
 /// use rustywind_core::pattern_sorter::sort_classes;
 ///
-/// // Base classes before variants
+/// // Unknown/custom classes first, then known classes
+/// let classes = vec!["flex", "custom-class", "p-4"];
+/// let sorted = sort_classes(&classes);
+/// assert_eq!(sorted, vec!["custom-class", "flex", "p-4"]);
+///
+/// // Base classes before variants (among known classes)
 /// let classes = vec!["md:flex", "flex", "sm:grid", "grid"];
 /// let sorted = sort_classes(&classes);
 /// assert_eq!(sorted, vec!["flex", "grid", "sm:grid", "md:flex"]);
@@ -490,25 +497,47 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
     let sorter = PatternSorter::new();
 
     // Generate sort keys for all classes
-    let mut with_keys: Vec<(Option<SortKey>, &str)> = classes
+    // For unknown classes, we still need variant order for proper sorting
+    let mut with_keys: Vec<(Option<SortKey>, u128, &str)> = classes
         .iter()
-        .map(|&class| (sorter.get_sort_key(class), class))
+        .map(|&class| {
+            let key = sorter.get_sort_key(class);
+            // For unknown classes, calculate variant order manually
+            let variant_order = if key.is_none() {
+                if let Some(parsed) = parse_class(class) {
+                    calculate_variant_order(&parsed.variants)
+                } else {
+                    0
+                }
+            } else {
+                0 // Not needed for known classes
+            };
+            (key, variant_order, class)
+        })
         .collect();
 
     // Sort by keys
-    // Classes with valid keys come first (sorted by key)
-    // Classes without keys come last (maintaining relative order)
-    with_keys.sort_by(|(a_key, a_class), (z_key, z_class)| {
+    // Classes without valid keys (unknown/custom) come first, sorted by variant order then alphabetically
+    // Classes with valid keys (known Tailwind utilities) come after, sorted by key
+    // This matches prettier-plugin-tailwindcss behavior where getClassOrder() returns
+    // null for unknown classes, which are sorted to the front.
+    with_keys.sort_by(|(a_key, a_variant_order, a_class), (z_key, z_variant_order, z_class)| {
         match (a_key, z_key) {
             (Some(a), Some(z)) => a.cmp(z),
-            (Some(_), None) => Ordering::Less, // Known classes before unknown
-            (None, Some(_)) => Ordering::Greater, // Unknown classes after known
-            (None, None) => a_class.cmp(z_class), // Unknown classes alphabetically
+            (Some(_), None) => Ordering::Greater, // Known classes after unknown
+            (None, Some(_)) => Ordering::Less,    // Unknown classes before known
+            (None, None) => {
+                // Unknown classes: sort by variant order first, then alphabetically
+                // Lower variant order values come first (0 for no variants, then increasing)
+                a_variant_order
+                    .cmp(&z_variant_order)
+                    .then_with(|| a_class.cmp(z_class))
+            }
         }
     });
 
     // Extract the sorted classes
-    with_keys.iter().map(|(_, class)| *class).collect()
+    with_keys.iter().map(|(_, _, class)| *class).collect()
 }
 
 #[cfg(test)]
@@ -590,12 +619,12 @@ mod tests {
         let classes = vec!["flex", "unknown-class", "grid", "fake-utility"];
         let sorted = sort_classes(&classes);
 
-        // Known classes first
-        assert_eq!(sorted[0], "flex");
-        assert_eq!(sorted[1], "grid");
-        // Unknown classes after, alphabetically
-        assert_eq!(sorted[2], "fake-utility");
-        assert_eq!(sorted[3], "unknown-class");
+        // Unknown classes first, alphabetically
+        assert_eq!(sorted[0], "fake-utility");
+        assert_eq!(sorted[1], "unknown-class");
+        // Known classes after
+        assert_eq!(sorted[2], "flex");
+        assert_eq!(sorted[3], "grid");
     }
 
     #[test]

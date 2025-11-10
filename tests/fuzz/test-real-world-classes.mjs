@@ -8,13 +8,13 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import prettier from 'prettier';
 
 const execAsync = promisify(exec);
 
-const TEST_FILES_DIR = '../tailwind-sorting-test-files/test-files';
+const TEST_FILES_DIR = '../real-world-tests/test-files';
 const RUSTYWIND_BIN = '../../target/release/rustywind';
 
 /**
@@ -244,6 +244,10 @@ async function runRealWorldTest() {
   console.log(`🔍 Unique failure patterns: ${uniqueFailurePatterns.size}\n`);
 
   if (failures.length > 0) {
+    // Save all failures to JSON file for analysis
+    writeFileSync('real-world-failures.json', JSON.stringify(failures, null, 2));
+    console.log('💾 All failures saved to real-world-failures.json\n');
+
     // Show first 10 failures
     const samplesToShow = Math.min(10, failures.length);
     console.log(`❌ Sample Failures (showing first ${samplesToShow} of ${failures.length}):\n`);

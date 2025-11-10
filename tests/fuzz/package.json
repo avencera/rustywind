@@ -12,8 +12,10 @@
     "test:with-legacy": "FILTER_LEGACY=false node compare.js"
   },
   "dependencies": {
-    "prettier": "^3.0.0",
-    "prettier-plugin-tailwindcss": "^0.7.1",
     "seedrandom": "^3.0.5"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.7.1"
   }
 }

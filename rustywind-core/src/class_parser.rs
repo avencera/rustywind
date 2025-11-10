@@ -527,4 +527,45 @@ mod tests {
         assert_eq!(parse_utility_value("-scale-x-50"), Some(("-scale-x", "50")));
         assert_eq!(parse_utility_value("-m-4"), Some(("-m", "4")));
     }
+
+    #[test]
+    fn test_opacity_slash_syntax() {
+        // Test standard color with opacity
+        let parsed = parse_class("text-white/60").unwrap();
+        assert_eq!(parsed.utility, "text");
+        assert_eq!(parsed.value, "white/60");
+        assert_eq!(parsed.get_properties(), Some(&["color"][..]));
+
+        // Test background color with opacity
+        let parsed = parse_class("bg-red-500/50").unwrap();
+        assert_eq!(parsed.utility, "bg");
+        assert_eq!(parsed.value, "red-500/50");
+        assert_eq!(parsed.get_properties(), Some(&["background-color"][..]));
+
+        // Test custom color with opacity (should be unknown)
+        let parsed = parse_class("bg-primary/20").unwrap();
+        assert_eq!(parsed.utility, "bg");
+        assert_eq!(parsed.value, "primary/20");
+        assert_eq!(parsed.get_properties(), None); // Custom color = unknown
+
+        // Test variant + opacity
+        let parsed = parse_class("dark:text-white/90").unwrap();
+        assert_eq!(parsed.variants, vec!["dark"]);
+        assert_eq!(parsed.utility, "text");
+        assert_eq!(parsed.value, "white/90");
+        assert_eq!(parsed.get_properties(), Some(&["color"][..]));
+
+        // Test multiple variants + opacity
+        let parsed = parse_class("hover:dark:bg-blue-500/75").unwrap();
+        assert_eq!(parsed.variants, vec!["hover", "dark"]);
+        assert_eq!(parsed.utility, "bg");
+        assert_eq!(parsed.value, "blue-500/75");
+        assert_eq!(parsed.get_properties(), Some(&["background-color"][..]));
+
+        // Test border color with opacity
+        let parsed = parse_class("border-gray-300/50").unwrap();
+        assert_eq!(parsed.utility, "border");
+        assert_eq!(parsed.value, "gray-300/50");
+        assert_eq!(parsed.get_properties(), Some(&["border-color"][..]));
+    }
 }

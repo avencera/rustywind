@@ -322,7 +322,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "text-align",
     "text-indent",
     "vertical-align",
-    // Typography - Font (266-281)
+    // Typography - Prose Component (266-267)
+    "--tw-prose-component",
+    "--tw-prose-invert",
+    // Typography - Font (268-283)
     "font-family",
     "font-size",
     "line-height",
@@ -339,13 +342,13 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "font-style",
     "font-stretch",
     "font-variant-numeric",
-    // Typography - Decoration (282-286)
+    // Typography - Decoration (284-288)
     "text-decoration-line",
     "text-decoration-color",
     "text-decoration-style",
     "text-decoration-thickness",
     "text-underline-offset",
-    // Typography - Misc (287-291)
+    // Typography - Misc (289-293)
     "-webkit-font-smoothing",
     "placeholder-color",
     "caret-color",
@@ -451,11 +454,11 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 339 (removed synthetic border radius properties per Tailwind v4)
+        // Total: 341 (removed synthetic border radius properties per Tailwind v4, added prose properties)
         // Removed: border-top-radius, border-right-radius, border-bottom-radius, border-left-radius
-        // These were marked as "not real" in Tailwind v4's property-order.ts
+        // Added: --tw-prose-component, --tw-prose-invert (for @tailwindcss/typography plugin)
         // divide-x-reverse and divide-y-reverse are positioned to match Tailwind v4 behavior
-        assert_eq!(PROPERTY_ORDER.len(), 339);
+        assert_eq!(PROPERTY_ORDER.len(), 341);
     }
 
     #[test]

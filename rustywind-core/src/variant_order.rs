@@ -70,7 +70,10 @@ pub const VARIANT_ORDER: &[&str] = &[
     // Enabled & disabled (enabled comes first)
     "enabled",
     "disabled",
-    // Group & peer variants
+    // Group & peer base modifiers (standalone, for stacking with other variants)
+    "group",
+    "peer",
+    // Group & peer compound variants (legacy/shorthand forms)
     "group-hover",
     "group-focus",
     "group-focus-within",
@@ -194,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_variant_count() {
-        assert_eq!(VARIANT_ORDER.len(), 81);
+        assert_eq!(VARIANT_ORDER.len(), 83);
     }
 
     #[test]
@@ -214,14 +217,14 @@ mod tests {
         assert_eq!(get_variant_index("enabled"), Some(39));
         assert_eq!(get_variant_index("disabled"), Some(40));
 
-        // Test responsive variants
-        assert_eq!(get_variant_index("sm"), Some(55));
-        assert_eq!(get_variant_index("md"), Some(56));
-        assert_eq!(get_variant_index("lg"), Some(57));
+        // Test responsive variants (indices shifted by 2 after adding group/peer)
+        assert_eq!(get_variant_index("sm"), Some(57));
+        assert_eq!(get_variant_index("md"), Some(58));
+        assert_eq!(get_variant_index("lg"), Some(59));
 
-        // Test orientation (portrait before landscape)
-        assert_eq!(get_variant_index("portrait"), Some(72));
-        assert_eq!(get_variant_index("landscape"), Some(73));
+        // Test orientation (portrait before landscape) (indices shifted by 2)
+        assert_eq!(get_variant_index("portrait"), Some(74));
+        assert_eq!(get_variant_index("landscape"), Some(75));
 
         // Test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);
