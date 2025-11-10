@@ -103,8 +103,11 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
 ///
 /// This is used for proper alphabetical comparison when properties match.
 fn extract_base_name(utility: &str) -> &str {
+    // Strip variants first to get just the utility part
+    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+
     // Extract base for rounded utilities
-    if let Some(after_rounded) = utility.strip_prefix("rounded-") {
+    if let Some(after_rounded) = utility_base.strip_prefix("rounded-") {
         let parts: Vec<&str> = after_rounded.split('-').collect();
         if parts.len() >= 2 {
             // Check if first part is a side or corner indicator
@@ -119,7 +122,37 @@ fn extract_base_name(utility: &str) -> &str {
             }
         }
     }
+
+    // Extract base for drop-shadow and transition utilities
+    // This ensures drop-shadow-xl and drop-shadow-none compare as equal at this stage
+    // so the special -none handling can kick in
+    if utility_base.starts_with("drop-shadow") {
+        return "drop-shadow";
+    }
+    if utility_base.starts_with("transition") {
+        return "transition";
+    }
+
     utility // Return full name if no modifier
+}
+
+/// Extract the utility prefix for utilities with size/value modifiers.
+/// For drop-shadow-xl, returns "drop-shadow"
+/// For transition-colors, returns "transition"
+/// For hover:drop-shadow-xl, returns "drop-shadow" (strips variants first)
+fn extract_utility_prefix(utility: &str) -> &str {
+    // Strip variants first
+    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+
+    // Handle drop-shadow-* utilities
+    if utility_base.starts_with("drop-shadow") {
+        return "drop-shadow";
+    }
+    // Handle transition-* utilities
+    if utility_base.starts_with("transition") {
+        return "transition";
+    }
+    utility_base
 }
 
 ///
@@ -286,10 +319,35 @@ impl Ord for SortKey {
                 let priority_other = get_utility_prefix_priority(&other.class);
                 priority_self.cmp(&priority_other)
             })
+            // Compare base names (extracts modifiers)
             .then_with(|| {
                 let base_self = extract_base_name(&self.class);
                 let base_other = extract_base_name(&other.class);
                 base_self.cmp(base_other)
+            })
+            // Special handling for -none suffix on specific utilities
+            // For drop-shadow-* and transition-* utilities, -none should sort LAST
+            // For other utilities like shadow-*, blur-*, rounded-*, -none sorts alphabetically
+            .then_with(|| {
+                // Extract the utility prefix (e.g., "drop-shadow" from "drop-shadow-xl")
+                let prefix_self = extract_utility_prefix(&self.class);
+                let prefix_other = extract_utility_prefix(&other.class);
+
+                // Only apply special -none handling if both utilities share the same prefix
+                if prefix_self == prefix_other {
+                    let self_is_none = self.class.ends_with("-none");
+                    let other_is_none = other.class.ends_with("-none");
+
+                    // Only apply special sorting for drop-shadow and transition utilities
+                    let needs_special_none_handling = prefix_self == "drop-shadow" || prefix_self == "transition";
+
+                    if needs_special_none_handling && self_is_none != other_is_none {
+                        // If one ends with -none and the other doesn't, put -none last
+                        return self_is_none.cmp(&other_is_none);
+                    }
+                }
+
+                Ordering::Equal
             })
             // Finally alphabetically on full name
             .then(self.class.cmp(&other.class))
