@@ -14,12 +14,13 @@ npm run test:with-legacy
 
 ## Test Results
 
-| Mode | Pass Rate | Notes |
-|------|-----------|-------|
-| With Legacy (default) | 59% | Includes Tailwind v3 legacy classes like `bg-opacity-*` |
-| V4-only (filtered) | 55% | Excludes legacy classes, focuses on v4 utilities |
+| Mode                  | Pass Rate | Notes                                                   |
+| --------------------- | --------- | ------------------------------------------------------- |
+| With Legacy (default) | 59%       | Includes Tailwind v3 legacy classes like `bg-opacity-*` |
+| V4-only (filtered)    | 55%       | Excludes legacy classes, focuses on v4 utilities        |
 
 **Recommendation**: Use default mode (with legacy) since:
+
 1. Prettier still supports v3 legacy classes
 2. RustyWind handles them correctly (better pass rate with them included)
 3. Real-world projects may still use v3 classes during migration
@@ -29,6 +30,7 @@ npm run test:with-legacy
 Legacy classes are Tailwind v3 utilities that have been replaced in v4:
 
 ### Color Opacity Utilities (Deprecated in v4)
+
 - `bg-opacity-*` → Use `bg-color/opacity` syntax (e.g., `bg-blue-500/50`)
 - `text-opacity-*` → Use `text-color/opacity` syntax
 - `border-opacity-*` → Use `border-color/opacity` syntax
@@ -43,11 +45,11 @@ These are filtered when using `FILTER_LEGACY=true` environment variable.
 Edit `compare.js` to adjust:
 
 ```javascript
-const NUM_TESTS = 100;           // Number of random test cases
-const MIN_CLASSES = 5;            // Minimum classes per test
-const MAX_CLASSES = 30;           // Maximum classes per test
-const VARIANT_PROBABILITY = 0.3;  // Chance of adding variants
-const FILTER_LEGACY = process.env.FILTER_LEGACY !== 'false';
+const NUM_TESTS = 100; // Number of random test cases
+const MIN_CLASSES = 5; // Minimum classes per test
+const MAX_CLASSES = 30; // Maximum classes per test
+const VARIANT_PROBABILITY = 0.3; // Chance of adding variants
+const FILTER_LEGACY = process.env.FILTER_LEGACY !== "false";
 ```
 
 ## Files
@@ -82,5 +84,3 @@ Failures indicate where RustyWind's sort order differs from Prettier's canonical
 2. **Value-based sorting** - Numeric values not sorted (e.g., `scale-50` vs `scale-110`)
 3. **Property mapping** - Utilities mapping to incorrect CSS properties
 4. **Edge cases** - Complex combinations or lesser-used utilities
-
-See `PHASE_1_2_SUMMARY.md` for detailed analysis and improvement roadmap.
