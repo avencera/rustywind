@@ -167,9 +167,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-space-y-reverse",
     // Space & Divide (122-129)
     "divide-x-width",
-    "--tw-divide-x-reverse",
     "divide-y-width",
-    "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
     // Alignment (130-132)
@@ -230,6 +228,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-color",
     "border-bottom-color",
     "border-left-color",
+    "--tw-divide-y-reverse",
+    "--tw-divide-x-reverse",
     // Background (182-192)
     "background-color",
     "background-image",
@@ -357,8 +357,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     // Shadows (295-305)
     "box-shadow",
     "--tw-shadow",
-    "--tw-shadow-color",
     "--tw-ring-shadow",
+    "--tw-shadow-color",
     "--tw-ring-color",
     "--tw-inset-shadow",
     "--tw-inset-shadow-color",
@@ -393,7 +393,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-backdrop-sepia",
     "backdrop-filter",
     // Additional properties for proper sorting
-    "outline-style",
     // Transitions & Animations (331-335)
     "transition-property",
     "transition-behavior",
@@ -402,6 +401,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "transition-timing-function",
     // Misc (341-346)
     "will-change",
+    "outline-style",
     "user-select",
     "--tw-ring-inset",
     "contain",

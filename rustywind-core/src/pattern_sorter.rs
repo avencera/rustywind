@@ -31,6 +31,66 @@ use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
 use crate::variant_order::calculate_variant_order;
 
+/// Compare two strings alphanumerically (like Tailwind CSS does).
+/// Numbers within strings are compared numerically rather than lexicographically.
+fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
+    let a_bytes = a.as_bytes();
+    let z_bytes = z.as_bytes();
+    let min_len = a.len().min(z.len());
+
+    let mut i = 0;
+    while i < min_len {
+        let a_char = a_bytes[i];
+        let z_char = z_bytes[i];
+
+        // If both are digits, compare them as numbers
+        if a_char.is_ascii_digit() && z_char.is_ascii_digit() {
+            // Find the end of the number in both strings
+            let mut a_end = i + 1;
+            while a_end < a.len() && a_bytes[a_end].is_ascii_digit() {
+                a_end += 1;
+            }
+
+            let mut z_end = i + 1;
+            while z_end < z.len() && z_bytes[z_end].is_ascii_digit() {
+                z_end += 1;
+            }
+
+            // Parse and compare numerically
+            if let (Ok(a_num), Ok(z_num)) = (a[i..a_end].parse::<i64>(), z[i..z_end].parse::<i64>()) {
+                match a_num.cmp(&z_num) {
+                    Ordering::Equal => {
+                        i = a_end.max(z_end);
+                        continue;
+                    }
+                    other => return other,
+                }
+            }
+
+            // Fallback to string comparison if parsing fails
+            match a[i..a_end].cmp(&z[i..z_end]) {
+                Ordering::Equal => {
+                    i = a_end.max(z_end);
+                    continue;
+                }
+                other => return other,
+            }
+        }
+
+        // Compare characters
+        match a_char.cmp(&z_char) {
+            Ordering::Equal => {
+                i += 1;
+                continue;
+            }
+            other => return other,
+        }
+    }
+
+    // Shorter string comes first
+    a.len().cmp(&z.len())
+}
+
 /// Extract a numeric value from a utility class name for value-based sub-sorting.
 ///
 /// This function extracts numeric values from utilities like:
@@ -51,7 +111,7 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
     let value_part = parts.last()?;
 
     // Handle negative values (e.g., -translate-x-4 → value is "4" with negative prefix)
-    let (is_negative, value_str) = if parts.len() > 1 && parts[0].is_empty() {
+    let (_is_negative, value_str) = if parts.len() > 1 && parts[0].is_empty() {
         // Negative utility like -translate-x-4
         (true, value_part)
     } else {
@@ -60,7 +120,7 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
 
     // Try to parse as integer
     if let Ok(num) = value_str.parse::<i32>() {
-        return Some(if is_negative { -(num as f64) } else { num as f64 });
+        return Some(num as f64);
     }
 
     // Try to parse as fraction (e.g., "1/2")
@@ -73,7 +133,7 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
             ) {
                 if denominator != 0.0 {
                     let result = numerator / denominator;
-                    return Some(if is_negative { -result } else { result });
+                    return Some(result);
                 }
             }
         }
@@ -81,7 +141,7 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
 
     // Try to parse as decimal (e.g., "0.5")
     if let Ok(num) = value_str.parse::<f64>() {
-        return Some(if is_negative { -num } else { num });
+        return Some(num);
     }
 
     None
@@ -130,9 +190,9 @@ impl Ord for SortKey {
             // Then by numeric value (if both present)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
-                    (Some(a), Some(b)) => {
-                        // Use partial_cmp and default to Equal for NaN cases
-                        a.partial_cmp(&b).unwrap_or(Ordering::Equal)
+                    (Some(_), Some(_)) => {
+                        // Both have numeric values - use alphanumeric comparison of full class names
+                        compare_alphanumeric(&self.class, &other.class)
                     }
                     // If only one has a numeric value, no preference (continue to next comparison)
                     _ => Ordering::Equal,
@@ -635,9 +695,9 @@ mod tests {
         assert_eq!(extract_numeric_value("opacity-50"), Some(50.0));
         assert_eq!(extract_numeric_value("scale-95"), Some(95.0));
 
-        // Negative values (e.g., -translate-x-4)
-        assert_eq!(extract_numeric_value("-translate-x-4"), Some(-4.0));
-        assert_eq!(extract_numeric_value("-m-2"), Some(-2.0));
+        // Negative values (e.g., -translate-x-4) - now returns absolute values
+        assert_eq!(extract_numeric_value("-translate-x-4"), Some(4.0));
+        assert_eq!(extract_numeric_value("-m-2"), Some(2.0));
 
         // With variants (should extract from utility part)
         assert_eq!(extract_numeric_value("md:p-8"), Some(8.0));

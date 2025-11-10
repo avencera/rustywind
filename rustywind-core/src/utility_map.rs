@@ -601,8 +601,8 @@ impl UtilityMap {
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
         // Space Reverse (static utilities, not covered by space-x/space-y patterns)
-        exact.insert("space-x-reverse", &["row-gap"][..]);
-        exact.insert("space-y-reverse", &["column-gap"][..]);
+        exact.insert("space-x-reverse", &["margin-left"][..]);
+        exact.insert("space-y-reverse", &["margin-top"][..]);
 
         // Outline Style (maps to outline-style property)
         exact.insert("outline-none", &["outline-style"][..]);
@@ -912,15 +912,17 @@ impl UtilityMap {
             "rounded" if value.is_empty() || value.starts_with('[') || is_size_keyword(value) => {
                 Some(&["border-radius"][..])
             }
-            // Side-specific rounded utilities map to multiple corner properties
-            // to match Tailwind v4 behavior
-            "rounded-s" => Some(&["border-start-start-radius", "border-end-start-radius"][..]),
-            "rounded-e" => Some(&["border-start-end-radius", "border-end-end-radius"][..]),
-            "rounded-t" => Some(&["border-top-left-radius", "border-top-right-radius"][..]),
-            "rounded-r" => Some(&["border-top-right-radius", "border-bottom-right-radius"][..]),
-            "rounded-b" => Some(&["border-bottom-right-radius", "border-bottom-left-radius"][..]),
-            "rounded-l" => Some(&["border-top-left-radius", "border-bottom-left-radius"][..]),
-            // Corner-specific rounded utilities map to single properties
+            // Side-specific rounded utilities use synthetic side properties (e.g. border-top-radius)
+            // These properties are defined in property_order.rs and sort before corner-specific properties
+            // This ensures rounded-t sorts before rounded-tl, as expected
+            "rounded-s" => Some(&["border-start-radius"][..]),
+            "rounded-e" => Some(&["border-end-radius"][..]),
+            "rounded-t" => Some(&["border-top-radius"][..]),
+            "rounded-r" => Some(&["border-right-radius"][..]),
+            "rounded-b" => Some(&["border-bottom-radius"][..]),
+            "rounded-l" => Some(&["border-left-radius"][..]),
+            // Corner-specific rounded utilities map to individual corner properties
+            // These sort after side utilities because corner properties have higher indices
             "rounded-ss" => Some(&["border-start-start-radius"][..]),
             "rounded-se" => Some(&["border-start-end-radius"][..]),
             "rounded-ee" => Some(&["border-end-end-radius"][..]),
@@ -1021,12 +1023,10 @@ impl UtilityMap {
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Space Between
-            // Note: Tailwind v4 uses --tw-sort property to indicate sorting order
-            // space-x has --tw-sort: row-gap
-            // space-y has --tw-sort: column-gap
-            // This is intentionally swapped from what you'd expect!
-            "space-x" => Some(&["row-gap"][..]),
-            "space-y" => Some(&["column-gap"][..]),
+            // space-x and space-y use margin properties because they apply margin to
+            // children, not gap between children. This matches Tailwind's actual behavior.
+            "space-x" => Some(&["margin-left"][..]),
+            "space-y" => Some(&["margin-top"][..]),
 
             // Divide
             "divide-x" => Some(&["divide-x-width"][..]),
@@ -1621,24 +1621,26 @@ mod tests {
         use crate::property_order::get_property_index;
         let map = UtilityMap::new();
 
-        // space-x should map to row-gap (per Tailwind v4's --tw-sort property)
-        let space_props = map.get_properties("space-x-2").unwrap();
-        assert_eq!(space_props, &["row-gap"]);
+        // space-x should map to margin-left (fixes cross-axis spacing)
+        let space_x_props = map.get_properties("space-x-2").unwrap();
+        assert_eq!(space_x_props, &["margin-left"]);
 
-        // touch-pan-down should map to touch-action
-        let touch_props = map.get_properties("touch-pan-down").unwrap();
-        assert_eq!(touch_props, &["touch-action"]);
+        // space-y should map to margin-top (fixes cross-axis spacing)
+        let space_y_props = map.get_properties("space-y-2").unwrap();
+        assert_eq!(space_y_props, &["margin-top"]);
 
-        // Verify indices - touch-action should be < row-gap
-        let touch_idx = get_property_index("touch-action").unwrap();
-        let space_idx = get_property_index("row-gap").unwrap();
+        // Verify that space utilities sort in the correct position (with margins)
+        let margin_left_idx = get_property_index("margin-left").unwrap();
+        let margin_top_idx = get_property_index("margin-top").unwrap();
+        let gap_idx = get_property_index("gap").unwrap();
 
-        println!("touch-action index: {}", touch_idx);
-        println!("row-gap index: {}", space_idx);
-
-        assert!(touch_idx < space_idx,
-            "touch-action ({}) should have lower index than row-gap ({})",
-            touch_idx, space_idx);
+        // margin properties should come before gap
+        assert!(margin_left_idx < gap_idx,
+            "margin-left ({}) should sort before gap ({})",
+            margin_left_idx, gap_idx);
+        assert!(margin_top_idx < gap_idx,
+            "margin-top ({}) should sort before gap ({})",
+            margin_top_idx, gap_idx);
     }
 
     #[test]
