@@ -118,3 +118,7 @@ Failures indicate where RustyWind's sort order differs from Prettier's canonical
 2. **Value-based sorting** - Numeric values not sorted (e.g., `scale-50` vs `scale-110`)
 3. **Property mapping** - Utilities mapping to incorrect CSS properties
 4. **Edge cases** - Complex combinations or lesser-used utilities
+
+## Propert Counting
+
+- Tailwind uses the number of properties in a class to determine its priority, we can't do this because we don't actually parse the CSS.
