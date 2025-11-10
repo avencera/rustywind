@@ -260,8 +260,8 @@ impl UtilityMap {
         exact.insert("snap-x", &["scroll-snap-type"][..]);
         exact.insert("snap-y", &["scroll-snap-type"][..]);
         exact.insert("snap-both", &["scroll-snap-type"][..]);
-        exact.insert("snap-mandatory", &["scroll-snap-type"][..]);
-        exact.insert("snap-proximity", &["scroll-snap-type"][..]);
+        exact.insert("snap-mandatory", &["--tw-scroll-snap-strictness"][..]);
+        exact.insert("snap-proximity", &["--tw-scroll-snap-strictness"][..]);
 
         // Scroll Snap Stop
         exact.insert("snap-normal", &["scroll-snap-stop"][..]);

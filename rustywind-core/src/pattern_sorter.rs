@@ -6,12 +6,13 @@
 //!
 //! # Algorithm
 //!
-//! Classes are sorted using a five-tier comparison:
+//! Classes are sorted using a six-tier comparison:
 //! 1. **Variant Order** - Classes without variants come first, then variants in order
 //! 2. **Property Index** - Based on the CSS properties the utility generates
 //! 3. **Numeric Value** - When both classes have numeric values (e.g., p-4 vs p-8)
-//! 4. **Property Count** - More properties = later (for stability)
-//! 5. **Alphabetical** - Final tiebreaker
+//! 4. **Property Count** - More properties = earlier (multi-property utilities sort first)
+//! 5. **Utility Prefix Priority** - space-* before gap-* when properties match
+//! 6. **Alphabetical** - Final tiebreaker
 //!
 //! # Examples
 //!
@@ -92,7 +93,56 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
     a.len().cmp(&z.len())
 }
 
-/// Extract a numeric value from a utility class name for value-based sub-sorting.
+/// Extract the base name from a utility class, removing size modifiers.
+///
+/// This function extracts the base name for utilities with size modifiers:
+/// - `rounded-t-lg` → `rounded-t`
+/// - `rounded-tl-none` → `rounded-tl`
+/// - `rounded-t` → `rounded-t`
+/// - `drop-shadow-xl` → `drop-shadow-xl` (no extraction, full name)
+///
+/// This is used for proper alphabetical comparison when properties match.
+fn extract_base_name(utility: &str) -> &str {
+    // Extract base for rounded utilities
+    if let Some(after_rounded) = utility.strip_prefix("rounded-") {
+        let parts: Vec<&str> = after_rounded.split('-').collect();
+        if parts.len() >= 2 {
+            // Check if first part is a side or corner indicator
+            match parts[0] {
+                "t" | "r" | "b" | "l" | "s" | "e" => {
+                    return &utility[..("rounded-".len() + parts[0].len())];
+                }
+                "tl" | "tr" | "br" | "bl" | "ss" | "se" | "ee" | "es" => {
+                    return &utility[..("rounded-".len() + parts[0].len())];
+                }
+                _ => {}
+            }
+        }
+    }
+    utility // Return full name if no modifier
+}
+
+/// Check if a utility has a -none modifier that should sort last.
+///
+/// Only applies to utilities where -none is a size/value modifier, not part of the base name:
+/// - `drop-shadow-none` → true (size modifier, sorts last)
+/// - `rounded-t-none` → true (size modifier, sorts last)
+/// - `select-none` → false (part of utility name, normal alphabetical order)
+///
+/// This ensures reset/disable utilities come after value utilities for utilities with size variants.
+fn has_none_modifier(utility: &str) -> bool {
+    if !utility.ends_with("-none") {
+        return false;
+    }
+
+    // Only apply to utilities where -none is a modifier, not part of the base name
+    // These utilities have size/value variants (sm, md, lg, xl, etc.)
+    utility.starts_with("drop-shadow-")
+        || utility.starts_with("shadow-")
+        || utility.starts_with("blur-")
+        || utility.starts_with("rounded-")
+        || utility.starts_with("backdrop-blur-")
+}
 ///
 /// This function extracts numeric values from utilities like:
 /// - `p-4` → Some(4.0)
@@ -175,6 +225,28 @@ pub struct SortKey {
 
 impl Eq for SortKey {}
 
+/// Get the utility prefix priority for tiebreaking when properties match.
+///
+/// This handles cases where utilities map to the same CSS property but represent
+/// different semantic concepts (e.g., space-x and gap-y both map to row-gap).
+///
+/// Lower number = higher priority (sorts first)
+/// - space-* utilities get priority 1 (sort first)
+/// - gap-* utilities get priority 2 (sort after space-*)
+/// - all other utilities get priority 100 (default)
+fn get_utility_prefix_priority(utility: &str) -> u32 {
+    // Extract the base utility name without variants
+    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+
+    if utility_base.starts_with("space-") {
+        return 1;
+    }
+    if utility_base.starts_with("gap-") {
+        return 2;
+    }
+    100 // Default for other utilities
+}
+
 impl Ord for SortKey {
     /// Compare sort keys using Tailwind's exact algorithm with value-based sub-sorting.
     ///
@@ -182,8 +254,9 @@ impl Ord for SortKey {
     /// 1. Variant order (0 first, then by bit flags)
     /// 2. Property indices (compare ALL properties in order for proper tiebreaking)
     /// 3. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
-    /// 4. Property count (FEWER properties first - note the reversal)
-    /// 5. Alphabetical (final tiebreaker)
+    /// 4. Property count (MORE properties first - utilities with more properties sort earlier)
+    /// 5. Utility prefix priority (space-* before gap-* when properties match)
+    /// 6. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
         self.variant_order
             .cmp(&other.variant_order)
@@ -200,16 +273,24 @@ impl Ord for SortKey {
                         other => return other,       // Found difference
                     }
                 }
-                // All common properties are equal, compare by length
-                self.property_indices
+                // All common properties are equal, compare by length (MORE properties = earlier)
+                other
+                    .property_indices
                     .len()
-                    .cmp(&other.property_indices.len())
+                    .cmp(&self.property_indices.len())
             })
             // Then by numeric value (if both present)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
                     (Some(_), Some(_)) => {
-                        // Both have numeric values - use alphanumeric comparison of full class names
+                        // First check prefix priority (space-* before gap-*)
+                        let priority_self = get_utility_prefix_priority(&self.class);
+                        let priority_other = get_utility_prefix_priority(&other.class);
+                        let prefix_cmp = priority_self.cmp(&priority_other);
+                        if prefix_cmp != Ordering::Equal {
+                            return prefix_cmp;
+                        }
+                        // Then use alphanumeric comparison of full class names
                         compare_alphanumeric(&self.class, &other.class)
                     }
                     // If only one has a numeric value, no preference (continue to next comparison)
@@ -220,7 +301,29 @@ impl Ord for SortKey {
             // Tailwind's: zSorting.properties.count - aSorting.properties.count
             // means if z has MORE properties, result is positive, so a comes first
             .then(self.property_count.cmp(&other.property_count))
-            // Finally alphabetically
+            // Then by utility prefix priority (space-* before gap-* when properties match)
+            .then_with(|| {
+                let priority_self = get_utility_prefix_priority(&self.class);
+                let priority_other = get_utility_prefix_priority(&other.class);
+                priority_self.cmp(&priority_other)
+            })
+            // Check for -none modifiers (should sort last)
+            .then_with(|| {
+                let self_has_none = has_none_modifier(&self.class);
+                let other_has_none = has_none_modifier(&other.class);
+                match (self_has_none, other_has_none) {
+                    (true, false) => Ordering::Greater, // self is -none, sort it last
+                    (false, true) => Ordering::Less,    // other is -none, sort it last
+                    _ => Ordering::Equal,               // Both or neither have -none
+                }
+            })
+            // Compare base names (extracts modifiers)
+            .then_with(|| {
+                let base_self = extract_base_name(&self.class);
+                let base_other = extract_base_name(&other.class);
+                base_self.cmp(base_other)
+            })
+            // Finally alphabetically on full name
             .then(self.class.cmp(&other.class))
     }
 }
@@ -772,41 +875,41 @@ mod tests {
     }
 
     #[test]
-    fn test_space_reverse_vs_gap_alphabetical() {
-        // Test gap-y vs space-x-reverse
-        // Both use row-gap (index 153), so should sort alphabetically
-        // "gap-y" < "space-x-reverse"
-        let classes = vec!["space-x-reverse", "gap-y-4"];
+    fn test_space_vs_gap_prefix_priority() {
+        // Test space-x-reverse vs gap-y-4
+        // Both use row-gap (index 153), but space-* has higher priority than gap-*
+        // space-x-reverse should come BEFORE gap-y-4 (prefix priority)
+        let classes = vec!["gap-y-4", "space-x-reverse"];
         let sorted = sort_classes(&classes);
         assert_eq!(
             sorted,
-            vec!["gap-y-4", "space-x-reverse"],
-            "gap-y should come before space-x-reverse (both at row-gap index, alphabetical tiebreak)"
+            vec!["space-x-reverse", "gap-y-4"],
+            "space-x-reverse should come before gap-y-4 (both at row-gap index, prefix priority)"
         );
 
-        // Test gap-x vs space-y-reverse
-        // Both use column-gap (index 152), so should sort alphabetically
-        // "gap-x" < "space-y-reverse"
-        let classes = vec!["space-y-reverse", "gap-x-0"];
+        // Test space-y-reverse vs gap-x-0
+        // Both use column-gap (index 152), but space-* has higher priority than gap-*
+        // space-y-reverse should come BEFORE gap-x-0 (prefix priority)
+        let classes = vec!["gap-x-0", "space-y-reverse"];
         let sorted = sort_classes(&classes);
         assert_eq!(
             sorted,
-            vec!["gap-x-0", "space-y-reverse"],
-            "gap-x should come before space-y-reverse (both at column-gap index, alphabetical tiebreak)"
+            vec!["space-y-reverse", "gap-x-0"],
+            "space-y-reverse should come before gap-x-0 (both at column-gap index, prefix priority)"
         );
 
-        // Test multiple combinations
+        // Test multiple combinations with cross-axis conflicts
         // Expected order:
-        // 1. gap-x-2 (column-gap, 152)
-        // 2. space-y-reverse (column-gap, 152) - alphabetically after gap-x
-        // 3. gap-y-4 (row-gap, 153)
-        // 4. space-x-reverse (row-gap, 153) - alphabetically after gap-y
-        let classes = vec!["space-x-reverse", "gap-y-4", "space-y-reverse", "gap-x-2"];
+        // 1. space-y-reverse (column-gap, 152) - space-* prefix priority
+        // 2. gap-x-2 (column-gap, 152) - gap-* comes after space-*
+        // 3. space-x-reverse (row-gap, 153) - space-* prefix priority
+        // 4. gap-y-4 (row-gap, 153) - gap-* comes after space-*
+        let classes = vec!["gap-y-4", "space-x-reverse", "gap-x-2", "space-y-reverse"];
         let sorted = sort_classes(&classes);
         assert_eq!(
             sorted,
-            vec!["gap-x-2", "space-y-reverse", "gap-y-4", "space-x-reverse"],
-            "Should sort by property index first, then alphabetically within same index"
+            vec!["space-y-reverse", "gap-x-2", "space-x-reverse", "gap-y-4"],
+            "Should sort by property index first, then by prefix priority within same index"
         );
     }
 }
