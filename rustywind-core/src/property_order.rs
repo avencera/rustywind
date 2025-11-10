@@ -163,20 +163,23 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "gap",
     "column-gap",
     "row-gap",
-    // Divide (122-125)
+    // Space (166-169) - Must be right after row-gap per Tailwind's canonical order
+    // Space comes BEFORE divide to ensure space utilities sort before divide utilities
+    "--tw-space-x-reverse",
+    "--tw-space-y-reverse",
+    "--tw-space-x",
+    "--tw-space-y",
+    // Divide (170-175)
     "divide-x-width",
     "divide-y-width",
+    "--tw-divide-y-reverse",
+    "--tw-divide-x-reverse",
     "divide-style",
     "divide-color",
-    // Alignment (126-128)
+    // Alignment (176-178)
     "place-self",
     "align-self",
     "justify-self",
-    // Space (129-132) - moved after alignment for clear separation from gap (119-121)
-    "--tw-space-x",
-    "--tw-space-y",
-    "--tw-space-x-reverse",
-    "--tw-space-y-reverse",
     // Overflow (133-139)
     "overflow",
     "overflow-x",
@@ -321,8 +324,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "padding-right",
     "padding-bottom",
     "padding-left",
-    "--tw-divide-y-reverse",
-    "--tw-divide-x-reverse",
     // Typography - Alignment (263-265)
     "text-align",
     "text-indent",
@@ -454,9 +455,9 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 344 (added outline-style, user-select, --tw-ring-inset, --tw-divide-x-reverse,
-        // border-top-radius, border-right-radius, border-bottom-radius, border-left-radius for proper sorting)
-        assert_eq!(PROPERTY_ORDER.len(), 344);
+        // Total: 345 (includes outline-style, user-select, --tw-ring-inset, --tw-divide-x-reverse,
+        // border-top-radius, border-right-radius, border-bottom-radius, border-left-radius, and border-opacity)
+        assert_eq!(PROPERTY_ORDER.len(), 345);
     }
 
     #[test]
@@ -465,14 +466,14 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (344 total, so last is at index 343)
-        assert_eq!(get_property_index("forced-color-adjust"), Some(343));
+        // Test last property (345 total, so last is at index 344)
+        assert_eq!(get_property_index("forced-color-adjust"), Some(344));
 
-        // Test common properties (indices shifted due to extra synthetic properties)
+        // Test common properties (indices shifted due to property reordering)
         assert_eq!(get_property_index("margin"), Some(26));
-        assert_eq!(get_property_index("padding"), Some(256));
+        assert_eq!(get_property_index("padding"), Some(257));
         assert_eq!(get_property_index("display"), Some(36));
-        assert_eq!(get_property_index("background-color"), Some(184));
+        assert_eq!(get_property_index("background-color"), Some(185));
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);
