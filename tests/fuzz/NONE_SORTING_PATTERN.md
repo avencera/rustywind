@@ -9,6 +9,7 @@
 ## Detailed Findings by Category
 
 ### Category A: SIZE-BASED UTILITIES ⚠️ COMPLEX
+
 **Utilities:** `blur-none`, `shadow-none`, `rounded-none`, `drop-shadow-none`
 
 **Pattern:** Custom CSS value-based ordering where `-none` appears in the MIDDLE of the sequence.
@@ -57,6 +58,7 @@ drop-shadow:
 ```
 
 **Key Observation:**
+
 - `-md`, `-lg`, `-2xl`, `-3xl` come BEFORE `-none`
 - `-sm`, `-xl` come AFTER `-none`
 - This is NOT alphabetical or size-based!
@@ -65,11 +67,13 @@ drop-shadow:
 ---
 
 ### Category B: ALWAYS SORTS LAST ✅ SIMPLE
+
 **Utilities:** `transition-none`
 
 **Pattern:** Always appears AFTER all other `transition-*` values.
 
 **Example:**
+
 ```
 Input:  transition-transform transition-shadow transition-opacity transition-colors transition-all transition-none
 Output: transition-all transition-colors transition-opacity transition-shadow transition-transform transition-none
@@ -80,11 +84,13 @@ Output: transition-all transition-colors transition-opacity transition-shadow tr
 ---
 
 ### Category C: SPECIAL POSITIONING ⚠️ CASE-BY-CASE
+
 **Utilities:** `border-0`, `grayscale-0`
 
 **Pattern:** Sorts after the base value, has special relationship with default.
 
 #### border-0
+
 ```
 Input:  border-8 border-4 border-2 border border-0
 Output: border border-0 border-2 border-4 border-8
@@ -93,6 +99,7 @@ Rule: border → border-0 → border-2/4/8 (ascending)
 ```
 
 #### grayscale-0
+
 ```
 Input:  grayscale-0 grayscale
 Output: grayscale grayscale-0
@@ -103,11 +110,13 @@ Rule: grayscale → grayscale-0
 ---
 
 ### Category D: NUMERIC SORTING ✅ SIMPLE
+
 **Utilities:** `brightness-0`, `contrast-0`, `saturate-0`, `scale-0`, `rotate-0`, `duration-0`
 
 **Pattern:** `-0` sorts FIRST, followed by ascending numeric order.
 
 **Examples:**
+
 ```
 brightness-0 brightness-50 brightness-100 brightness-150
 contrast-0 contrast-50 contrast-100 contrast-150
@@ -122,11 +131,13 @@ duration-0 duration-100 duration-500 duration-1000
 ---
 
 ### Category E: ALPHABETICAL ✅ SIMPLE
+
 **Utilities:** `animate-none`
 
 **Pattern:** Sorts alphabetically with other `animate-*` values.
 
 **Example:**
+
 ```
 Input:  animate-spin animate-pulse animate-ping animate-none animate-bounce
 Output: animate-bounce animate-none animate-ping animate-pulse animate-spin
@@ -138,22 +149,22 @@ Output: animate-bounce animate-none animate-ping animate-pulse animate-spin
 
 ## Summary Table
 
-| Utility | Pattern | Position | Easy to Implement? |
-|---------|---------|----------|-------------------|
-| `blur-none` | CSS-value-based | Middle (6/8) | ❌ No |
-| `shadow-none` | CSS-value-based | Middle (6/8) | ❌ No |
-| `rounded-none` | CSS-value-based | Middle (7/9) | ❌ No |
-| `drop-shadow-none` | CSS-value-based | Last (6/6) | ❌ No |
-| `transition-none` | Always last | Last | ✅ Yes |
-| `border-0` | After base | 2nd | ⚠️ Special case |
-| `grayscale-0` | After base | 2nd | ⚠️ Special case |
-| `brightness-0` | Numeric | First | ✅ Yes |
-| `contrast-0` | Numeric | First | ✅ Yes |
-| `saturate-0` | Numeric | First | ✅ Yes |
-| `scale-0` | Numeric | First | ✅ Yes |
-| `rotate-0` | Numeric | First | ✅ Yes |
-| `duration-0` | Numeric | First | ✅ Yes |
-| `animate-none` | Alphabetical | Middle (alphabetical) | ✅ Yes |
+| Utility            | Pattern         | Position              | Easy to Implement? |
+| ------------------ | --------------- | --------------------- | ------------------ |
+| `blur-none`        | CSS-value-based | Middle (6/8)          | ❌ No              |
+| `shadow-none`      | CSS-value-based | Middle (6/8)          | ❌ No              |
+| `rounded-none`     | CSS-value-based | Middle (7/9)          | ❌ No              |
+| `drop-shadow-none` | CSS-value-based | Last (6/6)            | ❌ No              |
+| `transition-none`  | Always last     | Last                  | ✅ Yes             |
+| `border-0`         | After base      | 2nd                   | ⚠️ Special case    |
+| `grayscale-0`      | After base      | 2nd                   | ⚠️ Special case    |
+| `brightness-0`     | Numeric         | First                 | ✅ Yes             |
+| `contrast-0`       | Numeric         | First                 | ✅ Yes             |
+| `saturate-0`       | Numeric         | First                 | ✅ Yes             |
+| `scale-0`          | Numeric         | First                 | ✅ Yes             |
+| `rotate-0`         | Numeric         | First                 | ✅ Yes             |
+| `duration-0`       | Numeric         | First                 | ✅ Yes             |
+| `animate-none`     | Alphabetical    | Middle (alphabetical) | ✅ Yes             |
 
 ---
 
@@ -176,11 +187,7 @@ Output: animate-bounce animate-none animate-ping animate-pulse animate-spin
    - Manually map each utility to its position
    - Maintenance burden for new utilities
 
-3. **Option C:** Call Tailwind's sorter directly
-   - Use `prettier-plugin-tailwindcss` as a library
-   - Performance implications
-
-4. **Option D:** Accept limitations
+3. **Option C:** Accept limitations
    - Document known sorting differences
    - Focus on 90% use cases that follow predictable patterns
 
@@ -194,6 +201,7 @@ Output: animate-bounce animate-none animate-ping animate-pulse animate-spin
 - `/home/user/rustywind/tests/fuzz/test-none-visualization.mjs` - Visual ordering maps
 
 Run any of these with:
+
 ```bash
 cd /home/user/rustywind/tests/fuzz
 node test-none-patterns.mjs

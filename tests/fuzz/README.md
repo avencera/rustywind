@@ -61,6 +61,7 @@ npm run test:real-world
 ```
 
 This test:
+
 1. Extracts all class/className attributes from 50 real project files in `../tailwind-sorting-test-files/`
 2. Tests each unique class combination against both RustyWind and Prettier
 3. Reports failures with specific examples from real code
@@ -68,6 +69,7 @@ This test:
 **⚠️ IMPORTANT**: The test files in `tailwind-sorting-test-files/` are READ-ONLY reference data and should **NEVER** be modified to make tests pass. These files represent real-world usage patterns and must remain pristine.
 
 ### Current Real-World Test Results
+
 - **814 unique class combinations** extracted from 50 files
 - **~53% pass rate** (434/814)
 - **365 unique failure patterns** identified
@@ -89,6 +91,7 @@ The `test:patterns` suite uses a unique approach:
 This is a **stress test by design**. It generates combinations that are known to be problematic in real-world code, helping catch issues early that would otherwise only surface when processing actual project files.
 
 To regenerate failure patterns:
+
 ```bash
 node extract-failure-patterns.mjs
 ```
@@ -106,23 +109,6 @@ node extract-failure-patterns.mjs
 - `legacy-classes.js` - List of v3 legacy classes with filtering utilities
 - `package.json` - Dependencies and scripts
 - `../tailwind-sorting-test-files/` - Real-world test files (READ-ONLY)
-
-## Test Output
-
-```
-🧪 Starting fuzz test with 100 random class combinations...
-📋 Class pool: 935 classes (including legacy classes)
-
-.........F..........F....F.......F..F.... 50/100
-.........F..........F....F.......F..F.... 100/100
-
-================================================================================
-
-📊 Results: 59 passed, 41 failed (59.0% pass rate)
-
-❌ Failures:
-[Detailed failure output with mismatched classes]
-```
 
 ## Understanding Failures
 
