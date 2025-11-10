@@ -1,0 +1,7 @@
+# Node modules
+node_modules/
+
+# Generated test results
+multi-seed-results.json
+failure-analysis.json
+fuzz-test-results.txt
