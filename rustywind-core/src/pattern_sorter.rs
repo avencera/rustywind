@@ -156,15 +156,16 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
     // Try to parse as fraction (e.g., "1/2")
     if value_str.contains('/') {
         let fraction_parts: Vec<&str> = value_str.split('/').collect();
-        if fraction_parts.len() == 2
-            && let (Ok(numerator), Ok(denominator)) = (
+        if fraction_parts.len() == 2 {
+            if let (Ok(numerator), Ok(denominator)) = (
                 fraction_parts[0].parse::<f64>(),
                 fraction_parts[1].parse::<f64>(),
-            )
-            && denominator != 0.0
-        {
-            let result = numerator / denominator;
-            return Some(result);
+            ) {
+                if denominator != 0.0 {
+                    let result = numerator / denominator;
+                    return Some(result);
+                }
+            }
         }
     }
 
