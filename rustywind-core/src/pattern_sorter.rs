@@ -123,9 +123,15 @@ fn extract_base_name(utility: &str) -> &str {
         }
     }
 
-    // Extract base for drop-shadow and transition utilities
+    // PRAGMATIC WORKAROUND: Extract base for drop-shadow and transition utilities
     // This ensures drop-shadow-xl and drop-shadow-none compare as equal at this stage
-    // so the special -none handling can kick in
+    // so the special -none handling can kick in (see lines 300-323).
+    //
+    // NOTE: This is NOT how Tailwind CSS v4 actually works! Tailwind uses property
+    // count-based sorting (utilities with MORE CSS declarations sort first), which
+    // naturally makes -none variants sort last without special handling.
+    //
+    // See PROPERTY_COUNT_TODO.md for details on implementing the proper approach.
     if utility_base.starts_with("drop-shadow") {
         return "drop-shadow";
     }
@@ -137,9 +143,15 @@ fn extract_base_name(utility: &str) -> &str {
 }
 
 /// Extract the utility prefix for utilities with size/value modifiers.
+///
+/// PRAGMATIC WORKAROUND: This function supports the hardcoded -none handling below.
+///
 /// For drop-shadow-xl, returns "drop-shadow"
 /// For transition-colors, returns "transition"
 /// For hover:drop-shadow-xl, returns "drop-shadow" (strips variants first)
+///
+/// NOTE: Tailwind CSS v4 doesn't use prefix matching - it counts CSS declarations.
+/// See PROPERTY_COUNT_TODO.md for the proper implementation approach.
 fn extract_utility_prefix(utility: &str) -> &str {
     // Strip variants first
     let utility_base = utility.split(':').next_back().unwrap_or(utility);
@@ -325,9 +337,19 @@ impl Ord for SortKey {
                 let base_other = extract_base_name(&other.class);
                 base_self.cmp(base_other)
             })
-            // Special handling for -none suffix on specific utilities
+            // ⚠️ PRAGMATIC WORKAROUND: Special -none handling for specific utilities
+            //
             // For drop-shadow-* and transition-* utilities, -none should sort LAST
             // For other utilities like shadow-*, blur-*, rounded-*, -none sorts alphabetically
+            //
+            // WHY THIS EXISTS:
+            // Tailwind CSS v4 uses property COUNT (# of CSS declarations) for sorting.
+            // - transition-colors generates 3 CSS declarations
+            // - transition-none generates 1 CSS declaration
+            // - Result: transition-colors (3) sorts before transition-none (1) naturally
+            //
+            // We don't have declaration counts, so we hardcode these specific cases.
+            // See PROPERTY_COUNT_TODO.md for the proper implementation approach.
             .then_with(|| {
                 // Extract the utility prefix (e.g., "drop-shadow" from "drop-shadow-xl")
                 let prefix_self = extract_utility_prefix(&self.class);

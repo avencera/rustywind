@@ -9,6 +9,67 @@
 //! - These utilities need to be ordered correctly relative to positioning, overflow, border, and other divide utilities
 
 use rustywind_core::hybrid_sorter::HybridSorter;
+use rustywind_core::pattern_sorter::PatternSorter;
+
+#[test]
+fn debug_property_indices() {
+    let sorter = PatternSorter::new();
+
+    let classes = vec![
+        "overflow-y-visible",
+        "divide-y-reverse",
+        "rounded-t",
+        "space-y-4",
+        "gap-0",
+    ];
+
+    println!("\nDEBUG: Property indices for failing utilities:");
+    for class in &classes {
+        if let Some(key) = sorter.get_sort_key(class) {
+            println!("  {}: property_indices={:?}", class, key.property_indices);
+        } else {
+            println!("  {}: NOT RECOGNIZED", class);
+        }
+    }
+
+    // Now sort them and see what happens
+    use rustywind_core::pattern_sorter::sort_classes;
+    let sorted = sort_classes(&classes);
+    println!("\nSorted order: {:?}", sorted);
+    println!("Expected from Prettier: [gap-0, space-y-4, divide-y-reverse, overflow-y-visible, rounded-t]");
+}
+
+#[test]
+fn debug_drop_shadow_none() {
+    use rustywind_core::pattern_sorter::sort_classes;
+
+    let classes = vec!["drop-shadow-xl", "drop-shadow-none"];
+    let sorted = sort_classes(&classes);
+
+    println!("\nDEBUG: Drop shadow -none handling:");
+    println!("  Input:  {:?}", classes);
+    println!("  Output: {:?}", sorted);
+    println!("  Expected: drop-shadow-xl first, drop-shadow-none last");
+
+    assert_eq!(sorted[0], "drop-shadow-xl", "drop-shadow-xl should come before drop-shadow-none");
+    assert_eq!(sorted[1], "drop-shadow-none");
+}
+
+#[test]
+fn debug_transition_none() {
+    use rustywind_core::pattern_sorter::sort_classes;
+
+    let classes = vec!["transition-colors", "transition-none"];
+    let sorted = sort_classes(&classes);
+
+    println!("\nDEBUG: Transition -none handling:");
+    println!("  Input:  {:?}", classes);
+    println!("  Output: {:?}", sorted);
+    println!("  Expected: transition-colors first, transition-none last");
+
+    assert_eq!(sorted[0], "transition-colors", "transition-colors should come before transition-none");
+    assert_eq!(sorted[1], "transition-none");
+}
 
 #[test]
 fn test_divide_reverse_vs_positioning_utilities() {

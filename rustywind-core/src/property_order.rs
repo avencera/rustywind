@@ -168,9 +168,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     // Space utilities use --tw-sort: row-gap internally for sorting
     "--tw-space-x-reverse",
     "--tw-space-y-reverse",
-    // Divide (168-171)
+    // Divide (168-172)
     "divide-x-width",
     "divide-y-width",
+    "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
     // Alignment (176-178)
@@ -185,8 +186,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "overscroll-behavior-x",
     "overscroll-behavior-y",
     "scroll-behavior",
-    // divide-y-reverse positioned after overflow, before border-x to match Tailwind v4
-    "--tw-divide-y-reverse",
     // Border Radius (140-150)
     // Removed synthetic side properties (border-top-radius, etc.) - not real in Tailwind v4
     // Side utilities (rounded-t) now map to their minimum corner property for proper sorting
@@ -466,12 +465,15 @@ mod tests {
         assert_eq!(get_property_index("container-type"), Some(1));
 
         // Test divide reverse properties are positioned correctly
-        // divide-y-reverse comes after justify-self, before overflow
+        // divide-y-reverse comes in the divide section, before place-self and overflow
         let divide_y_idx = get_property_index("--tw-divide-y-reverse").unwrap();
-        let justify_self_idx = get_property_index("justify-self").unwrap();
+        let divide_style_idx = get_property_index("divide-style").unwrap();
+        let place_self_idx = get_property_index("place-self").unwrap();
         let overflow_idx = get_property_index("overflow").unwrap();
-        assert!(divide_y_idx > justify_self_idx);
-        assert!(divide_y_idx < overflow_idx);
+        assert!(divide_y_idx > divide_style_idx - 1); // Right after divide-y-width
+        assert!(divide_y_idx < divide_style_idx);      // Before divide-style
+        assert!(divide_y_idx < place_self_idx);        // Before place-self
+        assert!(divide_y_idx < overflow_idx);          // Before overflow
 
         // divide-x-reverse comes after outline-color, before filters
         let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
