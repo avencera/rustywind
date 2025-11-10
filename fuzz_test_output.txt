@@ -1,0 +1,72 @@
+Running fuzz tests 10 times with different seeds...
+Start time: Mon Nov 10 02:37:56 UTC 2025
+
+=========================================
+Run 1/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: r5wdi5qqo4e
+
+=========================================
+Run 2/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: pw24u31otpj
+
+=========================================
+Run 3/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: nbqb7fqj5ac
+
+=========================================
+Run 4/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: vuzs4e1bmtc
+
+=========================================
+Run 5/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: j1qm38gwnt
+
+=========================================
+Run 6/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: d1hmf31h5k
+
+=========================================
+Run 7/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: i6aak5a5dgp
+
+=========================================
+Run 8/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: jftkzkkw1e
+
+=========================================
+Run 9/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: swom2t0ysuf
+
+=========================================
+Run 10/10
+=========================================
+Pass: 0 | Fail: 0 | Rate: 0% | Seed: 1r7yvk9to7y
+
+=========================================
+SUMMARY OF 10 RUNS
+=========================================
+Pass rates: 0 0 0 0 0 0 0 0 0 0
+Average pass rate: 0%
+
+Detailed results:
+Run 1: 0/100 passed (0%) - Seed: r5wdi5qqo4e
+Run 2: 0/100 passed (0%) - Seed: pw24u31otpj
+Run 3: 0/100 passed (0%) - Seed: nbqb7fqj5ac
+Run 4: 0/100 passed (0%) - Seed: vuzs4e1bmtc
+Run 5: 0/100 passed (0%) - Seed: j1qm38gwnt
+Run 6: 0/100 passed (0%) - Seed: d1hmf31h5k
+Run 7: 0/100 passed (0%) - Seed: i6aak5a5dgp
+Run 8: 0/100 passed (0%) - Seed: jftkzkkw1e
+Run 9: 0/100 passed (0%) - Seed: swom2t0ysuf
+Run 10: 0/100 passed (0%) - Seed: 1r7yvk9to7y
+
+End time: Mon Nov 10 02:38:44 UTC 2025
