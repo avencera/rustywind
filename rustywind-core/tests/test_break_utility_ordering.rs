@@ -23,7 +23,10 @@ fn test_break_normal_vs_break_words() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: break-normal, break-words (alphabetical order)
-    assert_eq!(sorted[0], "break-normal", "break-normal should come before break-words");
+    assert_eq!(
+        sorted[0], "break-normal",
+        "break-normal should come before break-words"
+    );
     assert_eq!(sorted[1], "break-words");
 }
 
@@ -32,12 +35,7 @@ fn test_all_break_utilities_alphabetically() {
     // Test all break utilities sorted in complete alphabetical order
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "break-words",
-        "break-all",
-        "break-keep",
-        "break-normal",
-    ];
+    let classes = vec!["break-words", "break-all", "break-keep", "break-normal"];
     let sorted = sorter.sort_classes(&classes);
 
     println!("\nTest: all break utilities alphabetically");
@@ -45,14 +43,12 @@ fn test_all_break_utilities_alphabetically() {
     println!("Output: {:?}", sorted);
 
     // Prettier expected order: complete alphabetical
-    let expected = vec![
-        "break-all",
-        "break-keep",
-        "break-normal",
-        "break-words",
-    ];
+    let expected = vec!["break-all", "break-keep", "break-normal", "break-words"];
 
-    assert_eq!(sorted, expected, "All break utilities should be sorted in alphabetical order");
+    assert_eq!(
+        sorted, expected,
+        "All break utilities should be sorted in alphabetical order"
+    );
 }
 
 #[test]
@@ -67,7 +63,10 @@ fn test_break_all_vs_break_keep() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    assert_eq!(sorted[0], "break-all", "break-all should come before break-keep");
+    assert_eq!(
+        sorted[0], "break-all",
+        "break-all should come before break-keep"
+    );
     assert_eq!(sorted[1], "break-keep");
 }
 
@@ -83,7 +82,10 @@ fn test_break_keep_vs_break_normal() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    assert_eq!(sorted[0], "break-keep", "break-keep should come before break-normal");
+    assert_eq!(
+        sorted[0], "break-keep",
+        "break-keep should come before break-normal"
+    );
     assert_eq!(sorted[1], "break-normal");
 }
 
@@ -113,9 +115,18 @@ fn test_break_utilities_mixed_with_word_utilities() {
     let break_words_pos = sorted.iter().position(|&c| c == "break-words").unwrap();
 
     // Break utilities should maintain alphabetical order among themselves
-    assert!(break_all_pos < break_keep_pos, "break-all should come before break-keep");
-    assert!(break_keep_pos < break_normal_pos, "break-keep should come before break-normal");
-    assert!(break_normal_pos < break_words_pos, "break-normal should come before break-words");
+    assert!(
+        break_all_pos < break_keep_pos,
+        "break-all should come before break-keep"
+    );
+    assert!(
+        break_keep_pos < break_normal_pos,
+        "break-keep should come before break-normal"
+    );
+    assert!(
+        break_normal_pos < break_words_pos,
+        "break-normal should come before break-words"
+    );
 }
 
 #[test]
@@ -123,12 +134,7 @@ fn test_break_utilities_comprehensive() {
     // Comprehensive test with all break utilities in random order
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "break-normal",
-        "break-words",
-        "break-keep",
-        "break-all",
-    ];
+    let classes = vec!["break-normal", "break-words", "break-keep", "break-all"];
     let sorted = sorter.sort_classes(&classes);
 
     println!("\nTest: comprehensive break utilities ordering");
@@ -140,7 +146,8 @@ fn test_break_utilities_comprehensive() {
         assert!(
             sorted[i] < sorted[i + 1],
             "Each break utility should come before the next alphabetically: {} should be < {}",
-            sorted[i], sorted[i + 1]
+            sorted[i],
+            sorted[i + 1]
         );
     }
 }

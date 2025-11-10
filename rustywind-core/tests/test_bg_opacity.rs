@@ -1,6 +1,6 @@
+use rustywind_core::pattern_sorter::PatternSorter;
 use rustywind_core::property_order::get_property_index;
 use rustywind_core::utility_map::UtilityMap;
-use rustywind_core::pattern_sorter::PatternSorter;
 
 #[test]
 fn debug_bg_opacity_sorting() {
@@ -34,8 +34,10 @@ fn debug_bg_opacity_sorting() {
     let sorter = PatternSorter::new();
     for class in &["bg-opacity-50", "row-start-auto"] {
         if let Some(key) = sorter.get_sort_key(class) {
-            println!("{}: variant={}, prop_idx={}, prop_count={}",
-                class, key.variant_order, key.property_index, key.property_count);
+            println!(
+                "{}: variant={}, prop_idx={:?}, prop_count={}",
+                class, key.variant_order, key.property_indices, key.property_count
+            );
         } else {
             println!("{}: NOT RECOGNIZED", class);
         }

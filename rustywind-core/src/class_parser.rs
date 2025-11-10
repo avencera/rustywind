@@ -220,8 +220,8 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
     }
 
     // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
-    let (is_negative, utility_without_neg) = if utility.starts_with('-') {
-        (true, &utility[1..])
+    let (is_negative, utility_without_neg) = if let Some(stripped) = utility.strip_prefix('-') {
+        (true, stripped)
     } else {
         (false, utility)
     };
@@ -300,7 +300,7 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
                 // Return the full utility (including negative sign) as the base
                 let base = if is_negative {
                     // prefix.len() is relative to utility_without_neg, add 1 for initial '-'
-                    &utility[..prefix.len() + 1]  // +1 for initial '-'
+                    &utility[..prefix.len() + 1] // +1 for initial '-'
                 } else {
                     prefix
                 };
@@ -316,7 +316,7 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         let base = if is_negative {
             // Include the negative sign in the base
             // dash_pos is relative to utility_without_neg, add 1 to offset for the '-' prefix
-            &utility[..1 + dash_pos]  // 1 for initial '-', then dash_pos characters
+            &utility[..1 + dash_pos] // 1 for initial '-', then dash_pos characters
         } else {
             base_without_neg
         };
@@ -513,8 +513,14 @@ mod tests {
         assert_eq!(parse_utility_value(""), None);
 
         // Test negative values
-        assert_eq!(parse_utility_value("-translate-x-4"), Some(("-translate-x", "4")));
-        assert_eq!(parse_utility_value("-translate-y-1"), Some(("-translate-y", "1")));
+        assert_eq!(
+            parse_utility_value("-translate-x-4"),
+            Some(("-translate-x", "4"))
+        );
+        assert_eq!(
+            parse_utility_value("-translate-y-1"),
+            Some(("-translate-y", "1"))
+        );
         assert_eq!(parse_utility_value("-skew-x-6"), Some(("-skew-x", "6")));
         assert_eq!(parse_utility_value("-skew-y-3"), Some(("-skew-y", "3")));
         assert_eq!(parse_utility_value("-rotate-90"), Some(("-rotate", "90")));

@@ -13,7 +13,10 @@ fn test_rounded_t_vs_rounded_l() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: rounded-t-lg, rounded-l-none
-    assert_eq!(sorted[0], "rounded-t-lg", "rounded-t-lg should come before rounded-l-none");
+    assert_eq!(
+        sorted[0], "rounded-t-lg",
+        "rounded-t-lg should come before rounded-l-none"
+    );
     assert_eq!(sorted[1], "rounded-l-none");
 }
 
@@ -30,7 +33,10 @@ fn test_rounded_t_none_vs_rounded_tl_lg() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: rounded-t-none, rounded-tl-lg
-    assert_eq!(sorted[0], "rounded-t-none", "rounded-t-none should come before rounded-tl-lg");
+    assert_eq!(
+        sorted[0], "rounded-t-none",
+        "rounded-t-none should come before rounded-tl-lg"
+    );
     assert_eq!(sorted[1], "rounded-tl-lg");
 }
 
@@ -47,7 +53,10 @@ fn test_rounded_r_vs_rounded_tr_none() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: rounded-r, rounded-tr-none
-    assert_eq!(sorted[0], "rounded-r", "rounded-r should come before rounded-tr-none");
+    assert_eq!(
+        sorted[0], "rounded-r",
+        "rounded-r should come before rounded-tr-none"
+    );
     assert_eq!(sorted[1], "rounded-tr-none");
 }
 
@@ -64,7 +73,10 @@ fn test_rounded_r_none_vs_rounded_tr() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: rounded-r-none, rounded-tr
-    assert_eq!(sorted[0], "rounded-r-none", "rounded-r-none should come before rounded-tr");
+    assert_eq!(
+        sorted[0], "rounded-r-none",
+        "rounded-r-none should come before rounded-tr"
+    );
     assert_eq!(sorted[1], "rounded-tr");
 }
 
@@ -79,7 +91,7 @@ fn test_mixed_rounded_utilities() {
         "rounded-l-none",
         "rounded-tl-lg",
         "rounded-r",
-        "rounded-tr-none"
+        "rounded-tr-none",
     ];
     let sorted = sorter.sort_classes(&classes);
 
@@ -96,10 +108,13 @@ fn test_mixed_rounded_utilities() {
         "rounded-l-none",
         "rounded-tl-lg",
         "rounded-tr-none",
-        "rounded-br-lg"
+        "rounded-br-lg",
     ];
 
-    assert_eq!(sorted, expected, "Mixed rounded utilities should be sorted correctly");
+    assert_eq!(
+        sorted, expected,
+        "Mixed rounded utilities should be sorted correctly"
+    );
 }
 
 #[test]
@@ -112,7 +127,7 @@ fn test_rounded_with_size_modifiers() {
         "rounded-t-sm",
         "rounded-t-lg",
         "rounded-t-none",
-        "rounded-tl-sm"
+        "rounded-tl-sm",
     ];
     let sorted = sorter.sort_classes(&classes);
 
@@ -123,13 +138,15 @@ fn test_rounded_with_size_modifiers() {
     // rounded-t variants should come before rounded-tl variants
     // Within same side, size modifiers should be sorted consistently
     // rounded-t-none, rounded-t-sm, rounded-t-lg should come before rounded-tl-sm, rounded-tl-xl
-    let t_positions: Vec<_> = sorted.iter()
+    let t_positions: Vec<_> = sorted
+        .iter()
         .enumerate()
         .filter(|(_, c)| c.starts_with("rounded-t-"))
         .map(|(i, _)| i)
         .collect();
 
-    let tl_positions: Vec<_> = sorted.iter()
+    let tl_positions: Vec<_> = sorted
+        .iter()
         .enumerate()
         .filter(|(_, c)| c.starts_with("rounded-tl-"))
         .map(|(i, _)| i)
@@ -175,7 +192,7 @@ fn test_rounded_corner_specificity() {
         "rounded-br-lg",
         "rounded-tl-lg",
         "rounded-t-lg",
-        "rounded-tr-lg"
+        "rounded-tr-lg",
     ];
     let sorted = sorter.sort_classes(&classes);
 
@@ -192,10 +209,22 @@ fn test_rounded_corner_specificity() {
     let br_pos = sorted.iter().position(|c| *c == "rounded-br-lg").unwrap();
 
     // Side utilities should come before their respective corner utilities
-    assert!(t_pos < tl_pos, "rounded-t-lg should come before rounded-tl-lg");
-    assert!(t_pos < tr_pos, "rounded-t-lg should come before rounded-tr-lg");
-    assert!(b_pos < bl_pos, "rounded-b-lg should come before rounded-bl-lg");
-    assert!(b_pos < br_pos, "rounded-b-lg should come before rounded-br-lg");
+    assert!(
+        t_pos < tl_pos,
+        "rounded-t-lg should come before rounded-tl-lg"
+    );
+    assert!(
+        t_pos < tr_pos,
+        "rounded-t-lg should come before rounded-tr-lg"
+    );
+    assert!(
+        b_pos < bl_pos,
+        "rounded-b-lg should come before rounded-bl-lg"
+    );
+    assert!(
+        b_pos < br_pos,
+        "rounded-b-lg should come before rounded-br-lg"
+    );
 }
 
 #[test]
@@ -207,8 +236,11 @@ fn test_rounded_t_vs_rounded_tl_none() {
     let classes = vec!["rounded-tl-none", "rounded-t"];
     let sorted = sorter.sort_classes(&classes);
 
-    assert_eq!(sorted, vec!["rounded-t", "rounded-tl-none"],
-        "rounded-t (side utility) should come before rounded-tl-none (corner utility)");
+    assert_eq!(
+        sorted,
+        vec!["rounded-t", "rounded-tl-none"],
+        "rounded-t (side utility) should come before rounded-tl-none (corner utility)"
+    );
 }
 
 #[test]
@@ -221,8 +253,11 @@ fn test_rounded_cross_axis_b_vs_tl() {
     let sorted = sorter.sort_classes(&classes);
 
     // rounded-b (bottom side, index 145) should come before rounded-tl (top-left corner, index 151)
-    assert_eq!(sorted, vec!["rounded-b", "rounded-tl"],
-        "rounded-b (side utility) should come before rounded-tl (corner utility) in cross-axis comparison");
+    assert_eq!(
+        sorted,
+        vec!["rounded-b", "rounded-tl"],
+        "rounded-b (side utility) should come before rounded-tl (corner utility) in cross-axis comparison"
+    );
 }
 
 #[test]

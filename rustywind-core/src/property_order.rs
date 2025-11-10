@@ -107,10 +107,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     // Animation & Interaction (69-75)
     "animation",
     "cursor",
-    "touch-action",
     "--tw-pan-x",
     "--tw-pan-y",
     "--tw-pinch-zoom",
+    "touch-action",
     "resize",
     // Scroll Snap (76-97)
     "scroll-snap-type",
@@ -409,6 +409,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "contain",
     "content",
     "forced-color-adjust",
+    "--tw-divide-x-reverse",
 ];
 
 /// Optimized HashMap for O(1) property index lookup.
@@ -450,10 +451,11 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 338 (removed synthetic border radius properties per Tailwind v4)
+        // Total: 339 (removed synthetic border radius properties per Tailwind v4, added --tw-divide-x-reverse)
         // Removed: border-top-radius, border-right-radius, border-bottom-radius, border-left-radius
         // These were marked as "not real" in Tailwind v4's property-order.ts
-        assert_eq!(PROPERTY_ORDER.len(), 338);
+        // Added: --tw-divide-x-reverse for proper divide-x-reverse sorting
+        assert_eq!(PROPERTY_ORDER.len(), 339);
     }
 
     #[test]
@@ -462,8 +464,8 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (338 total, so last is at index 337)
-        assert_eq!(get_property_index("forced-color-adjust"), Some(337));
+        // Test last property (339 total, so last is at index 338)
+        assert_eq!(get_property_index("--tw-divide-x-reverse"), Some(338));
 
         // Test common properties (indices shifted by -4 after border-radius section due to removed synthetics)
         assert_eq!(get_property_index("margin"), Some(26));

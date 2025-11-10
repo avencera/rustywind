@@ -57,7 +57,8 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
             }
 
             // Parse and compare numerically
-            if let (Ok(a_num), Ok(z_num)) = (a[i..a_end].parse::<i64>(), z[i..z_end].parse::<i64>()) {
+            if let (Ok(a_num), Ok(z_num)) = (a[i..a_end].parse::<i64>(), z[i..z_end].parse::<i64>())
+            {
                 match a_num.cmp(&z_num) {
                     Ordering::Equal => {
                         i = a_end.max(z_end);
@@ -102,7 +103,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
 /// Utilities with the same property are sorted by their numeric value when available.
 fn extract_numeric_value(utility: &str) -> Option<f64> {
     // Remove variants to get just the utility part
-    let utility = utility.split(':').last()?;
+    let utility = utility.split(':').next_back()?;
 
     // Split by dash to get potential numeric parts
     let parts: Vec<&str> = utility.split('-').collect();
@@ -126,16 +127,15 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
     // Try to parse as fraction (e.g., "1/2")
     if value_str.contains('/') {
         let fraction_parts: Vec<&str> = value_str.split('/').collect();
-        if fraction_parts.len() == 2 {
-            if let (Ok(numerator), Ok(denominator)) = (
+        if fraction_parts.len() == 2
+            && let (Ok(numerator), Ok(denominator)) = (
                 fraction_parts[0].parse::<f64>(),
                 fraction_parts[1].parse::<f64>(),
-            ) {
-                if denominator != 0.0 {
-                    let result = numerator / denominator;
-                    return Some(result);
-                }
-            }
+            )
+            && denominator != 0.0
+        {
+            let result = numerator / denominator;
+            return Some(result);
         }
     }
 
@@ -157,8 +157,10 @@ pub struct SortKey {
     /// Variant order as bitwise flags (0 for no variants)
     pub variant_order: u128,
 
-    /// Property index from PROPERTY_ORDER (lower = earlier)
-    pub property_index: usize,
+    /// Property indices from PROPERTY_ORDER (lower = earlier)
+    /// When utilities have multiple properties (e.g., rounded-t), ALL property indices
+    /// are stored and compared in order for proper tiebreaking.
+    pub property_indices: Vec<usize>,
 
     /// Numeric value for value-based sub-sorting (e.g., p-4 → 4.0)
     /// Classes with the same property are sorted by numeric value when available
@@ -178,15 +180,31 @@ impl Ord for SortKey {
     ///
     /// Order of comparison:
     /// 1. Variant order (0 first, then by bit flags)
-    /// 2. Property index (lower index first)
+    /// 2. Property indices (compare ALL properties in order for proper tiebreaking)
     /// 3. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
     /// 4. Property count (FEWER properties first - note the reversal)
     /// 5. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
         self.variant_order
             .cmp(&other.variant_order)
-            // Then by property index
-            .then(self.property_index.cmp(&other.property_index))
+            // Then by property indices - compare ALL properties in order
+            // This is crucial for utilities like rounded-t vs rounded-l that tie on first property
+            .then_with(|| {
+                for (a_idx, b_idx) in self
+                    .property_indices
+                    .iter()
+                    .zip(other.property_indices.iter())
+                {
+                    match a_idx.cmp(b_idx) {
+                        Ordering::Equal => continue, // Tie on this property, check next
+                        other => return other,       // Found difference
+                    }
+                }
+                // All common properties are equal, compare by length
+                self.property_indices
+                    .len()
+                    .cmp(&other.property_indices.len())
+            })
             // Then by numeric value (if both present)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
@@ -254,12 +272,19 @@ impl PatternSorter {
         // Get the CSS properties this utility generates
         let properties = parsed.get_properties()?;
 
-        // Get the MINIMUM property index (for utilities generating multiple properties)
-        // This matches Tailwind's algorithm which uses the lowest property index
-        let property_index = properties
+        // Get ALL property indices (not just minimum) for proper multi-property tiebreaking
+        // This is crucial for utilities like rounded-t vs rounded-l that share the first property
+        // but differ on the second property (e.g., border-top-left-radius ties, but
+        // border-top-right-radius (190) < border-bottom-left-radius (192))
+        let property_indices: Vec<usize> = properties
             .iter()
             .filter_map(|&prop| get_property_index(prop))
-            .min()?;
+            .collect();
+
+        // Ensure we have at least one valid property index
+        if property_indices.is_empty() {
+            return None;
+        }
 
         // Count how many properties this utility generates
         let property_count = properties.len();
@@ -269,7 +294,7 @@ impl PatternSorter {
 
         Some(SortKey {
             variant_order,
-            property_index,
+            property_indices,
             numeric_value,
             property_count,
             class: class.to_string(),
@@ -426,7 +451,7 @@ mod tests {
         // Create sort keys manually to test comparison
         let key1 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "flex".to_string(),
@@ -434,7 +459,7 @@ mod tests {
 
         let key2 = SortKey {
             variant_order: 1,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "md:flex".to_string(),
@@ -448,7 +473,7 @@ mod tests {
     fn test_sort_key_property_index() {
         let key1 = SortKey {
             variant_order: 0,
-            property_index: 50,
+            property_indices: vec![50],
             numeric_value: None,
             property_count: 1,
             class: "a".to_string(),
@@ -456,7 +481,7 @@ mod tests {
 
         let key2 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "b".to_string(),
@@ -470,7 +495,7 @@ mod tests {
     fn test_sort_key_property_count() {
         let key1 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "a".to_string(),
@@ -478,7 +503,7 @@ mod tests {
 
         let key2 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 2,
             class: "b".to_string(),
@@ -492,7 +517,7 @@ mod tests {
     fn test_sort_key_alphabetical() {
         let key1 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "aaa".to_string(),
@@ -500,7 +525,7 @@ mod tests {
 
         let key2 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "bbb".to_string(),
@@ -517,7 +542,7 @@ mod tests {
         // Simple utility
         let key = sorter.get_sort_key("flex").unwrap();
         assert_eq!(key.variant_order, 0);
-        assert!(key.property_index > 0);
+        assert!(!key.property_indices.is_empty());
         assert_eq!(key.class, "flex");
 
         // With variant
@@ -628,14 +653,14 @@ mod tests {
         // p-4 should come before p-8 (4 < 8)
         let key1 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: Some(4.0),
             property_count: 1,
             class: "p-4".to_string(),
         };
         let key2 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: Some(8.0),
             property_count: 1,
             class: "p-8".to_string(),
@@ -645,14 +670,14 @@ mod tests {
         // scale-50 should come before scale-110 (50 < 110)
         let key3 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: Some(50.0),
             property_count: 1,
             class: "scale-50".to_string(),
         };
         let key4 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: Some(110.0),
             property_count: 1,
             class: "scale-110".to_string(),
@@ -662,20 +687,49 @@ mod tests {
         // When one has numeric value and other doesn't, they should be equal (fall through to next tier)
         let key5 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: Some(4.0),
             property_count: 1,
             class: "p-4".to_string(),
         };
         let key6 = SortKey {
             variant_order: 0,
-            property_index: 100,
+            property_indices: vec![100],
             numeric_value: None,
             property_count: 1,
             class: "p-auto".to_string(),
         };
         // They should differ only by alphabetical order
         assert!(key5 < key6); // "p-4" < "p-auto" alphabetically
+    }
+
+    #[test]
+    fn test_rounded_corner_tiebreaking() {
+        // Test that rounded-t and rounded-l are properly ordered using secondary property
+        // Both share border-top-left-radius (189), but:
+        // - rounded-t: [189, 190] (border-top-right-radius)
+        // - rounded-l: [189, 192] (border-bottom-left-radius)
+        // Since 190 < 192, rounded-t should come BEFORE rounded-l
+        let classes = vec!["rounded-l", "rounded-t"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(sorted, vec!["rounded-t", "rounded-l"]);
+
+        // Test with modifiers too
+        let classes = vec!["rounded-l-lg", "rounded-t-none"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(sorted, vec!["rounded-t-none", "rounded-l-lg"]);
+
+        // Test all four side-rounded utilities
+        let classes = vec!["rounded-l", "rounded-b", "rounded-r", "rounded-t"];
+        let sorted = sort_classes(&classes);
+        // Expected order by minimum property:
+        // rounded-t: (189, 190) and rounded-l: (189, 192) - rounded-t first due to 190 < 192
+        // rounded-r: (190, 191)
+        // rounded-b: (191, 192)
+        assert_eq!(
+            sorted,
+            vec!["rounded-t", "rounded-l", "rounded-r", "rounded-b"]
+        );
     }
 
     #[test]
@@ -715,5 +769,44 @@ mod tests {
         // Edge cases
         assert_eq!(extract_numeric_value("p-0"), Some(0.0));
         assert_eq!(extract_numeric_value("w-1/4"), Some(0.25));
+    }
+
+    #[test]
+    fn test_space_reverse_vs_gap_alphabetical() {
+        // Test gap-y vs space-x-reverse
+        // Both use row-gap (index 153), so should sort alphabetically
+        // "gap-y" < "space-x-reverse"
+        let classes = vec!["space-x-reverse", "gap-y-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["gap-y-4", "space-x-reverse"],
+            "gap-y should come before space-x-reverse (both at row-gap index, alphabetical tiebreak)"
+        );
+
+        // Test gap-x vs space-y-reverse
+        // Both use column-gap (index 152), so should sort alphabetically
+        // "gap-x" < "space-y-reverse"
+        let classes = vec!["space-y-reverse", "gap-x-0"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["gap-x-0", "space-y-reverse"],
+            "gap-x should come before space-y-reverse (both at column-gap index, alphabetical tiebreak)"
+        );
+
+        // Test multiple combinations
+        // Expected order:
+        // 1. gap-x-2 (column-gap, 152)
+        // 2. space-y-reverse (column-gap, 152) - alphabetically after gap-x
+        // 3. gap-y-4 (row-gap, 153)
+        // 4. space-x-reverse (row-gap, 153) - alphabetically after gap-y
+        let classes = vec!["space-x-reverse", "gap-y-4", "space-y-reverse", "gap-x-2"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["gap-x-2", "space-y-reverse", "gap-y-4", "space-x-reverse"],
+            "Should sort by property index first, then alphabetically within same index"
+        );
     }
 }

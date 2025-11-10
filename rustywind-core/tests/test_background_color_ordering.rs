@@ -20,7 +20,10 @@ fn test_bg_blue_vs_bg_green() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: bg-blue-900, bg-green-500
-    assert_eq!(sorted[0], "bg-blue-900", "bg-blue should come before bg-green");
+    assert_eq!(
+        sorted[0], "bg-blue-900",
+        "bg-blue should come before bg-green"
+    );
     assert_eq!(sorted[1], "bg-green-500");
 }
 
@@ -37,7 +40,10 @@ fn test_bg_blue_vs_bg_green_different_shades() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: bg-blue-500, bg-green-50
-    assert_eq!(sorted[0], "bg-blue-500", "bg-blue-500 should come before bg-green-50");
+    assert_eq!(
+        sorted[0], "bg-blue-500",
+        "bg-blue-500 should come before bg-green-50"
+    );
     assert_eq!(sorted[1], "bg-green-50");
 }
 
@@ -54,7 +60,10 @@ fn test_bg_gray_vs_bg_slate() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: bg-gray-500, bg-slate-50
-    assert_eq!(sorted[0], "bg-gray-500", "bg-gray should come before bg-slate");
+    assert_eq!(
+        sorted[0], "bg-gray-500",
+        "bg-gray should come before bg-slate"
+    );
     assert_eq!(sorted[1], "bg-slate-50");
 }
 

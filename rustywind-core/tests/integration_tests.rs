@@ -387,12 +387,12 @@ fn test_mixed_spacing_utilities() {
     // Sorted by property index from property_order.rs (indices +1 from background-opacity at 0):
     // margin(26) < margin-inline(27) < margin-top(31)
     // padding(253) < padding-inline(254) < padding-top(258)
-    assert_eq!(sorted[0], "m-4");   // margin: index 26
-    assert_eq!(sorted[1], "mx-4");  // margin-inline: index 27
-    assert_eq!(sorted[2], "mt-4");  // margin-top: index 31
-    assert_eq!(sorted[3], "p-4");   // padding: index 253
-    assert_eq!(sorted[4], "px-4");  // padding-inline: index 254 (changed from padding-left/right)
-    assert_eq!(sorted[5], "pt-4");  // padding-top: index 258
+    assert_eq!(sorted[0], "m-4"); // margin: index 26
+    assert_eq!(sorted[1], "mx-4"); // margin-inline: index 27
+    assert_eq!(sorted[2], "mt-4"); // margin-top: index 31
+    assert_eq!(sorted[3], "p-4"); // padding: index 253
+    assert_eq!(sorted[4], "px-4"); // padding-inline: index 254 (changed from padding-left/right)
+    assert_eq!(sorted[5], "pt-4"); // padding-top: index 258
 }
 
 #[test]
@@ -589,9 +589,18 @@ fn test_empty_variant_ordering() {
     let empty_pos = sorted.iter().position(|&c| c == "empty:hidden").unwrap();
 
     // Verify order: visited (17) < target (18) < checked (21) < empty (33)
-    assert!(visited_pos < target_pos, "visited (17) should come before target (18)");
-    assert!(target_pos < checked_pos, "target (18) should come before checked (21)");
-    assert!(checked_pos < empty_pos, "checked (21) should come before empty (33)");
+    assert!(
+        visited_pos < target_pos,
+        "visited (17) should come before target (18)"
+    );
+    assert!(
+        target_pos < checked_pos,
+        "target (18) should come before checked (21)"
+    );
+    assert!(
+        checked_pos < empty_pos,
+        "checked (21) should come before empty (33)"
+    );
 }
 
 #[test]
@@ -614,13 +623,28 @@ fn test_enabled_disabled_variant_ordering() {
     assert_eq!(sorted[0], "flex");
 
     // Get positions of single-variant enabled and disabled
-    let enabled_pos = sorted.iter().position(|&c| c == "enabled:cursor-pointer").unwrap();
-    let disabled_pos1 = sorted.iter().position(|&c| c == "disabled:opacity-50").unwrap();
-    let disabled_pos2 = sorted.iter().position(|&c| c == "disabled:cursor-not-allowed").unwrap();
+    let enabled_pos = sorted
+        .iter()
+        .position(|&c| c == "enabled:cursor-pointer")
+        .unwrap();
+    let disabled_pos1 = sorted
+        .iter()
+        .position(|&c| c == "disabled:opacity-50")
+        .unwrap();
+    let disabled_pos2 = sorted
+        .iter()
+        .position(|&c| c == "disabled:cursor-not-allowed")
+        .unwrap();
 
     // Verify enabled (39) comes before disabled (40)
-    assert!(enabled_pos < disabled_pos1, "enabled (39) should come before disabled (40)");
-    assert!(enabled_pos < disabled_pos2, "enabled (39) should come before disabled (40)");
+    assert!(
+        enabled_pos < disabled_pos1,
+        "enabled (39) should come before disabled (40)"
+    );
+    assert!(
+        enabled_pos < disabled_pos2,
+        "enabled (39) should come before disabled (40)"
+    );
 }
 
 #[test]
@@ -653,16 +677,37 @@ fn test_landscape_variant_ordering() {
     let xl_pos = sorted.iter().position(|&c| c == "xl:inline-flex").unwrap();
     let xxl_pos = sorted.iter().position(|&c| c == "2xl:table").unwrap();
     let container_pos = sorted.iter().position(|&c| c == "@3xl:hidden").unwrap();
-    let landscape_pos = sorted.iter().position(|&c| c == "landscape:flex-row").unwrap();
+    let landscape_pos = sorted
+        .iter()
+        .position(|&c| c == "landscape:flex-row")
+        .unwrap();
 
     // Verify landscape (72) comes after all responsive breakpoints
     // sm (54) < md (55) < lg (56) < xl (57) < 2xl (58) < @3xl (64) < landscape (72)
-    assert!(sm_pos < landscape_pos, "sm (54) should come before landscape (72)");
-    assert!(md_pos < landscape_pos, "md (55) should come before landscape (72)");
-    assert!(lg_pos < landscape_pos, "lg (56) should come before landscape (72)");
-    assert!(xl_pos < landscape_pos, "xl (57) should come before landscape (72)");
-    assert!(xxl_pos < landscape_pos, "2xl (58) should come before landscape (72)");
-    assert!(container_pos < landscape_pos, "@3xl (64) should come before landscape (72)");
+    assert!(
+        sm_pos < landscape_pos,
+        "sm (54) should come before landscape (72)"
+    );
+    assert!(
+        md_pos < landscape_pos,
+        "md (55) should come before landscape (72)"
+    );
+    assert!(
+        lg_pos < landscape_pos,
+        "lg (56) should come before landscape (72)"
+    );
+    assert!(
+        xl_pos < landscape_pos,
+        "xl (57) should come before landscape (72)"
+    );
+    assert!(
+        xxl_pos < landscape_pos,
+        "2xl (58) should come before landscape (72)"
+    );
+    assert!(
+        container_pos < landscape_pos,
+        "@3xl (64) should come before landscape (72)"
+    );
 }
 
 #[test]
@@ -688,10 +733,14 @@ fn test_user_select_utilities_ordering() {
     assert_eq!(sorted.len(), 7);
 
     // Get positions
-    let transition_pos = sorted.iter().position(|&c| c == "transition-colors").unwrap();
+    let transition_pos = sorted
+        .iter()
+        .position(|&c| c == "transition-colors")
+        .unwrap();
 
     // Find any select utility position
-    let select_positions: Vec<usize> = sorted.iter()
+    let select_positions: Vec<usize> = sorted
+        .iter()
         .enumerate()
         .filter(|(_, c)| c.starts_with("select-"))
         .map(|(i, _)| i)
@@ -707,7 +756,8 @@ fn test_user_select_utilities_ordering() {
     }
 
     // Verify select utilities are alphabetically sorted among themselves
-    let select_classes: Vec<&str> = sorted.iter()
+    let select_classes: Vec<&str> = sorted
+        .iter()
         .filter(|c| c.starts_with("select-"))
         .copied()
         .collect();

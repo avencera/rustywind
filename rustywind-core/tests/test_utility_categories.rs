@@ -36,9 +36,18 @@ fn test_filter_utilities_basic() {
 
     // All blur utilities should come before all brightness utilities
     // (--tw-blur at index 374, --tw-brightness at index 375)
-    assert!(blur_sm_pos < bright_50_pos, "--tw-blur should come before --tw-brightness");
-    assert!(blur_md_pos < bright_50_pos, "--tw-blur should come before --tw-brightness");
-    assert!(blur_lg_pos < bright_50_pos, "--tw-blur should come before --tw-brightness");
+    assert!(
+        blur_sm_pos < bright_50_pos,
+        "--tw-blur should come before --tw-brightness"
+    );
+    assert!(
+        blur_md_pos < bright_50_pos,
+        "--tw-blur should come before --tw-brightness"
+    );
+    assert!(
+        blur_lg_pos < bright_50_pos,
+        "--tw-blur should come before --tw-brightness"
+    );
 }
 
 #[test]
@@ -47,15 +56,15 @@ fn test_filter_utilities_comprehensive() {
     let sorter = HybridSorter::new();
 
     let classes = vec![
-        "blur-sm",           // --tw-blur (374)
-        "brightness-110",    // --tw-brightness (375)
-        "contrast-125",      // --tw-contrast (376)
-        "drop-shadow-lg",    // --tw-drop-shadow (377)
-        "grayscale",         // --tw-grayscale (378)
-        "hue-rotate-90",     // --tw-hue-rotate (379)
-        "invert",            // --tw-invert (380)
-        "saturate-150",      // --tw-saturate (381)
-        "sepia",             // --tw-sepia (382)
+        "blur-sm",        // --tw-blur (374)
+        "brightness-110", // --tw-brightness (375)
+        "contrast-125",   // --tw-contrast (376)
+        "drop-shadow-lg", // --tw-drop-shadow (377)
+        "grayscale",      // --tw-grayscale (378)
+        "hue-rotate-90",  // --tw-hue-rotate (379)
+        "invert",         // --tw-invert (380)
+        "saturate-150",   // --tw-saturate (381)
+        "sepia",          // --tw-sepia (382)
     ];
 
     let sorted = sorter.sort_classes(&classes);
@@ -81,14 +90,38 @@ fn test_filter_utilities_comprehensive() {
     let sepia_pos = sorted.iter().position(|&c| c == "sepia").unwrap();
 
     // Verify property order: each property should come before the next one
-    assert!(blur_pos < brightness_pos, "--tw-blur (374) < --tw-brightness (375)");
-    assert!(brightness_pos < contrast_pos, "--tw-brightness (375) < --tw-contrast (376)");
-    assert!(contrast_pos < drop_shadow_pos, "--tw-contrast (376) < --tw-drop-shadow (377)");
-    assert!(drop_shadow_pos < grayscale_pos, "--tw-drop-shadow (377) < --tw-grayscale (378)");
-    assert!(grayscale_pos < hue_rotate_pos, "--tw-grayscale (378) < --tw-hue-rotate (379)");
-    assert!(hue_rotate_pos < invert_pos, "--tw-hue-rotate (379) < --tw-invert (380)");
-    assert!(invert_pos < saturate_pos, "--tw-invert (380) < --tw-saturate (381)");
-    assert!(saturate_pos < sepia_pos, "--tw-saturate (381) < --tw-sepia (382)");
+    assert!(
+        blur_pos < brightness_pos,
+        "--tw-blur (374) < --tw-brightness (375)"
+    );
+    assert!(
+        brightness_pos < contrast_pos,
+        "--tw-brightness (375) < --tw-contrast (376)"
+    );
+    assert!(
+        contrast_pos < drop_shadow_pos,
+        "--tw-contrast (376) < --tw-drop-shadow (377)"
+    );
+    assert!(
+        drop_shadow_pos < grayscale_pos,
+        "--tw-drop-shadow (377) < --tw-grayscale (378)"
+    );
+    assert!(
+        grayscale_pos < hue_rotate_pos,
+        "--tw-grayscale (378) < --tw-hue-rotate (379)"
+    );
+    assert!(
+        hue_rotate_pos < invert_pos,
+        "--tw-hue-rotate (379) < --tw-invert (380)"
+    );
+    assert!(
+        invert_pos < saturate_pos,
+        "--tw-invert (380) < --tw-saturate (381)"
+    );
+    assert!(
+        saturate_pos < sepia_pos,
+        "--tw-saturate (381) < --tw-sepia (382)"
+    );
 }
 
 #[test]
@@ -142,11 +175,23 @@ fn test_filter_vs_backdrop_filter_ordering() {
     // blur utilities (374-382) should come before backdrop utilities (384-392)
     let blur_pos = sorted.iter().position(|&c| c == "blur-md").unwrap();
     let brightness_pos = sorted.iter().position(|&c| c == "brightness-125").unwrap();
-    let backdrop_blur_pos = sorted.iter().position(|&c| c == "backdrop-blur-sm").unwrap();
-    let backdrop_brightness_pos = sorted.iter().position(|&c| c == "backdrop-brightness-110").unwrap();
+    let backdrop_blur_pos = sorted
+        .iter()
+        .position(|&c| c == "backdrop-blur-sm")
+        .unwrap();
+    let backdrop_brightness_pos = sorted
+        .iter()
+        .position(|&c| c == "backdrop-brightness-110")
+        .unwrap();
 
-    assert!(blur_pos < backdrop_blur_pos, "filter should come before backdrop-filter");
-    assert!(brightness_pos < backdrop_brightness_pos, "filter should come before backdrop-filter");
+    assert!(
+        blur_pos < backdrop_blur_pos,
+        "filter should come before backdrop-filter"
+    );
+    assert!(
+        brightness_pos < backdrop_brightness_pos,
+        "filter should come before backdrop-filter"
+    );
 }
 
 #[test]
@@ -155,10 +200,10 @@ fn test_ring_utilities_basic() {
     let sorter = HybridSorter::new();
 
     let classes = vec![
-        "ring",              // --tw-ring-shadow (360)
-        "ring-2",            // --tw-ring-shadow (360)
-        "ring-blue-500",     // --tw-ring-color (361)
-        "ring-offset-2",     // --tw-ring-offset-width (366)
+        "ring",                 // --tw-ring-shadow (360)
+        "ring-2",               // --tw-ring-shadow (360)
+        "ring-blue-500",        // --tw-ring-color (361)
+        "ring-offset-2",        // --tw-ring-offset-width (366)
         "ring-offset-blue-500", // --tw-ring-offset-color (367)
     ];
 
@@ -172,8 +217,14 @@ fn test_ring_utilities_basic() {
     let ring_2_pos = sorted.iter().position(|&c| c == "ring-2").unwrap();
     let ring_color_pos = sorted.iter().position(|&c| c == "ring-blue-500").unwrap();
 
-    assert!(ring_pos < ring_color_pos, "ring width should come before ring color");
-    assert!(ring_2_pos < ring_color_pos, "ring width should come before ring color");
+    assert!(
+        ring_pos < ring_color_pos,
+        "ring width should come before ring color"
+    );
+    assert!(
+        ring_2_pos < ring_color_pos,
+        "ring width should come before ring color"
+    );
 }
 
 #[test]
@@ -181,11 +232,7 @@ fn test_ring_inset_utility() {
     // Test that ring-inset is recognized
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "ring-2",
-        "ring-inset",
-        "ring-blue-500",
-    ];
+    let classes = vec!["ring-2", "ring-inset", "ring-blue-500"];
 
     let sorted = sorter.sort_classes(&classes);
 
@@ -202,15 +249,15 @@ fn test_border_radius_utilities() {
     let sorter = HybridSorter::new();
 
     let classes = vec![
-        "rounded",        // border-radius
-        "rounded-t",      // border-top-radius (not real, but mapped)
-        "rounded-tr",     // border-top-right-radius
-        "rounded-r",      // border-right-radius (not real, but mapped)
-        "rounded-br",     // border-bottom-right-radius
-        "rounded-b",      // border-bottom-radius (not real, but mapped)
-        "rounded-bl",     // border-bottom-left-radius
-        "rounded-l",      // border-left-radius (not real, but mapped)
-        "rounded-tl",     // border-top-left-radius
+        "rounded",    // border-radius
+        "rounded-t",  // border-top-radius (not real, but mapped)
+        "rounded-tr", // border-top-right-radius
+        "rounded-r",  // border-right-radius (not real, but mapped)
+        "rounded-br", // border-bottom-right-radius
+        "rounded-b",  // border-bottom-radius (not real, but mapped)
+        "rounded-bl", // border-bottom-left-radius
+        "rounded-l",  // border-left-radius (not real, but mapped)
+        "rounded-tl", // border-top-left-radius
     ];
 
     let sorted = sorter.sort_classes(&classes);
@@ -254,8 +301,14 @@ fn test_transform_utilities_scale() {
     let scale_100_pos = sorted.iter().position(|&c| c == "scale-100").unwrap();
     let scale_150_pos = sorted.iter().position(|&c| c == "scale-150").unwrap();
 
-    assert!(scale_50_pos < scale_100_pos, "scale-50 should come before scale-100");
-    assert!(scale_100_pos < scale_150_pos, "scale-100 should come before scale-150");
+    assert!(
+        scale_50_pos < scale_100_pos,
+        "scale-50 should come before scale-100"
+    );
+    assert!(
+        scale_100_pos < scale_150_pos,
+        "scale-100 should come before scale-150"
+    );
 }
 
 #[test]
@@ -281,8 +334,14 @@ fn test_transform_utilities_translate() {
     let pos_2_pos = sorted.iter().position(|&c| c == "translate-x-2").unwrap();
     let pos_4_pos = sorted.iter().position(|&c| c == "translate-x-4").unwrap();
 
-    assert!(neg_pos < pos_2_pos, "negative translate should come before positive");
-    assert!(pos_2_pos < pos_4_pos, "translate-x-2 should come before translate-x-4");
+    assert!(
+        neg_pos < pos_2_pos,
+        "negative translate should come before positive"
+    );
+    assert!(
+        pos_2_pos < pos_4_pos,
+        "translate-x-2 should come before translate-x-4"
+    );
 }
 
 #[test]
@@ -290,12 +349,7 @@ fn test_transform_utilities_rotate() {
     // Test rotate utilities
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "rotate-180",
-        "rotate-45",
-        "rotate-90",
-        "-rotate-45",
-    ];
+    let classes = vec!["rotate-180", "rotate-45", "rotate-90", "-rotate-45"];
 
     let sorted = sorter.sort_classes(&classes);
 
@@ -308,7 +362,10 @@ fn test_transform_utilities_rotate() {
     let pos_90_pos = sorted.iter().position(|&c| c == "rotate-90").unwrap();
     let pos_180_pos = sorted.iter().position(|&c| c == "rotate-180").unwrap();
 
-    assert!(neg_45_pos < pos_45_pos, "negative should come before positive");
+    assert!(
+        neg_45_pos < pos_45_pos,
+        "negative should come before positive"
+    );
     assert!(pos_45_pos < pos_90_pos, "45 should come before 90");
     assert!(pos_90_pos < pos_180_pos, "90 should come before 180");
 }
@@ -319,12 +376,12 @@ fn test_mixed_utility_categories() {
     let sorter = HybridSorter::new();
 
     let classes = vec![
-        "ring-2",                    // Shadow group (360)
-        "blur-sm",                   // Filter (374)
-        "backdrop-blur-sm",          // Backdrop filter (384)
-        "transition-colors",         // Transition (397)
-        "scale-100",                 // Transform (79-88)
-        "rotate-45",                 // Transform (83)
+        "ring-2",            // Shadow group (360)
+        "blur-sm",           // Filter (374)
+        "backdrop-blur-sm",  // Backdrop filter (384)
+        "transition-colors", // Transition (397)
+        "scale-100",         // Transform (79-88)
+        "rotate-45",         // Transform (83)
     ];
 
     let sorted = sorter.sort_classes(&classes);

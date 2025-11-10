@@ -22,7 +22,10 @@ fn test_outline_vs_delay() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: delay-100, outline-dotted
-    assert_eq!(sorted[0], "delay-100", "delay-100 should come before outline-dotted");
+    assert_eq!(
+        sorted[0], "delay-100",
+        "delay-100 should come before outline-dotted"
+    );
     assert_eq!(sorted[1], "outline-dotted");
 }
 
@@ -51,12 +54,30 @@ fn test_outline_vs_delay_multiple() {
     let outline_dashed_pos = sorted.iter().position(|&c| c == "outline-dashed").unwrap();
     let outline_solid_pos = sorted.iter().position(|&c| c == "outline-solid").unwrap();
 
-    assert!(delay_75_pos < outline_none_pos, "delay-75 should come before outline-none");
-    assert!(delay_75_pos < outline_dashed_pos, "delay-75 should come before outline-dashed");
-    assert!(delay_75_pos < outline_solid_pos, "delay-75 should come before outline-solid");
-    assert!(delay_150_pos < outline_none_pos, "delay-150 should come before outline-none");
-    assert!(delay_150_pos < outline_dashed_pos, "delay-150 should come before outline-dashed");
-    assert!(delay_150_pos < outline_solid_pos, "delay-150 should come before outline-solid");
+    assert!(
+        delay_75_pos < outline_none_pos,
+        "delay-75 should come before outline-none"
+    );
+    assert!(
+        delay_75_pos < outline_dashed_pos,
+        "delay-75 should come before outline-dashed"
+    );
+    assert!(
+        delay_75_pos < outline_solid_pos,
+        "delay-75 should come before outline-solid"
+    );
+    assert!(
+        delay_150_pos < outline_none_pos,
+        "delay-150 should come before outline-none"
+    );
+    assert!(
+        delay_150_pos < outline_dashed_pos,
+        "delay-150 should come before outline-dashed"
+    );
+    assert!(
+        delay_150_pos < outline_solid_pos,
+        "delay-150 should come before outline-solid"
+    );
 }
 
 #[test]
@@ -72,7 +93,10 @@ fn test_outline_vs_duration() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: duration-300, outline-none
-    assert_eq!(sorted[0], "duration-300", "duration-300 should come before outline-none");
+    assert_eq!(
+        sorted[0], "duration-300",
+        "duration-300 should come before outline-none"
+    );
     assert_eq!(sorted[1], "outline-none");
 }
 
@@ -103,11 +127,26 @@ fn test_outline_vs_duration_multiple() {
     let outline_dashed_pos = sorted.iter().position(|&c| c == "outline-dashed").unwrap();
     let outline_dotted_pos = sorted.iter().position(|&c| c == "outline-dotted").unwrap();
 
-    assert!(duration_150_pos < outline_double_pos, "duration-150 should come before outline-double");
-    assert!(duration_150_pos < outline_dashed_pos, "duration-150 should come before outline-dashed");
-    assert!(duration_150_pos < outline_dotted_pos, "duration-150 should come before outline-dotted");
-    assert!(duration_500_pos < outline_double_pos, "duration-500 should come before outline-double");
-    assert!(duration_700_pos < outline_double_pos, "duration-700 should come before outline-double");
+    assert!(
+        duration_150_pos < outline_double_pos,
+        "duration-150 should come before outline-double"
+    );
+    assert!(
+        duration_150_pos < outline_dashed_pos,
+        "duration-150 should come before outline-dashed"
+    );
+    assert!(
+        duration_150_pos < outline_dotted_pos,
+        "duration-150 should come before outline-dotted"
+    );
+    assert!(
+        duration_500_pos < outline_double_pos,
+        "duration-500 should come before outline-double"
+    );
+    assert!(
+        duration_700_pos < outline_double_pos,
+        "duration-700 should come before outline-double"
+    );
 }
 
 #[test]
@@ -123,7 +162,10 @@ fn test_outline_vs_transition() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: transition-all, outline-solid
-    assert_eq!(sorted[0], "transition-all", "transition-all should come before outline-solid");
+    assert_eq!(
+        sorted[0], "transition-all",
+        "transition-all should come before outline-solid"
+    );
     assert_eq!(sorted[1], "outline-solid");
 }
 
@@ -147,18 +189,42 @@ fn test_outline_vs_transition_multiple() {
     println!("Output: {:?}", sorted);
 
     // All transition utilities should come before all outline utilities
-    let transition_colors_pos = sorted.iter().position(|&c| c == "transition-colors").unwrap();
-    let transition_opacity_pos = sorted.iter().position(|&c| c == "transition-opacity").unwrap();
-    let transition_transform_pos = sorted.iter().position(|&c| c == "transition-transform").unwrap();
+    let transition_colors_pos = sorted
+        .iter()
+        .position(|&c| c == "transition-colors")
+        .unwrap();
+    let transition_opacity_pos = sorted
+        .iter()
+        .position(|&c| c == "transition-opacity")
+        .unwrap();
+    let transition_transform_pos = sorted
+        .iter()
+        .position(|&c| c == "transition-transform")
+        .unwrap();
     let outline_dashed_pos = sorted.iter().position(|&c| c == "outline-dashed").unwrap();
     let outline_none_pos = sorted.iter().position(|&c| c == "outline-none").unwrap();
     let outline_dotted_pos = sorted.iter().position(|&c| c == "outline-dotted").unwrap();
 
-    assert!(transition_colors_pos < outline_dashed_pos, "transition-colors should come before outline-dashed");
-    assert!(transition_colors_pos < outline_none_pos, "transition-colors should come before outline-none");
-    assert!(transition_colors_pos < outline_dotted_pos, "transition-colors should come before outline-dotted");
-    assert!(transition_opacity_pos < outline_dashed_pos, "transition-opacity should come before outline-dashed");
-    assert!(transition_transform_pos < outline_none_pos, "transition-transform should come before outline-none");
+    assert!(
+        transition_colors_pos < outline_dashed_pos,
+        "transition-colors should come before outline-dashed"
+    );
+    assert!(
+        transition_colors_pos < outline_none_pos,
+        "transition-colors should come before outline-none"
+    );
+    assert!(
+        transition_colors_pos < outline_dotted_pos,
+        "transition-colors should come before outline-dotted"
+    );
+    assert!(
+        transition_opacity_pos < outline_dashed_pos,
+        "transition-opacity should come before outline-dashed"
+    );
+    assert!(
+        transition_transform_pos < outline_none_pos,
+        "transition-transform should come before outline-none"
+    );
 }
 
 #[test]
@@ -174,7 +240,10 @@ fn test_outline_vs_will_change() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: will-change-transform, outline-dotted
-    assert_eq!(sorted[0], "will-change-transform", "will-change-transform should come before outline-dotted");
+    assert_eq!(
+        sorted[0], "will-change-transform",
+        "will-change-transform should come before outline-dotted"
+    );
     assert_eq!(sorted[1], "outline-dotted");
 }
 
@@ -198,18 +267,42 @@ fn test_outline_vs_will_change_multiple() {
     println!("Output: {:?}", sorted);
 
     // All will-change utilities should come before all outline utilities
-    let will_change_auto_pos = sorted.iter().position(|&c| c == "will-change-auto").unwrap();
-    let will_change_scroll_pos = sorted.iter().position(|&c| c == "will-change-scroll").unwrap();
-    let will_change_contents_pos = sorted.iter().position(|&c| c == "will-change-contents").unwrap();
+    let will_change_auto_pos = sorted
+        .iter()
+        .position(|&c| c == "will-change-auto")
+        .unwrap();
+    let will_change_scroll_pos = sorted
+        .iter()
+        .position(|&c| c == "will-change-scroll")
+        .unwrap();
+    let will_change_contents_pos = sorted
+        .iter()
+        .position(|&c| c == "will-change-contents")
+        .unwrap();
     let outline_double_pos = sorted.iter().position(|&c| c == "outline-double").unwrap();
     let outline_solid_pos = sorted.iter().position(|&c| c == "outline-solid").unwrap();
     let outline_none_pos = sorted.iter().position(|&c| c == "outline-none").unwrap();
 
-    assert!(will_change_auto_pos < outline_double_pos, "will-change-auto should come before outline-double");
-    assert!(will_change_auto_pos < outline_solid_pos, "will-change-auto should come before outline-solid");
-    assert!(will_change_auto_pos < outline_none_pos, "will-change-auto should come before outline-none");
-    assert!(will_change_scroll_pos < outline_double_pos, "will-change-scroll should come before outline-double");
-    assert!(will_change_contents_pos < outline_solid_pos, "will-change-contents should come before outline-solid");
+    assert!(
+        will_change_auto_pos < outline_double_pos,
+        "will-change-auto should come before outline-double"
+    );
+    assert!(
+        will_change_auto_pos < outline_solid_pos,
+        "will-change-auto should come before outline-solid"
+    );
+    assert!(
+        will_change_auto_pos < outline_none_pos,
+        "will-change-auto should come before outline-none"
+    );
+    assert!(
+        will_change_scroll_pos < outline_double_pos,
+        "will-change-scroll should come before outline-double"
+    );
+    assert!(
+        will_change_contents_pos < outline_solid_pos,
+        "will-change-contents should come before outline-solid"
+    );
 }
 
 #[test]
@@ -238,7 +331,10 @@ fn test_outline_mixed_comprehensive() {
     let delay_pos = sorted.iter().position(|&c| c == "delay-100").unwrap();
     let duration_pos = sorted.iter().position(|&c| c == "duration-300").unwrap();
     let transition_pos = sorted.iter().position(|&c| c == "transition-all").unwrap();
-    let will_change_pos = sorted.iter().position(|&c| c == "will-change-transform").unwrap();
+    let will_change_pos = sorted
+        .iter()
+        .position(|&c| c == "will-change-transform")
+        .unwrap();
 
     let outline_none_pos = sorted.iter().position(|&c| c == "outline-none").unwrap();
     let outline_dotted_pos = sorted.iter().position(|&c| c == "outline-dotted").unwrap();
@@ -247,29 +343,89 @@ fn test_outline_mixed_comprehensive() {
     let outline_solid_pos = sorted.iter().position(|&c| c == "outline-solid").unwrap();
 
     // All transition-related utilities should come before all outline utilities
-    assert!(delay_pos < outline_none_pos, "delay should come before outline utilities");
-    assert!(delay_pos < outline_dotted_pos, "delay should come before outline utilities");
-    assert!(delay_pos < outline_dashed_pos, "delay should come before outline utilities");
-    assert!(delay_pos < outline_double_pos, "delay should come before outline utilities");
-    assert!(delay_pos < outline_solid_pos, "delay should come before outline utilities");
+    assert!(
+        delay_pos < outline_none_pos,
+        "delay should come before outline utilities"
+    );
+    assert!(
+        delay_pos < outline_dotted_pos,
+        "delay should come before outline utilities"
+    );
+    assert!(
+        delay_pos < outline_dashed_pos,
+        "delay should come before outline utilities"
+    );
+    assert!(
+        delay_pos < outline_double_pos,
+        "delay should come before outline utilities"
+    );
+    assert!(
+        delay_pos < outline_solid_pos,
+        "delay should come before outline utilities"
+    );
 
-    assert!(duration_pos < outline_none_pos, "duration should come before outline utilities");
-    assert!(duration_pos < outline_dotted_pos, "duration should come before outline utilities");
-    assert!(duration_pos < outline_dashed_pos, "duration should come before outline utilities");
-    assert!(duration_pos < outline_double_pos, "duration should come before outline utilities");
-    assert!(duration_pos < outline_solid_pos, "duration should come before outline utilities");
+    assert!(
+        duration_pos < outline_none_pos,
+        "duration should come before outline utilities"
+    );
+    assert!(
+        duration_pos < outline_dotted_pos,
+        "duration should come before outline utilities"
+    );
+    assert!(
+        duration_pos < outline_dashed_pos,
+        "duration should come before outline utilities"
+    );
+    assert!(
+        duration_pos < outline_double_pos,
+        "duration should come before outline utilities"
+    );
+    assert!(
+        duration_pos < outline_solid_pos,
+        "duration should come before outline utilities"
+    );
 
-    assert!(transition_pos < outline_none_pos, "transition should come before outline utilities");
-    assert!(transition_pos < outline_dotted_pos, "transition should come before outline utilities");
-    assert!(transition_pos < outline_dashed_pos, "transition should come before outline utilities");
-    assert!(transition_pos < outline_double_pos, "transition should come before outline utilities");
-    assert!(transition_pos < outline_solid_pos, "transition should come before outline utilities");
+    assert!(
+        transition_pos < outline_none_pos,
+        "transition should come before outline utilities"
+    );
+    assert!(
+        transition_pos < outline_dotted_pos,
+        "transition should come before outline utilities"
+    );
+    assert!(
+        transition_pos < outline_dashed_pos,
+        "transition should come before outline utilities"
+    );
+    assert!(
+        transition_pos < outline_double_pos,
+        "transition should come before outline utilities"
+    );
+    assert!(
+        transition_pos < outline_solid_pos,
+        "transition should come before outline utilities"
+    );
 
-    assert!(will_change_pos < outline_none_pos, "will-change should come before outline utilities");
-    assert!(will_change_pos < outline_dotted_pos, "will-change should come before outline utilities");
-    assert!(will_change_pos < outline_dashed_pos, "will-change should come before outline utilities");
-    assert!(will_change_pos < outline_double_pos, "will-change should come before outline utilities");
-    assert!(will_change_pos < outline_solid_pos, "will-change should come before outline utilities");
+    assert!(
+        will_change_pos < outline_none_pos,
+        "will-change should come before outline utilities"
+    );
+    assert!(
+        will_change_pos < outline_dotted_pos,
+        "will-change should come before outline utilities"
+    );
+    assert!(
+        will_change_pos < outline_dashed_pos,
+        "will-change should come before outline utilities"
+    );
+    assert!(
+        will_change_pos < outline_double_pos,
+        "will-change should come before outline utilities"
+    );
+    assert!(
+        will_change_pos < outline_solid_pos,
+        "will-change should come before outline utilities"
+    );
 }
 
 #[test]
@@ -291,7 +447,11 @@ fn test_all_outline_style_variants() {
     println!("Output: {:?}", sorted);
 
     // All outline utilities should be recognized and sorted
-    assert_eq!(sorted.len(), 5, "all outline utilities should be recognized");
+    assert_eq!(
+        sorted.len(),
+        5,
+        "all outline utilities should be recognized"
+    );
 
     // They should all be grouped together (no other utilities between them)
     assert!(sorted.contains(&"outline-solid"));

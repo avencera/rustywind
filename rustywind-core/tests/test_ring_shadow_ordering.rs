@@ -30,7 +30,10 @@ fn test_ring_0_vs_shadow_with_color() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: ring-0, shadow-blue-500
-    assert_eq!(sorted[0], "ring-0", "ring-0 should come before shadow-blue-500");
+    assert_eq!(
+        sorted[0], "ring-0",
+        "ring-0 should come before shadow-blue-500"
+    );
     assert_eq!(sorted[1], "shadow-blue-500");
 }
 
@@ -64,7 +67,10 @@ fn test_ring_2_vs_shadow_with_color() {
     println!("Output: {:?}", sorted);
 
     // Prettier expects: ring-2, shadow-gray-500
-    assert_eq!(sorted[0], "ring-2", "ring-2 should come before shadow-gray-500");
+    assert_eq!(
+        sorted[0], "ring-2",
+        "ring-2 should come before shadow-gray-500"
+    );
     assert_eq!(sorted[1], "shadow-gray-500");
 }
 
@@ -101,24 +107,60 @@ fn test_ring_utilities_vs_shadow_sizes() {
 
     // All ring utilities should come BEFORE all shadow utilities
     assert!(ring_0_pos < shadow_pos, "ring-0 should come before shadow");
-    assert!(ring_0_pos < shadow_sm_pos, "ring-0 should come before shadow-sm");
-    assert!(ring_0_pos < shadow_lg_pos, "ring-0 should come before shadow-lg");
-    assert!(ring_0_pos < shadow_xl_pos, "ring-0 should come before shadow-xl");
+    assert!(
+        ring_0_pos < shadow_sm_pos,
+        "ring-0 should come before shadow-sm"
+    );
+    assert!(
+        ring_0_pos < shadow_lg_pos,
+        "ring-0 should come before shadow-lg"
+    );
+    assert!(
+        ring_0_pos < shadow_xl_pos,
+        "ring-0 should come before shadow-xl"
+    );
 
     assert!(ring_pos < shadow_pos, "ring should come before shadow");
-    assert!(ring_pos < shadow_sm_pos, "ring should come before shadow-sm");
-    assert!(ring_pos < shadow_lg_pos, "ring should come before shadow-lg");
-    assert!(ring_pos < shadow_xl_pos, "ring should come before shadow-xl");
+    assert!(
+        ring_pos < shadow_sm_pos,
+        "ring should come before shadow-sm"
+    );
+    assert!(
+        ring_pos < shadow_lg_pos,
+        "ring should come before shadow-lg"
+    );
+    assert!(
+        ring_pos < shadow_xl_pos,
+        "ring should come before shadow-xl"
+    );
 
     assert!(ring_1_pos < shadow_pos, "ring-1 should come before shadow");
-    assert!(ring_1_pos < shadow_sm_pos, "ring-1 should come before shadow-sm");
-    assert!(ring_1_pos < shadow_lg_pos, "ring-1 should come before shadow-lg");
-    assert!(ring_1_pos < shadow_xl_pos, "ring-1 should come before shadow-xl");
+    assert!(
+        ring_1_pos < shadow_sm_pos,
+        "ring-1 should come before shadow-sm"
+    );
+    assert!(
+        ring_1_pos < shadow_lg_pos,
+        "ring-1 should come before shadow-lg"
+    );
+    assert!(
+        ring_1_pos < shadow_xl_pos,
+        "ring-1 should come before shadow-xl"
+    );
 
     assert!(ring_2_pos < shadow_pos, "ring-2 should come before shadow");
-    assert!(ring_2_pos < shadow_sm_pos, "ring-2 should come before shadow-sm");
-    assert!(ring_2_pos < shadow_lg_pos, "ring-2 should come before shadow-lg");
-    assert!(ring_2_pos < shadow_xl_pos, "ring-2 should come before shadow-xl");
+    assert!(
+        ring_2_pos < shadow_sm_pos,
+        "ring-2 should come before shadow-sm"
+    );
+    assert!(
+        ring_2_pos < shadow_lg_pos,
+        "ring-2 should come before shadow-lg"
+    );
+    assert!(
+        ring_2_pos < shadow_xl_pos,
+        "ring-2 should come before shadow-xl"
+    );
 }
 
 #[test]
@@ -156,20 +198,56 @@ fn test_mixed_ring_shadow_with_other_utilities() {
     let shadow_gray_pos = sorted.iter().position(|&c| c == "shadow-gray-500").unwrap();
 
     // All ring utilities should come BEFORE all shadow utilities
-    assert!(ring_0_pos < shadow_sm_pos, "ring-0 should come before shadow-sm");
-    assert!(ring_0_pos < shadow_lg_pos, "ring-0 should come before shadow-lg");
-    assert!(ring_0_pos < shadow_blue_pos, "ring-0 should come before shadow-blue-500");
-    assert!(ring_0_pos < shadow_gray_pos, "ring-0 should come before shadow-gray-500");
+    assert!(
+        ring_0_pos < shadow_sm_pos,
+        "ring-0 should come before shadow-sm"
+    );
+    assert!(
+        ring_0_pos < shadow_lg_pos,
+        "ring-0 should come before shadow-lg"
+    );
+    assert!(
+        ring_0_pos < shadow_blue_pos,
+        "ring-0 should come before shadow-blue-500"
+    );
+    assert!(
+        ring_0_pos < shadow_gray_pos,
+        "ring-0 should come before shadow-gray-500"
+    );
 
-    assert!(ring_pos < shadow_sm_pos, "ring should come before shadow-sm");
-    assert!(ring_pos < shadow_lg_pos, "ring should come before shadow-lg");
-    assert!(ring_pos < shadow_blue_pos, "ring should come before shadow-blue-500");
-    assert!(ring_pos < shadow_gray_pos, "ring should come before shadow-gray-500");
+    assert!(
+        ring_pos < shadow_sm_pos,
+        "ring should come before shadow-sm"
+    );
+    assert!(
+        ring_pos < shadow_lg_pos,
+        "ring should come before shadow-lg"
+    );
+    assert!(
+        ring_pos < shadow_blue_pos,
+        "ring should come before shadow-blue-500"
+    );
+    assert!(
+        ring_pos < shadow_gray_pos,
+        "ring should come before shadow-gray-500"
+    );
 
-    assert!(ring_2_pos < shadow_sm_pos, "ring-2 should come before shadow-sm");
-    assert!(ring_2_pos < shadow_lg_pos, "ring-2 should come before shadow-lg");
-    assert!(ring_2_pos < shadow_blue_pos, "ring-2 should come before shadow-blue-500");
-    assert!(ring_2_pos < shadow_gray_pos, "ring-2 should come before shadow-gray-500");
+    assert!(
+        ring_2_pos < shadow_sm_pos,
+        "ring-2 should come before shadow-sm"
+    );
+    assert!(
+        ring_2_pos < shadow_lg_pos,
+        "ring-2 should come before shadow-lg"
+    );
+    assert!(
+        ring_2_pos < shadow_blue_pos,
+        "ring-2 should come before shadow-blue-500"
+    );
+    assert!(
+        ring_2_pos < shadow_gray_pos,
+        "ring-2 should come before shadow-gray-500"
+    );
 }
 
 #[test]
@@ -207,19 +285,48 @@ fn test_all_ring_widths_vs_shadow_colors() {
 
     let shadow_blue_pos = sorted.iter().position(|&c| c == "shadow-blue-500").unwrap();
     let shadow_red_pos = sorted.iter().position(|&c| c == "shadow-red-400").unwrap();
-    let shadow_green_pos = sorted.iter().position(|&c| c == "shadow-green-600").unwrap();
-    let shadow_yellow_pos = sorted.iter().position(|&c| c == "shadow-yellow-300").unwrap();
-    let shadow_purple_pos = sorted.iter().position(|&c| c == "shadow-purple-700").unwrap();
+    let shadow_green_pos = sorted
+        .iter()
+        .position(|&c| c == "shadow-green-600")
+        .unwrap();
+    let shadow_yellow_pos = sorted
+        .iter()
+        .position(|&c| c == "shadow-yellow-300")
+        .unwrap();
+    let shadow_purple_pos = sorted
+        .iter()
+        .position(|&c| c == "shadow-purple-700")
+        .unwrap();
     let shadow_pink_pos = sorted.iter().position(|&c| c == "shadow-pink-500").unwrap();
 
     // Every ring utility should come before every shadow utility
-    for ring_class_pos in [ring_0_pos, ring_1_pos, ring_2_pos, ring_4_pos, ring_8_pos, ring_pos] {
-        assert!(ring_class_pos < shadow_blue_pos, "ring utilities should come before shadow-blue-500");
-        assert!(ring_class_pos < shadow_red_pos, "ring utilities should come before shadow-red-400");
-        assert!(ring_class_pos < shadow_green_pos, "ring utilities should come before shadow-green-600");
-        assert!(ring_class_pos < shadow_yellow_pos, "ring utilities should come before shadow-yellow-300");
-        assert!(ring_class_pos < shadow_purple_pos, "ring utilities should come before shadow-purple-700");
-        assert!(ring_class_pos < shadow_pink_pos, "ring utilities should come before shadow-pink-500");
+    for ring_class_pos in [
+        ring_0_pos, ring_1_pos, ring_2_pos, ring_4_pos, ring_8_pos, ring_pos,
+    ] {
+        assert!(
+            ring_class_pos < shadow_blue_pos,
+            "ring utilities should come before shadow-blue-500"
+        );
+        assert!(
+            ring_class_pos < shadow_red_pos,
+            "ring utilities should come before shadow-red-400"
+        );
+        assert!(
+            ring_class_pos < shadow_green_pos,
+            "ring utilities should come before shadow-green-600"
+        );
+        assert!(
+            ring_class_pos < shadow_yellow_pos,
+            "ring utilities should come before shadow-yellow-300"
+        );
+        assert!(
+            ring_class_pos < shadow_purple_pos,
+            "ring utilities should come before shadow-purple-700"
+        );
+        assert!(
+            ring_class_pos < shadow_pink_pos,
+            "ring utilities should come before shadow-pink-500"
+        );
     }
 }
 
@@ -249,12 +356,27 @@ fn test_ring_inset_vs_shadow() {
     let shadow_blue_pos = sorted.iter().position(|&c| c == "shadow-blue-500").unwrap();
 
     // ring utilities (including ring-inset) should come BEFORE shadow utilities
-    assert!(ring_inset_pos < shadow_pos, "ring-inset should come before shadow");
-    assert!(ring_inset_pos < shadow_lg_pos, "ring-inset should come before shadow-lg");
-    assert!(ring_inset_pos < shadow_blue_pos, "ring-inset should come before shadow-blue-500");
+    assert!(
+        ring_inset_pos < shadow_pos,
+        "ring-inset should come before shadow"
+    );
+    assert!(
+        ring_inset_pos < shadow_lg_pos,
+        "ring-inset should come before shadow-lg"
+    );
+    assert!(
+        ring_inset_pos < shadow_blue_pos,
+        "ring-inset should come before shadow-blue-500"
+    );
     assert!(ring_0_pos < shadow_pos, "ring-0 should come before shadow");
-    assert!(ring_0_pos < shadow_lg_pos, "ring-0 should come before shadow-lg");
-    assert!(ring_0_pos < shadow_blue_pos, "ring-0 should come before shadow-blue-500");
+    assert!(
+        ring_0_pos < shadow_lg_pos,
+        "ring-0 should come before shadow-lg"
+    );
+    assert!(
+        ring_0_pos < shadow_blue_pos,
+        "ring-0 should come before shadow-blue-500"
+    );
 }
 
 #[test]
@@ -285,17 +407,44 @@ fn test_ring_colors_vs_shadow_colors() {
     let shadow_red_pos = sorted.iter().position(|&c| c == "shadow-red-400").unwrap();
 
     // All ring color utilities should come BEFORE all shadow color utilities
-    assert!(ring_blue_pos < shadow_gray_pos, "ring-blue-500 should come before shadow-gray-500");
-    assert!(ring_blue_pos < shadow_blue_pos, "ring-blue-500 should come before shadow-blue-500");
-    assert!(ring_blue_pos < shadow_red_pos, "ring-blue-500 should come before shadow-red-400");
+    assert!(
+        ring_blue_pos < shadow_gray_pos,
+        "ring-blue-500 should come before shadow-gray-500"
+    );
+    assert!(
+        ring_blue_pos < shadow_blue_pos,
+        "ring-blue-500 should come before shadow-blue-500"
+    );
+    assert!(
+        ring_blue_pos < shadow_red_pos,
+        "ring-blue-500 should come before shadow-red-400"
+    );
 
-    assert!(ring_gray_pos < shadow_gray_pos, "ring-gray-300 should come before shadow-gray-500");
-    assert!(ring_gray_pos < shadow_blue_pos, "ring-gray-300 should come before shadow-blue-500");
-    assert!(ring_gray_pos < shadow_red_pos, "ring-gray-300 should come before shadow-red-400");
+    assert!(
+        ring_gray_pos < shadow_gray_pos,
+        "ring-gray-300 should come before shadow-gray-500"
+    );
+    assert!(
+        ring_gray_pos < shadow_blue_pos,
+        "ring-gray-300 should come before shadow-blue-500"
+    );
+    assert!(
+        ring_gray_pos < shadow_red_pos,
+        "ring-gray-300 should come before shadow-red-400"
+    );
 
-    assert!(ring_red_pos < shadow_gray_pos, "ring-red-600 should come before shadow-gray-500");
-    assert!(ring_red_pos < shadow_blue_pos, "ring-red-600 should come before shadow-blue-500");
-    assert!(ring_red_pos < shadow_red_pos, "ring-red-600 should come before shadow-red-400");
+    assert!(
+        ring_red_pos < shadow_gray_pos,
+        "ring-red-600 should come before shadow-gray-500"
+    );
+    assert!(
+        ring_red_pos < shadow_blue_pos,
+        "ring-red-600 should come before shadow-blue-500"
+    );
+    assert!(
+        ring_red_pos < shadow_red_pos,
+        "ring-red-600 should come before shadow-red-400"
+    );
 }
 
 #[test]
@@ -355,13 +504,27 @@ fn test_comprehensive_ring_shadow_ordering() {
 
     // Collect all ring and shadow positions
     let ring_positions = vec![
-        ring_0_pos, ring_1_pos, ring_2_pos, ring_4_pos, ring_8_pos,
-        ring_pos, ring_inset_pos, ring_blue_pos, ring_gray_pos,
+        ring_0_pos,
+        ring_1_pos,
+        ring_2_pos,
+        ring_4_pos,
+        ring_8_pos,
+        ring_pos,
+        ring_inset_pos,
+        ring_blue_pos,
+        ring_gray_pos,
     ];
     let shadow_positions = vec![
-        shadow_pos, shadow_sm_pos, shadow_md_pos, shadow_lg_pos,
-        shadow_xl_pos, shadow_2xl_pos, shadow_inner_pos, shadow_none_pos,
-        shadow_blue_pos, shadow_gray_pos,
+        shadow_pos,
+        shadow_sm_pos,
+        shadow_md_pos,
+        shadow_lg_pos,
+        shadow_xl_pos,
+        shadow_2xl_pos,
+        shadow_inner_pos,
+        shadow_none_pos,
+        shadow_blue_pos,
+        shadow_gray_pos,
     ];
 
     // Every ring utility should come before every shadow utility

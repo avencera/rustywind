@@ -68,6 +68,9 @@ fn test_space_x_reverse_vs_space_y_reverse() {
     // Prettier wants: space-y-reverse, space-x-reverse
     // space-y-reverse maps to column-gap (index < row-gap)
     // space-x-reverse maps to row-gap
-    assert_eq!(sorted[0], "space-y-reverse", "space-y-reverse should come before space-x-reverse");
+    assert_eq!(
+        sorted[0], "space-y-reverse",
+        "space-y-reverse should come before space-x-reverse"
+    );
     assert_eq!(sorted[1], "space-x-reverse");
 }

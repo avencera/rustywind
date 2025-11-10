@@ -25,7 +25,10 @@ fn test_touch_manipulation_vs_touch_pan_left() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: touch-manipulation, touch-pan-left (alphabetical order)
-    assert_eq!(sorted[0], "touch-manipulation", "touch-manipulation should come before touch-pan-left");
+    assert_eq!(
+        sorted[0], "touch-manipulation",
+        "touch-manipulation should come before touch-pan-left"
+    );
     assert_eq!(sorted[1], "touch-pan-left");
 }
 
@@ -42,7 +45,10 @@ fn test_touch_pan_up_vs_touch_pan_x() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: touch-pan-up, touch-pan-x (alphabetical order)
-    assert_eq!(sorted[0], "touch-pan-up", "touch-pan-up should come before touch-pan-x");
+    assert_eq!(
+        sorted[0], "touch-pan-up",
+        "touch-pan-up should come before touch-pan-x"
+    );
     assert_eq!(sorted[1], "touch-pan-x");
 }
 
@@ -59,7 +65,10 @@ fn test_touch_none_vs_touch_pan_down() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: touch-none, touch-pan-down (alphabetical order)
-    assert_eq!(sorted[0], "touch-none", "touch-none should come before touch-pan-down");
+    assert_eq!(
+        sorted[0], "touch-none",
+        "touch-none should come before touch-pan-down"
+    );
     assert_eq!(sorted[1], "touch-pan-down");
 }
 
@@ -76,7 +85,10 @@ fn test_touch_auto_vs_touch_manipulation() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: touch-auto, touch-manipulation (alphabetical order)
-    assert_eq!(sorted[0], "touch-auto", "touch-auto should come before touch-manipulation");
+    assert_eq!(
+        sorted[0], "touch-auto",
+        "touch-auto should come before touch-manipulation"
+    );
     assert_eq!(sorted[1], "touch-manipulation");
 }
 
@@ -109,7 +121,10 @@ fn test_multiple_touch_pan_utilities() {
         "touch-pan-y",
     ];
 
-    assert_eq!(sorted, expected, "touch-pan-* utilities should be sorted alphabetically");
+    assert_eq!(
+        sorted, expected,
+        "touch-pan-* utilities should be sorted alphabetically"
+    );
 }
 
 #[test]
@@ -149,7 +164,10 @@ fn test_all_touch_utilities_alphabetically() {
         "touch-pinch-zoom",
     ];
 
-    assert_eq!(sorted, expected, "All touch utilities should be sorted in alphabetical order");
+    assert_eq!(
+        sorted, expected,
+        "All touch utilities should be sorted in alphabetical order"
+    );
 }
 
 #[test]
@@ -175,14 +193,26 @@ fn test_touch_utilities_mixed_with_other_utilities() {
 
     // Find touch utility positions
     let touch_auto_pos = sorted.iter().position(|&c| c == "touch-auto").unwrap();
-    let touch_manipulation_pos = sorted.iter().position(|&c| c == "touch-manipulation").unwrap();
+    let touch_manipulation_pos = sorted
+        .iter()
+        .position(|&c| c == "touch-manipulation")
+        .unwrap();
     let touch_pan_up_pos = sorted.iter().position(|&c| c == "touch-pan-up").unwrap();
     let touch_pan_x_pos = sorted.iter().position(|&c| c == "touch-pan-x").unwrap();
 
     // Touch utilities should maintain alphabetical order among themselves
-    assert!(touch_auto_pos < touch_manipulation_pos, "touch-auto should come before touch-manipulation");
-    assert!(touch_manipulation_pos < touch_pan_up_pos, "touch-manipulation should come before touch-pan-up");
-    assert!(touch_pan_up_pos < touch_pan_x_pos, "touch-pan-up should come before touch-pan-x");
+    assert!(
+        touch_auto_pos < touch_manipulation_pos,
+        "touch-auto should come before touch-manipulation"
+    );
+    assert!(
+        touch_manipulation_pos < touch_pan_up_pos,
+        "touch-manipulation should come before touch-pan-up"
+    );
+    assert!(
+        touch_pan_up_pos < touch_pan_x_pos,
+        "touch-pan-up should come before touch-pan-x"
+    );
 }
 
 #[test]
@@ -198,7 +228,10 @@ fn test_touch_pan_left_vs_touch_pan_right() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: touch-pan-left, touch-pan-right (alphabetical order)
-    assert_eq!(sorted[0], "touch-pan-left", "touch-pan-left should come before touch-pan-right");
+    assert_eq!(
+        sorted[0], "touch-pan-left",
+        "touch-pan-left should come before touch-pan-right"
+    );
     assert_eq!(sorted[1], "touch-pan-right");
 }
 
@@ -215,7 +248,10 @@ fn test_touch_pan_y_vs_touch_pinch_zoom() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: touch-pan-y, touch-pinch-zoom (alphabetical order)
-    assert_eq!(sorted[0], "touch-pan-y", "touch-pan-y should come before touch-pinch-zoom");
+    assert_eq!(
+        sorted[0], "touch-pan-y",
+        "touch-pan-y should come before touch-pinch-zoom"
+    );
     assert_eq!(sorted[1], "touch-pinch-zoom");
 }
 
@@ -256,14 +292,18 @@ fn test_touch_utilities_comprehensive() {
         "touch-pinch-zoom",
     ];
 
-    assert_eq!(sorted, expected, "All touch utilities should maintain strict alphabetical order");
+    assert_eq!(
+        sorted, expected,
+        "All touch utilities should maintain strict alphabetical order"
+    );
 
     // Additional verification: check each consecutive pair
     for i in 0..sorted.len() - 1 {
         assert!(
             sorted[i] < sorted[i + 1],
             "Each touch utility should come before the next alphabetically: {} should be < {}",
-            sorted[i], sorted[i + 1]
+            sorted[i],
+            sorted[i + 1]
         );
     }
 }

@@ -34,7 +34,10 @@ fn test_mixed_background_colors_alphanumeric() {
     // Between colors: blue < red (alphabetic comparison)
     let classes = vec!["bg-red-500", "bg-blue-50", "bg-blue-900", "bg-red-50"];
     let sorted = sort_classes(&classes);
-    assert_eq!(sorted, vec!["bg-blue-50", "bg-blue-900", "bg-red-50", "bg-red-500"]);
+    assert_eq!(
+        sorted,
+        vec!["bg-blue-50", "bg-blue-900", "bg-red-50", "bg-red-500"]
+    );
 }
 
 #[test]

@@ -26,7 +26,10 @@ fn test_rotate_1_vs_rotate_45() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: -rotate-1, -rotate-45 (numerical order)
-    assert_eq!(sorted[0], "-rotate-1", "-rotate-1 should come before -rotate-45");
+    assert_eq!(
+        sorted[0], "-rotate-1",
+        "-rotate-1 should come before -rotate-45"
+    );
     assert_eq!(sorted[1], "-rotate-45");
 }
 
@@ -43,7 +46,10 @@ fn test_rotate_45_vs_rotate_90() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: -rotate-45, -rotate-90 (numerical order)
-    assert_eq!(sorted[0], "-rotate-45", "-rotate-45 should come before -rotate-90");
+    assert_eq!(
+        sorted[0], "-rotate-45",
+        "-rotate-45 should come before -rotate-90"
+    );
     assert_eq!(sorted[1], "-rotate-90");
 }
 
@@ -60,7 +66,10 @@ fn test_rotate_1_vs_rotate_180() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: -rotate-1, -rotate-180 (numerical order)
-    assert_eq!(sorted[0], "-rotate-1", "-rotate-1 should come before -rotate-180");
+    assert_eq!(
+        sorted[0], "-rotate-1",
+        "-rotate-1 should come before -rotate-180"
+    );
     assert_eq!(sorted[1], "-rotate-180");
 }
 
@@ -77,7 +86,10 @@ fn test_rotate_1_vs_rotate_90() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: -rotate-1, -rotate-90 (numerical order)
-    assert_eq!(sorted[0], "-rotate-1", "-rotate-1 should come before -rotate-90");
+    assert_eq!(
+        sorted[0], "-rotate-1",
+        "-rotate-1 should come before -rotate-90"
+    );
     assert_eq!(sorted[1], "-rotate-90");
 }
 
@@ -110,7 +122,10 @@ fn test_multiple_rotation_values_together() {
         "-rotate-180",
     ];
 
-    assert_eq!(sorted, expected, "Rotation values should be sorted in numerical ascending order");
+    assert_eq!(
+        sorted, expected,
+        "Rotation values should be sorted in numerical ascending order"
+    );
 }
 
 #[test]
@@ -142,7 +157,10 @@ fn test_positive_rotation_values() {
         "rotate-180",
     ];
 
-    assert_eq!(sorted, expected, "Positive rotation values should be sorted in numerical ascending order");
+    assert_eq!(
+        sorted, expected,
+        "Positive rotation values should be sorted in numerical ascending order"
+    );
 }
 
 #[test]
@@ -173,12 +191,24 @@ fn test_mixed_positive_negative_rotation() {
     let neg_rotate_90_pos = sorted.iter().position(|&c| c == "-rotate-90").unwrap();
 
     // Within positive rotations, numerical order should apply
-    assert!(rotate_1_pos < rotate_45_pos, "rotate-1 should come before rotate-45");
-    assert!(rotate_45_pos < rotate_90_pos, "rotate-45 should come before rotate-90");
+    assert!(
+        rotate_1_pos < rotate_45_pos,
+        "rotate-1 should come before rotate-45"
+    );
+    assert!(
+        rotate_45_pos < rotate_90_pos,
+        "rotate-45 should come before rotate-90"
+    );
 
     // Within negative rotations, numerical order should apply
-    assert!(neg_rotate_1_pos < neg_rotate_45_pos, "-rotate-1 should come before -rotate-45");
-    assert!(neg_rotate_45_pos < neg_rotate_90_pos, "-rotate-45 should come before -rotate-90");
+    assert!(
+        neg_rotate_1_pos < neg_rotate_45_pos,
+        "-rotate-1 should come before -rotate-45"
+    );
+    assert!(
+        neg_rotate_45_pos < neg_rotate_90_pos,
+        "-rotate-45 should come before -rotate-90"
+    );
 }
 
 #[test]
@@ -207,8 +237,14 @@ fn test_rotation_with_other_transform_utilities() {
     let rotate_90_pos = sorted.iter().position(|&c| c == "-rotate-90").unwrap();
 
     // Rotation utilities should maintain numerical order among themselves
-    assert!(rotate_1_pos < rotate_45_pos, "-rotate-1 should come before -rotate-45");
-    assert!(rotate_45_pos < rotate_90_pos, "-rotate-45 should come before -rotate-90");
+    assert!(
+        rotate_1_pos < rotate_45_pos,
+        "-rotate-1 should come before -rotate-45"
+    );
+    assert!(
+        rotate_45_pos < rotate_90_pos,
+        "-rotate-45 should come before -rotate-90"
+    );
 }
 
 #[test]
@@ -237,10 +273,22 @@ fn test_rotation_edge_cases() {
     let rotate_180_pos = sorted.iter().position(|&c| c == "rotate-180").unwrap();
 
     // Numerical order: 0 < 3 < 6 < 12 < 180
-    assert!(rotate_0_pos < rotate_3_pos, "rotate-0 should come before rotate-3");
-    assert!(rotate_3_pos < rotate_6_pos, "rotate-3 should come before rotate-6");
-    assert!(rotate_6_pos < rotate_12_pos, "rotate-6 should come before rotate-12");
-    assert!(rotate_12_pos < rotate_180_pos, "rotate-12 should come before rotate-180");
+    assert!(
+        rotate_0_pos < rotate_3_pos,
+        "rotate-0 should come before rotate-3"
+    );
+    assert!(
+        rotate_3_pos < rotate_6_pos,
+        "rotate-3 should come before rotate-6"
+    );
+    assert!(
+        rotate_6_pos < rotate_12_pos,
+        "rotate-6 should come before rotate-12"
+    );
+    assert!(
+        rotate_12_pos < rotate_180_pos,
+        "rotate-12 should come before rotate-180"
+    );
 }
 
 #[test]
@@ -267,28 +315,56 @@ fn test_rotation_comprehensive() {
     println!("Output: {:?}", sorted);
 
     // Extract positive and negative rotations
-    let positive_rotations: Vec<_> = sorted.iter()
+    let positive_rotations: Vec<_> = sorted
+        .iter()
         .filter(|c| c.starts_with("rotate-") && !c.starts_with("-rotate-"))
         .collect();
-    let negative_rotations: Vec<_> = sorted.iter()
+    let negative_rotations: Vec<_> = sorted
+        .iter()
         .filter(|c| c.starts_with("-rotate-"))
         .collect();
 
     // Check that positive rotations are in numerical order
     if positive_rotations.len() >= 2 {
         for i in 0..positive_rotations.len() - 1 {
-            let curr_val = positive_rotations[i].strip_prefix("rotate-").unwrap().parse::<i32>().unwrap();
-            let next_val = positive_rotations[i + 1].strip_prefix("rotate-").unwrap().parse::<i32>().unwrap();
-            assert!(curr_val <= next_val, "Positive rotations should be in numerical order: {} should come before or equal to {}", positive_rotations[i], positive_rotations[i + 1]);
+            let curr_val = positive_rotations[i]
+                .strip_prefix("rotate-")
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            let next_val = positive_rotations[i + 1]
+                .strip_prefix("rotate-")
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            assert!(
+                curr_val <= next_val,
+                "Positive rotations should be in numerical order: {} should come before or equal to {}",
+                positive_rotations[i],
+                positive_rotations[i + 1]
+            );
         }
     }
 
     // Check that negative rotations are in numerical order
     if negative_rotations.len() >= 2 {
         for i in 0..negative_rotations.len() - 1 {
-            let curr_val = negative_rotations[i].strip_prefix("-rotate-").unwrap().parse::<i32>().unwrap();
-            let next_val = negative_rotations[i + 1].strip_prefix("-rotate-").unwrap().parse::<i32>().unwrap();
-            assert!(curr_val <= next_val, "Negative rotations should be in numerical order: {} should come before or equal to {}", negative_rotations[i], negative_rotations[i + 1]);
+            let curr_val = negative_rotations[i]
+                .strip_prefix("-rotate-")
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            let next_val = negative_rotations[i + 1]
+                .strip_prefix("-rotate-")
+                .unwrap()
+                .parse::<i32>()
+                .unwrap();
+            assert!(
+                curr_val <= next_val,
+                "Negative rotations should be in numerical order: {} should come before or equal to {}",
+                negative_rotations[i],
+                negative_rotations[i + 1]
+            );
         }
     }
 }

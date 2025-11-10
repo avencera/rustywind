@@ -268,16 +268,23 @@ impl UtilityMap {
         exact.insert("snap-always", &["scroll-snap-stop"][..]);
 
         // Touch Action
+        // touch-auto/none/manipulation map to touch-action (index 95)
         exact.insert("touch-auto", &["touch-action"][..]);
         exact.insert("touch-none", &["touch-action"][..]);
-        exact.insert("touch-pan-x", &["touch-action"][..]);
-        exact.insert("touch-pan-left", &["touch-action"][..]);
-        exact.insert("touch-pan-right", &["touch-action"][..]);
-        exact.insert("touch-pan-y", &["touch-action"][..]);
-        exact.insert("touch-pan-up", &["touch-action"][..]);
-        exact.insert("touch-pan-down", &["touch-action"][..]);
-        exact.insert("touch-pinch-zoom", &["touch-action"][..]);
         exact.insert("touch-manipulation", &["touch-action"][..]);
+
+        // touch-pan-x/left/right map to --tw-pan-x (index 96)
+        exact.insert("touch-pan-x", &["--tw-pan-x"][..]);
+        exact.insert("touch-pan-left", &["--tw-pan-x"][..]);
+        exact.insert("touch-pan-right", &["--tw-pan-x"][..]);
+
+        // touch-pan-y/up/down map to --tw-pan-y (index 97)
+        exact.insert("touch-pan-y", &["--tw-pan-y"][..]);
+        exact.insert("touch-pan-up", &["--tw-pan-y"][..]);
+        exact.insert("touch-pan-down", &["--tw-pan-y"][..]);
+
+        // touch-pinch-zoom maps to --tw-pinch-zoom (index 98)
+        exact.insert("touch-pinch-zoom", &["--tw-pinch-zoom"][..]);
 
         // Pointer Events
         exact.insert("pointer-events-none", &["pointer-events"][..]);
@@ -597,9 +604,9 @@ impl UtilityMap {
         exact.insert("divide-none", &["divide-style"][..]);
 
         // Divide Reverse
-        // Note: --tw-divide-x-reverse is NOT in Tailwind v4's property-order.ts
-        // Map both to --tw-divide-y-reverse for consistent sorting
-        exact.insert("divide-x-reverse", &["--tw-divide-y-reverse"][..]);
+        // divide-x-reverse maps to --tw-divide-x-reverse (added to end of property list)
+        // divide-y-reverse maps to --tw-divide-y-reverse
+        exact.insert("divide-x-reverse", &["--tw-divide-x-reverse"][..]);
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
         // Space Reverse (static utilities, not covered by space-x/space-y patterns)
@@ -717,13 +724,16 @@ impl UtilityMap {
         // Transition Property
         // transition-none maps to all transition properties so it sorts last
         // (utilities with more properties sort after those with fewer properties)
-        exact.insert("transition-none", &[
-            "transition-property",
-            "transition-behavior",
-            "transition-delay",
-            "transition-duration",
-            "transition-timing-function",
-        ][..]);
+        exact.insert(
+            "transition-none",
+            &[
+                "transition-property",
+                "transition-behavior",
+                "transition-delay",
+                "transition-duration",
+                "transition-timing-function",
+            ][..],
+        );
         exact.insert("transition-all", &["transition-property"][..]);
         exact.insert("transition-colors", &["transition-property"][..]);
         exact.insert("transition-opacity", &["transition-property"][..]);
@@ -860,7 +870,7 @@ impl UtilityMap {
             // Padding
             "p" => Some(&["padding"][..]),
             "px" => Some(&["padding-inline"][..]), // Use padding-inline for left+right
-            "py" => Some(&["padding-block"][..]), // Use padding-block for top+bottom
+            "py" => Some(&["padding-block"][..]),  // Use padding-block for top+bottom
             "ps" => Some(&["padding-inline-start"][..]),
             "pe" => Some(&["padding-inline-end"][..]),
             "pt" => Some(&["padding-top"][..]),
@@ -918,12 +928,12 @@ impl UtilityMap {
             // Side-specific rounded utilities
             "rounded-s" => Some(&["border-start-radius"][..]),
             "rounded-e" => Some(&["border-end-radius"][..]),
-            // Side rounded utilities map to their minimum corner property for proper sorting
-            // This ensures they sort by the first corner they affect (matching Tailwind v4)
-            "rounded-t" => Some(&["border-top-left-radius"][..]),      // min(189, 190) = 189
-            "rounded-r" => Some(&["border-top-right-radius"][..]),     // min(190, 191) = 190
-            "rounded-b" => Some(&["border-bottom-right-radius"][..]),  // min(191, 192) = 191
-            "rounded-l" => Some(&["border-top-left-radius"][..]),      // min(189, 192) = 189
+            // Side rounded utilities map to BOTH corners they affect (matching Tailwind v4)
+            // When first properties tie, Tailwind uses the second property as tiebreaker
+            "rounded-t" => Some(&["border-top-left-radius", "border-top-right-radius"][..]), // (189, 190)
+            "rounded-r" => Some(&["border-top-right-radius", "border-bottom-right-radius"][..]), // (190, 191)
+            "rounded-b" => Some(&["border-bottom-right-radius", "border-bottom-left-radius"][..]), // (191, 192)
+            "rounded-l" => Some(&["border-top-left-radius", "border-bottom-left-radius"][..]), // (189, 192)
             // Corner-specific rounded utilities map to individual corner properties
             "rounded-ss" => Some(&["border-start-start-radius"][..]),
             "rounded-se" => Some(&["border-start-end-radius"][..]),
@@ -988,7 +998,9 @@ impl UtilityMap {
             "blur" => Some(&["--tw-blur"][..]),
             "brightness" => Some(&["--tw-brightness"][..]),
             "contrast" => Some(&["--tw-contrast"][..]),
-            "grayscale" if value.is_empty() || value.starts_with('[') => Some(&["--tw-grayscale"][..]),
+            "grayscale" if value.is_empty() || value.starts_with('[') => {
+                Some(&["--tw-grayscale"][..])
+            }
             "hue-rotate" => Some(&["--tw-hue-rotate"][..]),
             "invert" if value.is_empty() || value.starts_with('[') => Some(&["--tw-invert"][..]),
             "saturate" => Some(&["--tw-saturate"][..]),
@@ -1095,8 +1107,8 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
     }
 
     // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
-    let (is_negative, utility_without_neg) = if utility.starts_with('-') {
-        (true, &utility[1..])
+    let (is_negative, utility_without_neg) = if let Some(stripped) = utility.strip_prefix('-') {
+        (true, stripped)
     } else {
         (false, utility)
     };
@@ -1176,24 +1188,24 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "text-opacity",
         "border-opacity",
     ] {
-        if utility_without_neg.starts_with(prefix) {
-            if utility_without_neg.len() == prefix.len() {
+        if let Some(stripped) = utility_without_neg.strip_prefix(prefix) {
+            if stripped.is_empty() {
                 // Exact match, no value
                 return Some((utility, ""));
-            } else if utility_without_neg.as_bytes().get(prefix.len()) == Some(&b'-') {
+            } else if stripped.as_bytes().first() == Some(&b'-') {
                 // Has a dash after the prefix
-                let value = &utility_without_neg[prefix.len() + 1..];
+                let value = &stripped[1..];
                 let base = if is_negative {
-                    &utility[..prefix.len() + 1]  // +1 for initial '-'
+                    &utility[..prefix.len() + 1] // +1 for initial '-'
                 } else {
                     prefix
                 };
                 return Some((base, value));
             } else if prefix.ends_with('-') {
                 // Prefix ends with dash (shouldn't happen with our list, but safe)
-                let value = &utility_without_neg[prefix.len()..];
+                let value = stripped;
                 let base = if is_negative {
-                    &utility[..prefix.len() + 1]  // +1 for initial '-'
+                    &utility[..prefix.len() + 1] // +1 for initial '-'
                 } else {
                     prefix
                 };
@@ -1207,7 +1219,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         let base_without_neg = &utility_without_neg[..dash_pos];
         let value = &utility_without_neg[dash_pos + 1..];
         let base = if is_negative {
-            &utility[..1 + dash_pos]  // 1 for initial '-', then dash_pos characters
+            &utility[..1 + dash_pos] // 1 for initial '-', then dash_pos characters
         } else {
             base_without_neg
         };
@@ -1637,9 +1649,12 @@ mod tests {
         let row_gap_idx = get_property_index("row-gap").unwrap();
 
         // column-gap (152) should come before row-gap (153)
-        assert!(column_gap_idx < row_gap_idx,
+        assert!(
+            column_gap_idx < row_gap_idx,
             "column-gap ({}) should sort before row-gap ({})",
-            column_gap_idx, row_gap_idx);
+            column_gap_idx,
+            row_gap_idx
+        );
     }
 
     #[test]
@@ -1648,10 +1663,22 @@ mod tests {
 
         // Test transform utility mappings
         assert_eq!(map.get_properties("scale-100"), Some(&["scale"][..]));
-        assert_eq!(map.get_properties("scale-x-100"), Some(&["--tw-scale-x"][..]));
-        assert_eq!(map.get_properties("scale-y-50"), Some(&["--tw-scale-y"][..]));
-        assert_eq!(map.get_properties("translate-x-0"), Some(&["--tw-translate-x"][..]));
-        assert_eq!(map.get_properties("translate-y-2"), Some(&["--tw-translate-y"][..]));
+        assert_eq!(
+            map.get_properties("scale-x-100"),
+            Some(&["--tw-scale-x"][..])
+        );
+        assert_eq!(
+            map.get_properties("scale-y-50"),
+            Some(&["--tw-scale-y"][..])
+        );
+        assert_eq!(
+            map.get_properties("translate-x-0"),
+            Some(&["--tw-translate-x"][..])
+        );
+        assert_eq!(
+            map.get_properties("translate-y-2"),
+            Some(&["--tw-translate-y"][..])
+        );
         assert_eq!(map.get_properties("rotate-0"), Some(&["rotate"][..]));
         assert_eq!(map.get_properties("skew-x-6"), Some(&["--tw-skew-x"][..]));
         assert_eq!(map.get_properties("skew-y-3"), Some(&["--tw-skew-y"][..]));
@@ -1663,19 +1690,28 @@ mod tests {
         let map = UtilityMap::new();
 
         // bg-none should map to background-image
-        assert_eq!(map.get_properties("bg-none"), Some(&["background-image"][..]));
+        assert_eq!(
+            map.get_properties("bg-none"),
+            Some(&["background-image"][..])
+        );
 
         // Verify bg-none sorts before bg-clip-* (background-image < background-clip)
         let bg_none_idx = get_property_index("background-image").unwrap();
         let bg_clip_idx = get_property_index("background-clip").unwrap();
-        assert!(bg_none_idx < bg_clip_idx,
+        assert!(
+            bg_none_idx < bg_clip_idx,
             "bg-none (background-image: {}) should sort before bg-clip-* (background-clip: {})",
-            bg_none_idx, bg_clip_idx);
+            bg_none_idx,
+            bg_clip_idx
+        );
 
         // Verify bg-none sorts after bg-color (background-color < background-image)
         let bg_color_idx = get_property_index("background-color").unwrap();
-        assert!(bg_color_idx < bg_none_idx,
+        assert!(
+            bg_color_idx < bg_none_idx,
             "bg-color (background-color: {}) should sort before bg-none (background-image: {})",
-            bg_color_idx, bg_none_idx);
+            bg_color_idx,
+            bg_none_idx
+        );
     }
 }

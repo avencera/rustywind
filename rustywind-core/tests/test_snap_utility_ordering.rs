@@ -23,7 +23,10 @@ fn test_snap_proximity_vs_snap_x() {
     println!("Output: {:?}", sorted);
 
     // Prettier wants: snap-proximity, snap-x (alphabetical order)
-    assert_eq!(sorted[0], "snap-proximity", "snap-proximity should come before snap-x");
+    assert_eq!(
+        sorted[0], "snap-proximity",
+        "snap-proximity should come before snap-x"
+    );
     assert_eq!(sorted[1], "snap-x");
 }
 
@@ -39,7 +42,10 @@ fn test_snap_mandatory_vs_snap_proximity() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    assert_eq!(sorted[0], "snap-mandatory", "snap-mandatory should come before snap-proximity");
+    assert_eq!(
+        sorted[0], "snap-mandatory",
+        "snap-mandatory should come before snap-proximity"
+    );
     assert_eq!(sorted[1], "snap-proximity");
 }
 
@@ -55,7 +61,10 @@ fn test_snap_y_vs_snap_both() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    assert_eq!(sorted[0], "snap-both", "snap-both should come before snap-y");
+    assert_eq!(
+        sorted[0], "snap-both",
+        "snap-both should come before snap-y"
+    );
     assert_eq!(sorted[1], "snap-y");
 }
 
@@ -80,11 +89,7 @@ fn test_all_snap_type_utilities() {
     // Test snap-type utilities (mandatory, proximity, none)
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "snap-proximity",
-        "snap-none",
-        "snap-mandatory",
-    ];
+    let classes = vec!["snap-proximity", "snap-none", "snap-mandatory"];
     let sorted = sorter.sort_classes(&classes);
 
     println!("\nTest: snap-type utilities");
@@ -92,13 +97,12 @@ fn test_all_snap_type_utilities() {
     println!("Output: {:?}", sorted);
 
     // Prettier expected order: alphabetical (mandatory < none < proximity)
-    let expected = vec![
-        "snap-mandatory",
-        "snap-none",
-        "snap-proximity",
-    ];
+    let expected = vec!["snap-mandatory", "snap-none", "snap-proximity"];
 
-    assert_eq!(sorted, expected, "Snap-type utilities should be sorted alphabetically");
+    assert_eq!(
+        sorted, expected,
+        "Snap-type utilities should be sorted alphabetically"
+    );
 }
 
 #[test]
@@ -106,12 +110,7 @@ fn test_all_snap_axis_utilities() {
     // Test snap-axis utilities (x, y, both)
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "snap-y",
-        "snap-both",
-        "snap-x",
-        "snap-none",
-    ];
+    let classes = vec!["snap-y", "snap-both", "snap-x", "snap-none"];
     let sorted = sorter.sort_classes(&classes);
 
     println!("\nTest: snap-axis utilities");
@@ -125,8 +124,14 @@ fn test_all_snap_axis_utilities() {
     let snap_y_pos = sorted.iter().position(|&c| c == "snap-y").unwrap();
 
     // Verify alphabetical order
-    assert!(snap_both_pos < snap_none_pos, "snap-both should come before snap-none");
-    assert!(snap_none_pos < snap_x_pos, "snap-none should come before snap-x");
+    assert!(
+        snap_both_pos < snap_none_pos,
+        "snap-both should come before snap-none"
+    );
+    assert!(
+        snap_none_pos < snap_x_pos,
+        "snap-none should come before snap-x"
+    );
     assert!(snap_x_pos < snap_y_pos, "snap-x should come before snap-y");
 }
 
@@ -135,11 +140,7 @@ fn test_snap_align_utilities() {
     // Test snap-align utilities (start, end, center)
     let sorter = HybridSorter::new();
 
-    let classes = vec![
-        "snap-start",
-        "snap-center",
-        "snap-end",
-    ];
+    let classes = vec!["snap-start", "snap-center", "snap-end"];
     let sorted = sorter.sort_classes(&classes);
 
     println!("\nTest: snap-align utilities");
@@ -147,13 +148,12 @@ fn test_snap_align_utilities() {
     println!("Output: {:?}", sorted);
 
     // Prettier expected order: alphabetical (center < end < start)
-    let expected = vec![
-        "snap-center",
-        "snap-end",
-        "snap-start",
-    ];
+    let expected = vec!["snap-center", "snap-end", "snap-start"];
 
-    assert_eq!(sorted, expected, "Snap-align utilities should be sorted alphabetically");
+    assert_eq!(
+        sorted, expected,
+        "Snap-align utilities should be sorted alphabetically"
+    );
 }
 
 #[test]
@@ -191,7 +191,10 @@ fn test_all_snap_utilities_comprehensive() {
         "snap-y",
     ];
 
-    assert_eq!(sorted, expected, "All snap utilities should be sorted in alphabetical order");
+    assert_eq!(
+        sorted, expected,
+        "All snap utilities should be sorted in alphabetical order"
+    );
 }
 
 #[test]
@@ -219,8 +222,14 @@ fn test_snap_utilities_mixed_with_scroll() {
     let snap_x_pos = sorted.iter().position(|&c| c == "snap-x").unwrap();
 
     // Snap utilities should maintain alphabetical order among themselves
-    assert!(snap_mandatory_pos < snap_proximity_pos, "snap-mandatory should come before snap-proximity");
-    assert!(snap_proximity_pos < snap_x_pos, "snap-proximity should come before snap-x");
+    assert!(
+        snap_mandatory_pos < snap_proximity_pos,
+        "snap-mandatory should come before snap-proximity"
+    );
+    assert!(
+        snap_proximity_pos < snap_x_pos,
+        "snap-proximity should come before snap-x"
+    );
 }
 
 #[test]
@@ -269,7 +278,8 @@ fn test_snap_utilities_alphabetical_pairs() {
             sorted,
             vec![first, second],
             "{} should come before {} (alphabetical order)",
-            first, second
+            first,
+            second
         );
     }
 }
