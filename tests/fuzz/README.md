@@ -5,19 +5,19 @@ This directory contains fuzz tests that compare RustyWind's class sorting output
 ## Running Tests
 
 ```bash
-# Default: Tests with all classes (including legacy v3 classes)
+# Run all tests (fuzz + pattern-based + real-world)
 npm test
 
-# Test without legacy v3 classes (v4-only)
-npm run test:with-legacy
+# Individual test suites:
+npm run test:fuzz          # Random class combinations
+npm run test:patterns      # Pattern-based generation using real-world data
+npm run test:real-world    # Actual classes from project files
+npm run test:with-legacy   # Fuzz test without legacy v3 classes
 ```
 
 ## Test Results
 
-| Mode                  | Pass Rate | Notes                                                   |
-| --------------------- | --------- | ------------------------------------------------------- |
-| With Legacy (default) | 59%       | Includes Tailwind v3 legacy classes like `bg-opacity-*` |
-| V4-only (filtered)    | 55%       | Excludes legacy classes, focuses on v4 utilities        |
+TODO
 
 **Recommendation**: Use default mode (with legacy) since:
 
@@ -52,12 +52,60 @@ const VARIANT_PROBABILITY = 0.3; // Chance of adding variants
 const FILTER_LEGACY = process.env.FILTER_LEGACY !== "false";
 ```
 
+## Real-World Class Test
+
+In addition to fuzz testing with random combinations, we also test against real-world class strings extracted from actual open-source projects.
+
+```bash
+npm run test:real-world
+```
+
+This test:
+1. Extracts all class/className attributes from 50 real project files in `../tailwind-sorting-test-files/`
+2. Tests each unique class combination against both RustyWind and Prettier
+3. Reports failures with specific examples from real code
+
+**⚠️ IMPORTANT**: The test files in `tailwind-sorting-test-files/` are READ-ONLY reference data and should **NEVER** be modified to make tests pass. These files represent real-world usage patterns and must remain pristine.
+
+### Current Real-World Test Results
+- **814 unique class combinations** extracted from 50 files
+- **~53% pass rate** (434/814)
+- **365 unique failure patterns** identified
+
+This test is valuable for catching issues that might not appear in random fuzz tests but occur in real-world usage.
+
+## Failure-Focused Pattern Generation
+
+The `test:patterns` suite uses a unique approach:
+
+1. **Analyze Failures**: Runs real-world tests and extracts patterns from FAILING cases
+2. **Generate from Failures**: Creates new test cases using:
+   - Classes that appear in failures (70% probability)
+   - Modifiers from failing cases (dark:, hover:, lg:, etc.)
+   - Class pairs that fail together
+   - Class counts typical of failures (avg 7.5 vs overall avg 5)
+3. **Stress Test**: Targets problematic patterns - 85% failure rate is expected!
+
+This is a **stress test by design**. It generates combinations that are known to be problematic in real-world code, helping catch issues early that would otherwise only surface when processing actual project files.
+
+To regenerate failure patterns:
+```bash
+node extract-failure-patterns.mjs
+```
+
 ## Files
 
-- `compare.js` - Main fuzz test runner
+- `compare.js` - Random fuzz test runner
+- `compare-real-world-patterns.js` - Failure-focused fuzz test (generates from failing patterns)
+- `test-real-world-classes.mjs` - Real-world class extraction and testing
+- `extract-real-world-patterns.mjs` - Analyzes real files to extract common patterns
+- `extract-failure-patterns.mjs` - Extracts patterns from FAILING test cases
+- `common-patterns.json` - General patterns from real files (generated)
+- `failure-patterns.json` - Patterns from failing cases (generated)
 - `tailwind-classes.js` - Comprehensive list of Tailwind utilities
 - `legacy-classes.js` - List of v3 legacy classes with filtering utilities
 - `package.json` - Dependencies and scripts
+- `../tailwind-sorting-test-files/` - Real-world test files (READ-ONLY)
 
 ## Test Output
 

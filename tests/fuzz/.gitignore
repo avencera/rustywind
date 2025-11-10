@@ -5,3 +5,6 @@ node_modules
 multi-seed-results.json
 failure-analysis.json
 fuzz-test-results.txt
+common-patterns.json
+real-world-patterns.json
+failure-patterns.json

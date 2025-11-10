@@ -2,6 +2,18 @@
 
 This repository contains a collection of 50 diverse files from open source projects for testing and comparing Tailwind CSS class sorting tools, specifically **rustywind CLI** and the **Prettier Tailwind CSS plugin**.
 
+## ⚠️ IMPORTANT: DO NOT MODIFY THESE FILES
+
+**These test files are READ-ONLY reference data from real open-source projects.**
+
+- ❌ **NEVER** modify these files to make tests pass
+- ❌ **NEVER** change class orders or formatting
+- ❌ **NEVER** add or remove classes
+- ✅ **DO** use them as-is to identify sorting issues
+- ✅ **DO** fix the sorting algorithm, not the test files
+
+These files represent real-world usage patterns and must remain pristine to be valuable as test cases.
+
 ## Purpose
 
 To verify that rustywind and Prettier's Tailwind plugin sort classes in the same way, providing confidence when choosing between these tools or using them interchangeably in projects.
