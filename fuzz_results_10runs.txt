@@ -1,0 +1,56 @@
+=========================================
+Running 10 Fuzz Test Runs
+=========================================
+
+Run 1/10...
+  Result: 84/100 passed (84.0%) - Seed: bjxuvrbjndt
+
+Run 2/10...
+  Result: 82/100 passed (82.0%) - Seed: y3y3kc0os6
+
+Run 3/10...
+  Result: 88/100 passed (88.0%) - Seed: 14j7bd7im3c
+
+Run 4/10...
+  Result: 85/100 passed (85.0%) - Seed: tjjvgz1rge9
+
+Run 5/10...
+  Result: 80/100 passed (80.0%) - Seed: y0m2pbnvufb
+
+Run 6/10...
+  Result: 88/100 passed (88.0%) - Seed: m4cv6cxye6i
+
+Run 7/10...
+  Result: 86/100 passed (86.0%) - Seed: ww8tozdezo
+
+Run 8/10...
+  Result: 86/100 passed (86.0%) - Seed: 5wvd9u4qw52
+
+Run 9/10...
+  Result: 88/100 passed (88.0%) - Seed: q4r1cxrt68
+
+Run 10/10...
+  Result: 90/100 passed (90.0%) - Seed: xkfkm3hhsrm
+
+=========================================
+SUMMARY
+=========================================
+
+Individual pass rates: 84.0 82.0 88.0 85.0 80.0 88.0 86.0 86.0 88.0 90.0
+Average pass rate: 85.7%
+
+Detailed Results:
+  Run 1: 84/100 (84.0%) - Seed: bjxuvrbjndt
+  Run 2: 82/100 (82.0%) - Seed: y3y3kc0os6
+  Run 3: 88/100 (88.0%) - Seed: 14j7bd7im3c
+  Run 4: 85/100 (85.0%) - Seed: tjjvgz1rge9
+  Run 5: 80/100 (80.0%) - Seed: y0m2pbnvufb
+  Run 6: 88/100 (88.0%) - Seed: m4cv6cxye6i
+  Run 7: 86/100 (86.0%) - Seed: ww8tozdezo
+  Run 8: 86/100 (86.0%) - Seed: 5wvd9u4qw52
+  Run 9: 88/100 (88.0%) - Seed: q4r1cxrt68
+  Run 10: 90/100 (90.0%) - Seed: xkfkm3hhsrm
+
+Baseline: ~94% (before fixes)
+Current:  85.7% (after fixes)
+Status: ⚠️  Below baseline - investigation needed
