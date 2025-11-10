@@ -254,6 +254,74 @@ mod tests {
     }
 
     #[test]
+    fn test_pattern_sorter_removes_duplicates_by_default() {
+        // Test that PatternSorter (default) removes duplicates when allow_duplicates=false
+        // This ensures the fast path doesn't bypass deduplication logic
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            allow_duplicates: false,
+            ..RUSTYWIND_DEFAULT
+        };
+
+        // Test case from the issue description
+        let input = r#"<div class="flex flex"></div>"#;
+        let result = app.sort_file_contents(input);
+
+        // Should collapse to single flex
+        assert_eq!(
+            result.matches("flex").count(),
+            1,
+            "Duplicates should be removed with PatternSorter"
+        );
+        assert_eq!(result, r#"<div class="flex"></div>"#);
+
+        // Test with more duplicates
+        let input2 = r#"<div class="m-4 p-4 m-4 flex p-4 flex m-4"></div>"#;
+        let result2 = app.sort_file_contents(input2);
+        assert_eq!(
+            result2.matches("m-4").count(),
+            1,
+            "All m-4 duplicates should be removed"
+        );
+        assert_eq!(
+            result2.matches("p-4").count(),
+            1,
+            "All p-4 duplicates should be removed"
+        );
+        assert_eq!(
+            result2.matches("flex").count(),
+            1,
+            "All flex duplicates should be removed"
+        );
+    }
+
+    #[test]
+    fn test_pattern_sorter_keeps_duplicates_when_configured() {
+        // Test that allow_duplicates=true works with PatternSorter
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            allow_duplicates: true,
+            regex: FinderRegex::DefaultRegex,
+            class_wrapping: ClassWrapping::NoWrapping,
+        };
+
+        let input = r#"<div class="flex flex m-4 m-4"></div>"#;
+        let result = app.sort_file_contents(input);
+
+        // Should keep all duplicates
+        assert_eq!(
+            result.matches("flex").count(),
+            2,
+            "Duplicates should be kept when allow_duplicates=true"
+        );
+        assert_eq!(
+            result.matches("m-4").count(),
+            2,
+            "Duplicates should be kept when allow_duplicates=true"
+        );
+    }
+
+    #[test]
     fn test_base_classes_before_variants() {
         let input = r#"<div class='hover:flex focus:flex flex'></div>"#;
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);

@@ -143,12 +143,14 @@ impl HybridSorter {
         // Sort by keys
         // Classes with valid keys come first (sorted by key)
         // Classes without keys come last (maintaining relative order)
-        with_keys.sort_by(|(a_key, a_class), (z_key, z_class)| match (a_key, z_key) {
-            (Some(a), Some(z)) => a.cmp(z),
-            (Some(_), None) => Ordering::Less, // Known classes before unknown
-            (None, Some(_)) => Ordering::Greater, // Unknown classes after known
-            (None, None) => a_class.cmp(z_class), // Unknown classes alphabetically
-        });
+        with_keys.sort_by(
+            |(a_key, _a_class), (z_key, _z_class)| match (a_key, z_key) {
+                (Some(a), Some(z)) => a.cmp(z),
+                (Some(_), None) => Ordering::Less, // Known classes before unknown
+                (None, Some(_)) => Ordering::Greater, // Unknown classes after known
+                (None, None) => Ordering::Equal,   // Unknown classes maintain relative order
+            },
+        );
 
         // Extract the sorted classes
         with_keys.iter().map(|(_, class)| *class).collect()
@@ -303,9 +305,54 @@ mod tests {
         // Known classes first
         assert_eq!(sorted[0], "flex");
         assert_eq!(sorted[1], "grid");
-        // Unknown classes after, alphabetically
-        assert_eq!(sorted[2], "fake-utility");
-        assert_eq!(sorted[3], "unknown-class");
+        // Unknown classes after, maintaining relative order
+        assert_eq!(sorted[2], "unknown-class");
+        assert_eq!(sorted[3], "fake-utility");
+    }
+
+    #[test]
+    fn test_relative_order_preserved_for_unknown_classes() {
+        // Test that unknown classes maintain their relative order
+        // instead of being alphabetized
+        let sorter = HybridSorter::new();
+
+        // Test multiple unknown classes in various orders
+        let classes = vec![
+            "flex",           // Known: should be first
+            "zebra-class",    // Unknown: should be 3rd (original position)
+            "grid",           // Known: should be second
+            "apple-class",    // Unknown: should be 4th (original position)
+            "m-4",            // Known: should sort by property order
+            "[custom:value]", // Unknown: should be 5th (original position)
+            "banana-class",   // Unknown: should be 6th (original position)
+        ];
+        let sorted = sorter.sort_classes(&classes);
+
+        // Verify known classes are sorted first by their sort keys
+        assert!(sorted[0] == "flex" || sorted[0] == "grid" || sorted[0] == "m-4");
+        assert!(sorted[1] == "flex" || sorted[1] == "grid" || sorted[1] == "m-4");
+        assert!(sorted[2] == "flex" || sorted[2] == "grid" || sorted[2] == "m-4");
+
+        // Verify unknown classes maintain relative order (not alphabetized)
+        // Original order: zebra-class, apple-class, [custom:value], banana-class
+        // If alphabetized it would be: [custom:value], apple-class, banana-class, zebra-class
+        // But we want to preserve original order
+        assert_eq!(
+            sorted[3], "zebra-class",
+            "First unknown class should maintain position"
+        );
+        assert_eq!(
+            sorted[4], "apple-class",
+            "Second unknown class should maintain position"
+        );
+        assert_eq!(
+            sorted[5], "[custom:value]",
+            "Third unknown class should maintain position"
+        );
+        assert_eq!(
+            sorted[6], "banana-class",
+            "Fourth unknown class should maintain position"
+        );
     }
 
     #[test]

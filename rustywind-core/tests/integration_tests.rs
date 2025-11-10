@@ -219,10 +219,11 @@ fn test_unknown_classes_go_last() {
     assert_eq!(sorted[1], "flex");
     assert_eq!(sorted[2], "p-4");
 
-    // Unknown classes should be at the end, alphabetically
-    assert_eq!(sorted[3], "another-unknown");
+    // Unknown classes should be at the end, maintaining relative order
+    // Original order: unknown-utility-xyz, fake-class-123, another-unknown
+    assert_eq!(sorted[3], "unknown-utility-xyz");
     assert_eq!(sorted[4], "fake-class-123");
-    assert_eq!(sorted[5], "unknown-utility-xyz");
+    assert_eq!(sorted[5], "another-unknown");
 }
 
 #[test]

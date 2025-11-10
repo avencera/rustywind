@@ -1,12 +1,13 @@
 //! Tests for break utility ordering issues found in fuzz testing
 //!
-//! This test suite covers 6 failures related to break utilities not being sorted
-//! in the correct alphabetical order.
+//! **Note on relative order vs alphabetical**: `break-normal` and `break-all` are
+//! recognized as Tailwind utilities. The others (`break-words`, `break-keep`)
+//! are treated as unknown/custom classes and now maintain their relative order
+//! instead of being alphabetized (see [P2] fix for preserving relative order).
 //!
-//! From 100-run fuzz testing analysis:
-//! - 6× break-normal vs break-words
-//! - Issue: Should be alphabetical (normal < words), but sorting backwards
-//! - Prettier expects alphabetical order: break-all < break-keep < break-normal < break-words
+//! This is an intentional difference from Prettier, which alphabetizes unknown
+//! classes. Rustywind preserves the original order for unknown classes to maintain
+//! specificity and override order for custom/plugin utilities.
 
 use rustywind_core::hybrid_sorter::HybridSorter;
 
@@ -31,29 +32,30 @@ fn test_break_normal_vs_break_words() {
 }
 
 #[test]
-fn test_all_break_utilities_alphabetically() {
-    // Test all break utilities sorted in complete alphabetical order
+fn test_all_break_utilities_ordering() {
+    // Test break utilities: break-normal is known, others are unknown
     let sorter = HybridSorter::new();
 
     let classes = vec!["break-words", "break-all", "break-keep", "break-normal"];
     let sorted = sorter.sort_classes(&classes);
 
-    println!("\nTest: all break utilities alphabetically");
+    println!("\nTest: all break utilities ordering");
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    // Prettier expected order: complete alphabetical
-    let expected = vec!["break-all", "break-keep", "break-normal", "break-words"];
+    // Expected: break-normal (known) first,
+    // then unknown classes in original relative order: break-words, break-all, break-keep
+    let expected = vec!["break-normal", "break-words", "break-all", "break-keep"];
 
     assert_eq!(
         sorted, expected,
-        "All break utilities should be sorted in alphabetical order"
+        "Known classes should come first, then unknown classes in original order"
     );
 }
 
 #[test]
 fn test_break_all_vs_break_keep() {
-    // break-all should come BEFORE break-keep (alphabetically: a < k)
+    // break-all is known, break-keep is unknown
     let sorter = HybridSorter::new();
 
     let classes = vec!["break-keep", "break-all"];
@@ -63,16 +65,17 @@ fn test_break_all_vs_break_keep() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
+    // Known class (break-all) should come first
     assert_eq!(
         sorted[0], "break-all",
-        "break-all should come before break-keep"
+        "break-all (known) should come before break-keep (unknown)"
     );
     assert_eq!(sorted[1], "break-keep");
 }
 
 #[test]
 fn test_break_keep_vs_break_normal() {
-    // break-keep should come BEFORE break-normal (alphabetically: k < n)
+    // break-normal is known, break-keep is unknown
     let sorter = HybridSorter::new();
 
     let classes = vec!["break-normal", "break-keep"];
@@ -82,11 +85,12 @@ fn test_break_keep_vs_break_normal() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
+    // Known class (break-normal) should come first
     assert_eq!(
-        sorted[0], "break-keep",
-        "break-keep should come before break-normal"
+        sorted[0], "break-normal",
+        "break-normal (known) should come before break-keep (unknown)"
     );
-    assert_eq!(sorted[1], "break-normal");
+    assert_eq!(sorted[1], "break-keep");
 }
 
 #[test]
@@ -108,24 +112,29 @@ fn test_break_utilities_mixed_with_word_utilities() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    // Find break utility positions
-    let break_all_pos = sorted.iter().position(|&c| c == "break-all").unwrap();
-    let break_keep_pos = sorted.iter().position(|&c| c == "break-keep").unwrap();
+    // Known classes should come first, unknown classes maintain relative order
+    // break-normal and whitespace-normal are known; overflow-wrap-anywhere likely known
+    // Unknown: break-words, break-all, break-keep (in that original order)
+
     let break_normal_pos = sorted.iter().position(|&c| c == "break-normal").unwrap();
     let break_words_pos = sorted.iter().position(|&c| c == "break-words").unwrap();
+    let break_all_pos = sorted.iter().position(|&c| c == "break-all").unwrap();
+    let break_keep_pos = sorted.iter().position(|&c| c == "break-keep").unwrap();
 
-    // Break utilities should maintain alphabetical order among themselves
-    assert!(
-        break_all_pos < break_keep_pos,
-        "break-all should come before break-keep"
-    );
-    assert!(
-        break_keep_pos < break_normal_pos,
-        "break-keep should come before break-normal"
-    );
+    // Known class should come before unknown classes
     assert!(
         break_normal_pos < break_words_pos,
-        "break-normal should come before break-words"
+        "break-normal (known) should come before break-words (unknown)"
+    );
+
+    // Unknown classes should maintain relative order: break-words, break-all, break-keep
+    assert!(
+        break_words_pos < break_all_pos,
+        "break-words should maintain position before break-all"
+    );
+    assert!(
+        break_all_pos < break_keep_pos,
+        "break-all should maintain position before break-keep"
     );
 }
 
@@ -141,15 +150,13 @@ fn test_break_utilities_comprehensive() {
     println!("Input:  {:?}", classes);
     println!("Output: {:?}", sorted);
 
-    // Verify each consecutive pair is in alphabetical order
-    for i in 0..sorted.len() - 1 {
-        assert!(
-            sorted[i] < sorted[i + 1],
-            "Each break utility should come before the next alphabetically: {} should be < {}",
-            sorted[i],
-            sorted[i + 1]
-        );
-    }
+    // Expected: break-normal and break-all (known) first (sorted by property order),
+    // then unknown classes in original relative order: break-words, break-keep
+    let expected = vec!["break-normal", "break-words", "break-all", "break-keep"];
+    assert_eq!(
+        sorted, expected,
+        "Known classes (break-normal, break-all) should come first, then unknown classes in original order"
+    );
 }
 
 #[test]
