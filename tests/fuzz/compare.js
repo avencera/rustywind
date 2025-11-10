@@ -7,6 +7,7 @@ import { promisify } from 'util';
 import { allClasses, variants } from './tailwind-classes.js';
 import { filterLegacyClasses, isLegacyClass } from './legacy-classes.js';
 import prettier from 'prettier';
+import seedrandom from 'seedrandom';
 
 const execAsync = promisify(exec);
 
@@ -17,6 +18,10 @@ const MAX_CLASSES = 30;
 const VARIANT_PROBABILITY = 0.3; // 30% chance of adding a variant
 const FILTER_LEGACY = process.env.FILTER_LEGACY !== 'false'; // Filter legacy classes by default
 
+// Seed configuration for deterministic testing
+const SEED = process.env.FUZZ_SEED || Math.random().toString(36).substring(2, 15);
+const rng = seedrandom(SEED);
+
 // Filter classes if needed
 const classPool = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
 
@@ -24,7 +29,7 @@ const classPool = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
  * Generate a random integer between min and max (inclusive)
  */
 function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(rng() * (max - min + 1)) + min;
 }
 
 /**
@@ -41,12 +46,12 @@ function generateRandomClass() {
   let className = randomPick(classPool);
 
   // Maybe add a variant (30% chance)
-  if (Math.random() < VARIANT_PROBABILITY) {
+  if (rng() < VARIANT_PROBABILITY) {
     const variant = randomPick(variants);
     className = `${variant}:${className}`;
 
     // Small chance (10%) of adding a second variant
-    if (Math.random() < 0.1) {
+    if (rng() < 0.1) {
       const variant2 = randomPick(variants);
       className = `${variant2}:${className}`;
     }
@@ -140,6 +145,7 @@ function compareClasses(prettier, rustywind, original) {
  */
 async function runFuzzTest() {
   console.log(`\n🧪 Starting fuzz test with ${NUM_TESTS} random class combinations...`);
+  console.log(`🎲 Seed: ${SEED} (set FUZZ_SEED env var to reproduce)`);
   console.log(`📋 Class pool: ${classPool.length} classes (${FILTER_LEGACY ? 'legacy classes filtered' : 'including legacy classes'})\n`);
 
   let passed = 0;
@@ -182,10 +188,12 @@ async function runFuzzTest() {
 
   console.log('\n');
   console.log('='.repeat(80));
-  console.log(`\n📊 Results: ${passed} passed, ${failed} failed (${(passed / NUM_TESTS * 100).toFixed(1)}% pass rate)\n`);
+  console.log(`\n📊 Results: ${passed} passed, ${failed} failed (${(passed / NUM_TESTS * 100).toFixed(1)}% pass rate)`);
+  console.log(`🎲 Seed: ${SEED}\n`);
 
   if (failures.length > 0) {
     console.log('❌ Failures:\n');
+    console.log(`To reproduce these failures, run: FUZZ_SEED=${SEED} npm test\n`);
     failures.forEach(({ test, reason, prettier, rustywind, original, error }) => {
       console.log(`Test #${test}:`);
       if (error) {

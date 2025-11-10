@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "prettier": "^3.0.0",
-    "prettier-plugin-tailwindcss": "^0.7.1"
+    "prettier-plugin-tailwindcss": "^0.7.1",
+    "seedrandom": "^3.0.5"
   }
 }
