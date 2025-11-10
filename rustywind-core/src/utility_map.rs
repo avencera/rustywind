@@ -597,7 +597,9 @@ impl UtilityMap {
         exact.insert("divide-none", &["divide-style"][..]);
 
         // Divide Reverse
-        exact.insert("divide-x-reverse", &["--tw-divide-x-reverse"][..]);
+        // Note: --tw-divide-x-reverse is NOT in Tailwind v4's property-order.ts
+        // Map both to --tw-divide-y-reverse for consistent sorting
+        exact.insert("divide-x-reverse", &["--tw-divide-y-reverse"][..]);
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
         // Space Reverse (static utilities, not covered by space-x/space-y patterns)
@@ -1023,11 +1025,11 @@ impl UtilityMap {
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Space Between
-            // space-x and space-y use custom properties for proper sorting
-            // These are now placed at indices 129-132 in property_order.rs, after divide and alignment
-            // This creates 8 index separation from gap utilities (119-121) to fix cross-axis sorting issues
-            "space-x" => Some(&["--tw-space-x"][..]),
-            "space-y" => Some(&["--tw-space-y"][..]),
+            // Per Tailwind v4, --tw-space-x and --tw-space-y are NOT in property-order.ts
+            // Map to the corresponding -reverse properties for correct cross-axis sorting
+            // space-x uses --tw-space-x-reverse (154), space-y uses --tw-space-y-reverse (155)
+            "space-x" => Some(&["--tw-space-x-reverse"][..]),
+            "space-y" => Some(&["--tw-space-y-reverse"][..]),
 
             // Divide
             "divide-x" => Some(&["divide-x-width"][..]),
@@ -1622,26 +1624,22 @@ mod tests {
         use crate::property_order::get_property_index;
         let map = UtilityMap::new();
 
-        // space-x should map to margin-left (fixes cross-axis spacing)
+        // space-x should map to --tw-space-x-reverse for cross-axis sorting
         let space_x_props = map.get_properties("space-x-2").unwrap();
-        assert_eq!(space_x_props, &["margin-left"]);
+        assert_eq!(space_x_props, &["--tw-space-x-reverse"]);
 
-        // space-y should map to margin-top (fixes cross-axis spacing)
+        // space-y should map to --tw-space-y-reverse for cross-axis sorting
         let space_y_props = map.get_properties("space-y-2").unwrap();
-        assert_eq!(space_y_props, &["margin-top"]);
+        assert_eq!(space_y_props, &["--tw-space-y-reverse"]);
 
-        // Verify that space utilities sort in the correct position (with margins)
-        let margin_left_idx = get_property_index("margin-left").unwrap();
-        let margin_top_idx = get_property_index("margin-top").unwrap();
-        let gap_idx = get_property_index("gap").unwrap();
+        // Verify correct ordering: space-x before space-y
+        let space_x_idx = get_property_index("--tw-space-x-reverse").unwrap();
+        let space_y_idx = get_property_index("--tw-space-y-reverse").unwrap();
 
-        // margin properties should come before gap
-        assert!(margin_left_idx < gap_idx,
-            "margin-left ({}) should sort before gap ({})",
-            margin_left_idx, gap_idx);
-        assert!(margin_top_idx < gap_idx,
-            "margin-top ({}) should sort before gap ({})",
-            margin_top_idx, gap_idx);
+        // space-x-reverse (154) should come before space-y-reverse (155)
+        assert!(space_x_idx < space_y_idx,
+            "--tw-space-x-reverse ({}) should sort before --tw-space-y-reverse ({})",
+            space_x_idx, space_y_idx);
     }
 
     #[test]
