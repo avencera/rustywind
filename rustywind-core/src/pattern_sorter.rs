@@ -361,7 +361,8 @@ impl Ord for SortKey {
                     let other_is_none = other.class.ends_with("-none");
 
                     // Only apply special sorting for drop-shadow and transition utilities
-                    let needs_special_none_handling = prefix_self == "drop-shadow" || prefix_self == "transition";
+                    let needs_special_none_handling =
+                        prefix_self == "drop-shadow" || prefix_self == "transition";
 
                     if needs_special_none_handling && self_is_none != other_is_none {
                         // If one ends with -none and the other doesn't, put -none last

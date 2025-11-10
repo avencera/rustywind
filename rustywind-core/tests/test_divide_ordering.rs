@@ -36,7 +36,9 @@ fn debug_property_indices() {
     use rustywind_core::pattern_sorter::sort_classes;
     let sorted = sort_classes(&classes);
     println!("\nSorted order: {:?}", sorted);
-    println!("Expected from Prettier: [gap-0, space-y-4, divide-y-reverse, overflow-y-visible, rounded-t]");
+    println!(
+        "Expected from Prettier: [gap-0, space-y-4, divide-y-reverse, overflow-y-visible, rounded-t]"
+    );
 }
 
 #[test]
@@ -51,7 +53,10 @@ fn debug_drop_shadow_none() {
     println!("  Output: {:?}", sorted);
     println!("  Expected: drop-shadow-xl first, drop-shadow-none last");
 
-    assert_eq!(sorted[0], "drop-shadow-xl", "drop-shadow-xl should come before drop-shadow-none");
+    assert_eq!(
+        sorted[0], "drop-shadow-xl",
+        "drop-shadow-xl should come before drop-shadow-none"
+    );
     assert_eq!(sorted[1], "drop-shadow-none");
 }
 
@@ -67,7 +72,10 @@ fn debug_transition_none() {
     println!("  Output: {:?}", sorted);
     println!("  Expected: transition-colors first, transition-none last");
 
-    assert_eq!(sorted[0], "transition-colors", "transition-colors should come before transition-none");
+    assert_eq!(
+        sorted[0], "transition-colors",
+        "transition-colors should come before transition-none"
+    );
     assert_eq!(sorted[1], "transition-none");
 }
 

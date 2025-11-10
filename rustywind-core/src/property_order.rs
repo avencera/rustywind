@@ -471,9 +471,9 @@ mod tests {
         let place_self_idx = get_property_index("place-self").unwrap();
         let overflow_idx = get_property_index("overflow").unwrap();
         assert!(divide_y_idx > divide_style_idx - 1); // Right after divide-y-width
-        assert!(divide_y_idx < divide_style_idx);      // Before divide-style
-        assert!(divide_y_idx < place_self_idx);        // Before place-self
-        assert!(divide_y_idx < overflow_idx);          // Before overflow
+        assert!(divide_y_idx < divide_style_idx); // Before divide-style
+        assert!(divide_y_idx < place_self_idx); // Before place-self
+        assert!(divide_y_idx < overflow_idx); // Before overflow
 
         // divide-x-reverse comes after outline-color, before filters
         let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();

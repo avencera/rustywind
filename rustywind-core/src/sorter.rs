@@ -109,11 +109,21 @@ mod tests {
 
         // Verify that classes with escaped characters are properly extracted
         // These classes exist in the tailwind.css fixture file
-        assert!(classes.contains_key("mr-0.5"), "Should extract mr-0.5 (from .mr-0\\.5)");
-        assert!(classes.contains_key("-ml-0.5"), "Should extract -ml-0.5 (from .-ml-0\\.5)");
+        assert!(
+            classes.contains_key("mr-0.5"),
+            "Should extract mr-0.5 (from .mr-0\\.5)"
+        );
+        assert!(
+            classes.contains_key("-ml-0.5"),
+            "Should extract -ml-0.5 (from .-ml-0\\.5)"
+        );
 
         // Verify order is preserved (container should be first)
-        assert_eq!(classes.get("container"), Some(&0), "container should be at index 0");
+        assert_eq!(
+            classes.get("container"),
+            Some(&0),
+            "container should be at index 0"
+        );
 
         // Verify mr-0.5 comes after container
         let mr_index = classes.get("mr-0.5").expect("mr-0.5 should exist");
@@ -298,46 +308,109 @@ mod tests {
 
         // Verify that all classes are extracted from Tailwind v4 CSS
         // Test core utility classes
-        assert!(classes.contains_key("container"), "Should extract container");
+        assert!(
+            classes.contains_key("container"),
+            "Should extract container"
+        );
         assert!(classes.contains_key("flex"), "Should extract flex");
         assert!(classes.contains_key("grid"), "Should extract grid");
         assert!(classes.contains_key("hidden"), "Should extract hidden");
 
         // Test responsive variants
         assert!(classes.contains_key("sm:block"), "Should extract sm:block");
-        assert!(classes.contains_key("md:grid-cols-2"), "Should extract md:grid-cols-2");
-        assert!(classes.contains_key("lg:grid-cols-3"), "Should extract lg:grid-cols-3");
-        assert!(classes.contains_key("xl:hidden"), "Should extract xl:hidden");
+        assert!(
+            classes.contains_key("md:grid-cols-2"),
+            "Should extract md:grid-cols-2"
+        );
+        assert!(
+            classes.contains_key("lg:grid-cols-3"),
+            "Should extract lg:grid-cols-3"
+        );
+        assert!(
+            classes.contains_key("xl:hidden"),
+            "Should extract xl:hidden"
+        );
 
         // Note: CSS escape \32 for digit '2' becomes '32' when backslash is removed
-        assert!(classes.contains_key("32xl:block"), "Should extract 32xl:block (CSS escape \\32xl becomes 32xl)");
+        assert!(
+            classes.contains_key("32xl:block"),
+            "Should extract 32xl:block (CSS escape \\32xl becomes 32xl)"
+        );
 
         // Test state variants
-        assert!(classes.contains_key("hover:bg-blue-700"), "Should extract hover:bg-blue-700");
-        assert!(classes.contains_key("focus:ring-2"), "Should extract focus:ring-2");
-        assert!(classes.contains_key("active:bg-blue-800"), "Should extract active:bg-blue-800");
-        assert!(classes.contains_key("disabled:opacity-50"), "Should extract disabled:opacity-50");
-        assert!(classes.contains_key("checked:bg-blue-600"), "Should extract checked:bg-blue-600");
+        assert!(
+            classes.contains_key("hover:bg-blue-700"),
+            "Should extract hover:bg-blue-700"
+        );
+        assert!(
+            classes.contains_key("focus:ring-2"),
+            "Should extract focus:ring-2"
+        );
+        assert!(
+            classes.contains_key("active:bg-blue-800"),
+            "Should extract active:bg-blue-800"
+        );
+        assert!(
+            classes.contains_key("disabled:opacity-50"),
+            "Should extract disabled:opacity-50"
+        );
+        assert!(
+            classes.contains_key("checked:bg-blue-600"),
+            "Should extract checked:bg-blue-600"
+        );
 
         // Test group variants
-        assert!(classes.contains_key("group-hover:bg-gray-100"), "Should extract group-hover:bg-gray-100");
-        assert!(classes.contains_key("group-hover:text-gray-900"), "Should extract group-hover:text-gray-900");
+        assert!(
+            classes.contains_key("group-hover:bg-gray-100"),
+            "Should extract group-hover:bg-gray-100"
+        );
+        assert!(
+            classes.contains_key("group-hover:text-gray-900"),
+            "Should extract group-hover:text-gray-900"
+        );
 
         // Test dark mode
-        assert!(classes.contains_key("dark:text-white"), "Should extract dark:text-white");
-        assert!(classes.contains_key("dark:bg-gray-800"), "Should extract dark:bg-gray-800");
+        assert!(
+            classes.contains_key("dark:text-white"),
+            "Should extract dark:text-white"
+        );
+        assert!(
+            classes.contains_key("dark:bg-gray-800"),
+            "Should extract dark:bg-gray-800"
+        );
 
         // Test complex responsive + state variants
-        assert!(classes.contains_key("md:hover:text-white"), "Should extract md:hover:text-white");
+        assert!(
+            classes.contains_key("md:hover:text-white"),
+            "Should extract md:hover:text-white"
+        );
 
         // Test arbitrary values (Tailwind v4 feature)
-        assert!(classes.contains_key("w-[500px]"), "Should extract w-[500px]");
-        assert!(classes.contains_key("h-[200px]"), "Should extract h-[200px]");
-        assert!(classes.contains_key("bg-[#1da1f2]"), "Should extract bg-[#1da1f2]");
-        assert!(classes.contains_key("rounded-[32px]"), "Should extract rounded-[32px]");
+        assert!(
+            classes.contains_key("w-[500px]"),
+            "Should extract w-[500px]"
+        );
+        assert!(
+            classes.contains_key("h-[200px]"),
+            "Should extract h-[200px]"
+        );
+        assert!(
+            classes.contains_key("bg-[#1da1f2]"),
+            "Should extract bg-[#1da1f2]"
+        );
+        assert!(
+            classes.contains_key("rounded-[32px]"),
+            "Should extract rounded-[32px]"
+        );
         assert!(classes.contains_key("p-[24px]"), "Should extract p-[24px]");
-        assert!(classes.contains_key("text-[18px]"), "Should extract text-[18px]");
-        assert!(classes.contains_key("leading-[1.5]"), "Should extract leading-[1.5]");
+        assert!(
+            classes.contains_key("text-[18px]"),
+            "Should extract text-[18px]"
+        );
+        assert!(
+            classes.contains_key("leading-[1.5]"),
+            "Should extract leading-[1.5]"
+        );
 
         // Test fractional widths
         assert!(classes.contains_key("w-1/2"), "Should extract w-1/2");
@@ -349,14 +422,25 @@ mod tests {
         assert!(classes.contains_key("-ml-2"), "Should extract -ml-2");
 
         // Verify order preservation (container should be first)
-        assert_eq!(classes.get("container"), Some(&0), "container should be at index 0");
+        assert_eq!(
+            classes.get("container"),
+            Some(&0),
+            "container should be at index 0"
+        );
 
         // Verify exact number of classes extracted from our comprehensive v4 fixture
         // This fixture contains 759 lines with 152 unique utility classes covering:
         // - Responsive breakpoints (sm, md, lg, xl, 2xl)
         // - State variants (hover, focus, active, disabled, checked)
         // - Dark mode, group variants, and arbitrary values
-        println!("Total classes extracted from Tailwind v4: {}", classes.len());
-        assert_eq!(classes.len(), 152, "Should extract exactly 152 classes from Tailwind v4 fixture");
+        println!(
+            "Total classes extracted from Tailwind v4: {}",
+            classes.len()
+        );
+        assert_eq!(
+            classes.len(),
+            152,
+            "Should extract exactly 152 classes from Tailwind v4 fixture"
+        );
     }
 }
