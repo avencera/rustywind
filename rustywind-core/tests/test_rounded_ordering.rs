@@ -197,3 +197,78 @@ fn test_rounded_corner_specificity() {
     assert!(b_pos < bl_pos, "rounded-b-lg should come before rounded-bl-lg");
     assert!(b_pos < br_pos, "rounded-b-lg should come before rounded-br-lg");
 }
+
+#[test]
+fn test_rounded_t_vs_rounded_tl_none() {
+    // Regression test for fuzz failure: rounded-t should come before rounded-tl-none
+    // Side utilities (border-top-radius, index 143) sort before corner utilities (border-top-left-radius, index 151)
+    let sorter = HybridSorter::new();
+
+    let classes = vec!["rounded-tl-none", "rounded-t"];
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(sorted, vec!["rounded-t", "rounded-tl-none"],
+        "rounded-t (side utility) should come before rounded-tl-none (corner utility)");
+}
+
+#[test]
+fn test_rounded_cross_axis_b_vs_tl() {
+    // Test cross-axis ordering: rounded-b (bottom side) vs rounded-tl (top-left corner)
+    // Side utilities should always sort before corner utilities, even on different axes
+    let sorter = HybridSorter::new();
+
+    let classes = vec!["rounded-tl", "rounded-b"];
+    let sorted = sorter.sort_classes(&classes);
+
+    // rounded-b (bottom side, index 145) should come before rounded-tl (top-left corner, index 151)
+    assert_eq!(sorted, vec!["rounded-b", "rounded-tl"],
+        "rounded-b (side utility) should come before rounded-tl (corner utility) in cross-axis comparison");
+}
+
+#[test]
+fn test_rounded_all_cross_axis_cases() {
+    // Test all the cross-axis cases mentioned in the problem statement
+    let sorter = HybridSorter::new();
+
+    // rounded-tl (top-left corner) vs rounded-b (bottom side)
+    assert_eq!(
+        sorter.sort_classes(&["rounded-tl", "rounded-b"]),
+        vec!["rounded-b", "rounded-tl"]
+    );
+
+    // rounded-tr-lg vs rounded-b
+    assert_eq!(
+        sorter.sort_classes(&["rounded-tr-lg", "rounded-b"]),
+        vec!["rounded-b", "rounded-tr-lg"]
+    );
+
+    // rounded-tl vs rounded-r-lg
+    assert_eq!(
+        sorter.sort_classes(&["rounded-tl", "rounded-r-lg"]),
+        vec!["rounded-r-lg", "rounded-tl"]
+    );
+
+    // rounded-l-lg vs rounded-r
+    assert_eq!(
+        sorter.sort_classes(&["rounded-l-lg", "rounded-r"]),
+        vec!["rounded-r", "rounded-l-lg"]
+    );
+
+    // rounded-tl-none vs rounded-r
+    assert_eq!(
+        sorter.sort_classes(&["rounded-tl-none", "rounded-r"]),
+        vec!["rounded-r", "rounded-tl-none"]
+    );
+
+    // rounded-l vs rounded-b-none
+    assert_eq!(
+        sorter.sort_classes(&["rounded-l", "rounded-b-none"]),
+        vec!["rounded-b-none", "rounded-l"]
+    );
+
+    // rounded-l-none vs rounded-b-lg
+    assert_eq!(
+        sorter.sort_classes(&["rounded-l-none", "rounded-b-lg"]),
+        vec!["rounded-b-lg", "rounded-l-none"]
+    );
+}

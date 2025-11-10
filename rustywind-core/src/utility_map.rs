@@ -1024,7 +1024,8 @@ impl UtilityMap {
 
             // Space Between
             // space-x and space-y use custom properties for proper sorting
-            // These are placed at indices 166-167 in property_order.rs, after gap utilities
+            // These are now placed at indices 129-132 in property_order.rs, after divide and alignment
+            // This creates 8 index separation from gap utilities (119-121) to fix cross-axis sorting issues
             "space-x" => Some(&["--tw-space-x"][..]),
             "space-y" => Some(&["--tw-space-y"][..]),
 

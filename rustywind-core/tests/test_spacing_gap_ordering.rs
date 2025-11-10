@@ -238,3 +238,140 @@ fn test_space_gap_with_large_values() {
     // space-x should come BEFORE gap-y
     assert!(space_x_8_pos < gap_y_12_pos, "space-x-8 should come before gap-y-12");
 }
+
+#[test]
+fn test_space_y_vs_gap_y_same_axis() {
+    // Test same-axis comparison: space-y vs gap-y
+    // From 100-run analysis: 4× space-y-2 vs gap-y-0, 3× space-y-4 vs gap-y-0
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "gap-y-0",
+        "space-y-2",
+        "space-y-4",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: space-y vs gap-y (same axis)");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Find positions
+    let space_y_2_pos = sorted.iter().position(|&c| c == "space-y-2").unwrap();
+    let space_y_4_pos = sorted.iter().position(|&c| c == "space-y-4").unwrap();
+    let gap_y_0_pos = sorted.iter().position(|&c| c == "gap-y-0").unwrap();
+
+    // space-y should come BEFORE gap-y (same axis)
+    assert!(space_y_2_pos < gap_y_0_pos, "space-y-2 should come before gap-y-0");
+    assert!(space_y_4_pos < gap_y_0_pos, "space-y-4 should come before gap-y-0");
+}
+
+#[test]
+fn test_space_x_vs_gap_x_same_axis() {
+    // Test same-axis comparison: space-x vs gap-x
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "gap-x-0",
+        "space-x-1",
+        "space-x-2",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: space-x vs gap-x (same axis)");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Find positions
+    let space_x_1_pos = sorted.iter().position(|&c| c == "space-x-1").unwrap();
+    let space_x_2_pos = sorted.iter().position(|&c| c == "space-x-2").unwrap();
+    let gap_x_0_pos = sorted.iter().position(|&c| c == "gap-x-0").unwrap();
+
+    // space-x should come BEFORE gap-x (same axis)
+    assert!(space_x_1_pos < gap_x_0_pos, "space-x-1 should come before gap-x-0");
+    assert!(space_x_2_pos < gap_x_0_pos, "space-x-2 should come before gap-x-0");
+}
+
+#[test]
+fn test_space_x_vs_space_y_ordering() {
+    // Test space-x vs space-y ordering
+    // From 100-run analysis: 4× space-y-4 vs space-x-1, 4× space-y-0 vs space-x-0,
+    // 3× space-y-1 vs space-x-4, 3× space-y-0 vs space-x-1
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "space-y-4",
+        "space-x-1",
+        "space-y-0",
+        "space-x-0",
+        "space-y-1",
+        "space-x-4",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: space-x vs space-y ordering");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Find positions
+    let space_x_0_pos = sorted.iter().position(|&c| c == "space-x-0").unwrap();
+    let space_x_1_pos = sorted.iter().position(|&c| c == "space-x-1").unwrap();
+    let space_x_4_pos = sorted.iter().position(|&c| c == "space-x-4").unwrap();
+    let space_y_0_pos = sorted.iter().position(|&c| c == "space-y-0").unwrap();
+    let space_y_1_pos = sorted.iter().position(|&c| c == "space-y-1").unwrap();
+    let space_y_4_pos = sorted.iter().position(|&c| c == "space-y-4").unwrap();
+
+    // space-x should come before space-y (alphabetically: x < y)
+    assert!(space_x_0_pos < space_y_0_pos, "space-x-0 should come before space-y-0");
+    assert!(space_x_1_pos < space_y_1_pos, "space-x-1 should come before space-y-1");
+    assert!(space_x_4_pos < space_y_4_pos, "space-x-4 should come before space-y-4");
+}
+
+#[test]
+fn test_specific_space_gap_failures_from_100run() {
+    // This test covers all the specific failure cases from the 100-run analysis
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        // Cross-axis failures
+        "space-x-1",
+        "gap-y-2",
+        "space-x-2",
+        "gap-y-4",
+        "space-x-4",
+        "gap-y-0",
+        "space-y-2",
+        "gap-x-4",
+        "space-y-1",
+        "gap-x-0",
+        // Same space utilities
+        "space-y-4",
+        "space-x-1",
+        // Same-axis
+        "gap-y-0",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: all specific space/gap failures from 100-run analysis");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Cross-axis ordering (most common failures)
+    assert!(sorted.iter().position(|&c| c == "space-x-1").unwrap() < sorted.iter().position(|&c| c == "gap-y-2").unwrap());
+    assert!(sorted.iter().position(|&c| c == "space-x-2").unwrap() < sorted.iter().position(|&c| c == "gap-y-4").unwrap());
+    assert!(sorted.iter().position(|&c| c == "space-x-4").unwrap() < sorted.iter().position(|&c| c == "gap-y-0").unwrap());
+    assert!(sorted.iter().position(|&c| c == "space-y-2").unwrap() < sorted.iter().position(|&c| c == "gap-x-4").unwrap());
+    assert!(sorted.iter().position(|&c| c == "space-y-1").unwrap() < sorted.iter().position(|&c| c == "gap-x-0").unwrap());
+
+    // Same-axis (space-y vs gap-y)
+    let space_y_2_pos = sorted.iter().position(|&c| c == "space-y-2").unwrap();
+    let space_y_4_pos = sorted.iter().position(|&c| c == "space-y-4").unwrap();
+    let gap_y_0_first = sorted.iter().position(|&c| c == "gap-y-0").unwrap();
+
+    assert!(space_y_2_pos < gap_y_0_first, "space-y-2 should come before gap-y-0");
+    assert!(space_y_4_pos < gap_y_0_first, "space-y-4 should come before gap-y-0");
+}

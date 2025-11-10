@@ -273,3 +273,126 @@ fn test_divide_color_vs_divide_reverse() {
     assert!(divide_red_pos < divide_x_reverse_pos, "divide-red-600 should come before divide-x-reverse");
     assert!(divide_opacity_pos < divide_x_reverse_pos, "divide-opacity-50 should come before divide-x-reverse");
 }
+
+#[test]
+fn test_background_color_vs_divide_reverse() {
+    // background color utilities should come BEFORE divide-reverse
+    // From 100-run analysis: 4× bg-blue-500 vs divide-x-reverse
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "divide-x-reverse",
+        "bg-blue-500",
+        "bg-red-600",
+        "bg-gray-300",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: background color vs divide-reverse");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Find positions
+    let divide_x_reverse_pos = sorted.iter().position(|&c| c == "divide-x-reverse").unwrap();
+    let bg_blue_pos = sorted.iter().position(|&c| c == "bg-blue-500").unwrap();
+    let bg_red_pos = sorted.iter().position(|&c| c == "bg-red-600").unwrap();
+    let bg_gray_pos = sorted.iter().position(|&c| c == "bg-gray-300").unwrap();
+
+    // background color utilities should come BEFORE divide-reverse
+    assert!(bg_blue_pos < divide_x_reverse_pos, "bg-blue-500 should come before divide-x-reverse");
+    assert!(bg_red_pos < divide_x_reverse_pos, "bg-red-600 should come before divide-x-reverse");
+    assert!(bg_gray_pos < divide_x_reverse_pos, "bg-gray-300 should come before divide-x-reverse");
+}
+
+#[test]
+fn test_padding_vs_divide_reverse() {
+    // padding utilities should come BEFORE divide-reverse
+    // From 100-run analysis: 3× px-2 vs divide-x-reverse, 3× pr-4 vs divide-x-reverse
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "divide-x-reverse",
+        "divide-y-reverse",
+        "px-2",
+        "pr-4",
+        "pb-4",
+        "pl-2",
+        "p-4",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: padding vs divide-reverse");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Find positions
+    let divide_x_reverse_pos = sorted.iter().position(|&c| c == "divide-x-reverse").unwrap();
+    let divide_y_reverse_pos = sorted.iter().position(|&c| c == "divide-y-reverse").unwrap();
+    let px_2_pos = sorted.iter().position(|&c| c == "px-2").unwrap();
+    let pr_4_pos = sorted.iter().position(|&c| c == "pr-4").unwrap();
+    let pb_4_pos = sorted.iter().position(|&c| c == "pb-4").unwrap();
+    let pl_2_pos = sorted.iter().position(|&c| c == "pl-2").unwrap();
+    let p_4_pos = sorted.iter().position(|&c| c == "p-4").unwrap();
+
+    // padding utilities should come BEFORE divide-reverse
+    assert!(px_2_pos < divide_x_reverse_pos, "px-2 should come before divide-x-reverse");
+    assert!(pr_4_pos < divide_x_reverse_pos, "pr-4 should come before divide-x-reverse");
+    assert!(pb_4_pos < divide_x_reverse_pos, "pb-4 should come before divide-x-reverse");
+    assert!(pl_2_pos < divide_x_reverse_pos, "pl-2 should come before divide-x-reverse");
+    assert!(p_4_pos < divide_x_reverse_pos, "p-4 should come before divide-x-reverse");
+
+    // Same for divide-y-reverse
+    assert!(px_2_pos < divide_y_reverse_pos, "px-2 should come before divide-y-reverse");
+    assert!(pr_4_pos < divide_y_reverse_pos, "pr-4 should come before divide-y-reverse");
+}
+
+#[test]
+fn test_divide_reverse_specific_failures_from_100run() {
+    // This test covers all the specific failure cases from the 100-run analysis
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "divide-y-reverse",
+        "divide-x-reverse",
+        "divide-solid",
+        "self-center",
+        "self-baseline",
+        "rounded-t",
+        "overflow-y-hidden",
+        "overflow-visible",
+        "divide-white",
+        "divide-transparent",
+        "divide-none",
+        "bg-blue-500",
+        "px-2",
+        "pr-4",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    println!("\nTest: all specific failures from 100-run analysis");
+    println!("Input:  {:?}", classes);
+    println!("Output: {:?}", sorted);
+
+    // Find positions
+    let divide_y_reverse_pos = sorted.iter().position(|&c| c == "divide-y-reverse").unwrap();
+    let divide_x_reverse_pos = sorted.iter().position(|&c| c == "divide-x-reverse").unwrap();
+
+    // All these should come BEFORE divide-y-reverse
+    assert!(sorted.iter().position(|&c| c == "divide-solid").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "self-center").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "self-baseline").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "rounded-t").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "overflow-y-hidden").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "overflow-visible").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "divide-white").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "divide-transparent").unwrap() < divide_y_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "divide-none").unwrap() < divide_y_reverse_pos);
+
+    // All these should come BEFORE divide-x-reverse
+    assert!(sorted.iter().position(|&c| c == "bg-blue-500").unwrap() < divide_x_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "px-2").unwrap() < divide_x_reverse_pos);
+    assert!(sorted.iter().position(|&c| c == "pr-4").unwrap() < divide_x_reverse_pos);
+}

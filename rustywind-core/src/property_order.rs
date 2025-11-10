@@ -163,19 +163,20 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "gap",
     "column-gap",
     "row-gap",
-    "--tw-space-x",
-    "--tw-space-y",
-    "--tw-space-x-reverse",
-    "--tw-space-y-reverse",
-    // Space & Divide (122-129)
+    // Divide (122-125)
     "divide-x-width",
     "divide-y-width",
     "divide-style",
     "divide-color",
-    // Alignment (130-132)
+    // Alignment (126-128)
     "place-self",
     "align-self",
     "justify-self",
+    // Space (129-132) - moved after alignment for clear separation from gap (119-121)
+    "--tw-space-x",
+    "--tw-space-y",
+    "--tw-space-x-reverse",
+    "--tw-space-y-reverse",
     // Overflow (133-139)
     "overflow",
     "overflow-x",
@@ -232,8 +233,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-color",
     "border-bottom-color",
     "border-left-color",
-    "--tw-divide-y-reverse",
-    "--tw-divide-x-reverse",
+    "border-opacity",
     // Background (182-192)
     "background-color",
     "background-image",
@@ -321,6 +321,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "padding-right",
     "padding-bottom",
     "padding-left",
+    "--tw-divide-y-reverse",
+    "--tw-divide-x-reverse",
     // Typography - Alignment (263-265)
     "text-align",
     "text-indent",
