@@ -25,6 +25,8 @@ use quick_cache::sync::Cache;
 
 use crate::pattern_sorter::{PatternSorter, SortKey};
 
+pub const DEFAULT_CACHE_SIZE: usize = 7500;
+
 /// Hybrid sorter combining LRU cache and pattern-based sorting
 ///
 /// This provides optimal performance for sorting Tailwind CSS classes by:
@@ -35,14 +37,14 @@ pub struct HybridSorter {
     pattern_sorter: PatternSorter,
 
     /// LRU cache for dynamically computed sort keys
-    /// Capacity: 1000 entries (covers most real-world usage)
+    /// Capacity: DEFAULT_CACHE_SIZE entries (covers most real-world usage)
     cache: Arc<Cache<String, SortKey>>,
 }
 
 impl HybridSorter {
-    /// Create a new hybrid sorter with default cache size (10_000 entries)
+    /// Create a new hybrid sorter with default cache size (5000 entries)
     pub fn new() -> Self {
-        Self::with_cache_size(10_000)
+        Self::with_cache_size(DEFAULT_CACHE_SIZE)
     }
 
     /// Create a new hybrid sorter with custom cache size
@@ -57,7 +59,7 @@ impl HybridSorter {
     /// use rustywind_core::hybrid_sorter::HybridSorter;
     ///
     /// // Create sorter with larger cache for big projects
-    /// let sorter = HybridSorter::with_cache_size(50_000);
+    /// let sorter = HybridSorter::with_cache_size(25_000);
     /// ```
     pub fn with_cache_size(cache_size: usize) -> Self {
         Self {
