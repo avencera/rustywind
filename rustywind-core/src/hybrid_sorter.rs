@@ -40,9 +40,9 @@ pub struct HybridSorter {
 }
 
 impl HybridSorter {
-    /// Create a new hybrid sorter with default cache size (1000 entries)
+    /// Create a new hybrid sorter with default cache size (10_000 entries)
     pub fn new() -> Self {
-        Self::with_cache_size(1000)
+        Self::with_cache_size(10_000)
     }
 
     /// Create a new hybrid sorter with custom cache size
@@ -57,7 +57,7 @@ impl HybridSorter {
     /// use rustywind_core::hybrid_sorter::HybridSorter;
     ///
     /// // Create sorter with larger cache for big projects
-    /// let sorter = HybridSorter::with_cache_size(5000);
+    /// let sorter = HybridSorter::with_cache_size(50_000);
     /// ```
     pub fn with_cache_size(cache_size: usize) -> Self {
         Self {

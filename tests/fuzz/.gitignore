@@ -1,5 +1,5 @@
 # Node modules
-node_modules/
+node_modules
 
 # Generated test results
 multi-seed-results.json

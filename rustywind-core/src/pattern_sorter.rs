@@ -286,10 +286,6 @@ impl Ord for SortKey {
                 let priority_other = get_utility_prefix_priority(&other.class);
                 priority_self.cmp(&priority_other)
             })
-            // NOTE: Removed has_none_modifier check - it was forcing -none variants to sort last
-            // when they should sort alphabetically. For utilities like shadow-none vs shadow-sm,
-            // alphabetical sorting (n < s) is correct per Tailwind v4 behavior.
-            // Compare base names (extracts modifiers)
             .then_with(|| {
                 let base_self = extract_base_name(&self.class);
                 let base_other = extract_base_name(&other.class);
