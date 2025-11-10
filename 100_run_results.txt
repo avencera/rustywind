@@ -1,0 +1,65 @@
+=========================================
+Running 100 Fuzz Test Iterations
+=========================================
+Start time: Mon Nov 10 03:03:28 UTC 2025
+
+Progress: 10/100 completed...
+Progress: 20/100 completed...
+Progress: 30/100 completed...
+Progress: 40/100 completed...
+Progress: 50/100 completed...
+Progress: 60/100 completed...
+Progress: 70/100 completed...
+Progress: 80/100 completed...
+Progress: 90/100 completed...
+Progress: 100/100 completed...
+
+=========================================
+100-RUN SUMMARY
+=========================================
+Total tests: 10000
+Total passed: 9496
+Total failed: 504
+Overall pass rate: 94.96%
+
+Average: 94.96%
+Min: 90.0%
+Max: 99.0%
+Range: 9.0%
+
+Distribution:
+  95%+: 54 runs
+  90-94%: 46 runs
+  85-89%: 0 runs
+  <85%: 0 runs
+
+Baseline: 94%
+Current: 94.96%
+Difference: .96%
+
+Status: ✅ At or above baseline
+
+End time: Mon Nov 10 03:10:14 UTC 2025
+
+Analyzing failure patterns...
+Top 20 failure patterns saved to /tmp/aggregated_failures.txt
+      6 space-x-1 vs gap-y-2
+      6 rounded-tl vs rounded-b
+      6 break-normal vs break-words
+      5 touch-pan-left vs touch-auto
+      5 space-x-2 vs gap-y-4
+      5 rounded-tr-lg vs rounded-b
+      5 rounded-l-none vs rounded-r
+      5 divide-y-reverse vs divide-solid
+      4 touch-pinch-zoom vs touch-manipulation
+      4 touch-pan-down vs touch-none
+      4 space-y-4 vs space-x-1
+      4 space-y-2 vs gap-y-0
+      4 space-y-0 vs space-x-0
+      4 space-x-4 vs gap-y-0
+      4 rounded-tl vs rounded-r-lg
+      4 rounded-l-lg vs rounded-r
+      4 bg-blue-500 vs divide-x-reverse
+      3 touch-pan-x vs touch-manipulation
+      3 touch-pan-x vs touch-auto
+      3 touch-pan-right vs touch-manipulation
