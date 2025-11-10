@@ -93,9 +93,9 @@ fn test_divide_x_reverse_after_rounded() {
 ///
 /// rounded-l (logical shorthand) should come before rounded-tl (specific corner)
 ///
-/// **Status:** Known failure - needs border-radius property order adjustment
+/// **Status:** Fixed - Side utilities now use synthetic border-{side}-radius properties
+/// that sort before corner-specific border-{corner}-radius properties
 #[test]
-#[ignore]
 fn test_rounded_logical_before_specific() {
     let input = "rounded-tl rounded-l";
     let expected = "rounded-l rounded-tl";

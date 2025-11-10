@@ -163,6 +163,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "gap",
     "column-gap",
     "row-gap",
+    "--tw-space-x",
+    "--tw-space-y",
     "--tw-space-x-reverse",
     "--tw-space-y-reverse",
     // Space & Divide (122-129)
@@ -183,6 +185,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "overscroll-behavior-y",
     "scroll-behavior",
     // Border Radius (140-154)
+    // Synthetic side properties (border-top-radius, etc.) come before corner properties
+    // This ensures rounded-t sorts before rounded-tl for correct CSS specificity
     "border-radius",
     "border-start-radius",
     "border-end-radius",
@@ -448,8 +452,9 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 342 (added outline-style, user-select, --tw-ring-inset, --tw-divide-x-reverse for proper sorting)
-        assert_eq!(PROPERTY_ORDER.len(), 342);
+        // Total: 344 (added outline-style, user-select, --tw-ring-inset, --tw-divide-x-reverse,
+        // border-top-radius, border-right-radius, border-bottom-radius, border-left-radius for proper sorting)
+        assert_eq!(PROPERTY_ORDER.len(), 344);
     }
 
     #[test]
@@ -458,14 +463,14 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (342 total, so last is at index 341)
-        assert_eq!(get_property_index("forced-color-adjust"), Some(341));
+        // Test last property (344 total, so last is at index 343)
+        assert_eq!(get_property_index("forced-color-adjust"), Some(343));
 
-        // Test common properties (indices shifted due to extra properties)
+        // Test common properties (indices shifted due to extra synthetic properties)
         assert_eq!(get_property_index("margin"), Some(26));
-        assert_eq!(get_property_index("padding"), Some(254));
+        assert_eq!(get_property_index("padding"), Some(256));
         assert_eq!(get_property_index("display"), Some(36));
-        assert_eq!(get_property_index("background-color"), Some(182));
+        assert_eq!(get_property_index("background-color"), Some(184));
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);

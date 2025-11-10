@@ -601,8 +601,8 @@ impl UtilityMap {
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
         // Space Reverse (static utilities, not covered by space-x/space-y patterns)
-        exact.insert("space-x-reverse", &["margin-left"][..]);
-        exact.insert("space-y-reverse", &["margin-top"][..]);
+        exact.insert("space-x-reverse", &["--tw-space-x-reverse"][..]);
+        exact.insert("space-y-reverse", &["--tw-space-y-reverse"][..]);
 
         // Outline Style (maps to outline-style property)
         exact.insert("outline-none", &["outline-style"][..]);
@@ -1023,10 +1023,10 @@ impl UtilityMap {
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
             // Space Between
-            // space-x and space-y use margin properties because they apply margin to
-            // children, not gap between children. This matches Tailwind's actual behavior.
-            "space-x" => Some(&["margin-left"][..]),
-            "space-y" => Some(&["margin-top"][..]),
+            // space-x and space-y use custom properties for proper sorting
+            // These are placed at indices 166-167 in property_order.rs, after gap utilities
+            "space-x" => Some(&["--tw-space-x"][..]),
+            "space-y" => Some(&["--tw-space-y"][..]),
 
             // Divide
             "divide-x" => Some(&["divide-x-width"][..]),
