@@ -169,10 +169,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-space-x-reverse",
     "--tw-space-y-reverse",
     // Divide (168-171)
-    // Note: --tw-divide-x-reverse is NOT in Tailwind v4's property-order.ts
     "divide-x-width",
     "divide-y-width",
-    "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
     // Alignment (176-178)
@@ -187,6 +185,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "overscroll-behavior-x",
     "overscroll-behavior-y",
     "scroll-behavior",
+    // divide-y-reverse positioned after overflow, before border-x to match Tailwind v4
+    "--tw-divide-y-reverse",
     // Border Radius (140-150)
     // Removed synthetic side properties (border-top-radius, etc.) - not real in Tailwind v4
     // Side utilities (rounded-t) now map to their minimum corner property for proper sorting
@@ -405,11 +405,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "will-change",
     "outline-style",
     "user-select",
+    // divide-x-reverse positioned here to match Tailwind v4 behavior (after all filters, before ring-inset)
+    "--tw-divide-x-reverse",
     "--tw-ring-inset",
     "contain",
     "content",
     "forced-color-adjust",
-    "--tw-divide-x-reverse",
 ];
 
 /// Optimized HashMap for O(1) property index lookup.
@@ -451,10 +452,10 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 339 (removed synthetic border radius properties per Tailwind v4, added --tw-divide-x-reverse)
+        // Total: 339 (removed synthetic border radius properties per Tailwind v4)
         // Removed: border-top-radius, border-right-radius, border-bottom-radius, border-left-radius
         // These were marked as "not real" in Tailwind v4's property-order.ts
-        // Added: --tw-divide-x-reverse for proper divide-x-reverse sorting
+        // divide-x-reverse and divide-y-reverse are positioned to match Tailwind v4 behavior
         assert_eq!(PROPERTY_ORDER.len(), 339);
     }
 
@@ -464,8 +465,20 @@ mod tests {
         assert_eq!(get_property_index("background-opacity"), Some(0));
         assert_eq!(get_property_index("container-type"), Some(1));
 
-        // Test last property (339 total, so last is at index 338)
-        assert_eq!(get_property_index("--tw-divide-x-reverse"), Some(338));
+        // Test divide reverse properties are positioned correctly
+        // divide-y-reverse comes after justify-self, before overflow
+        let divide_y_idx = get_property_index("--tw-divide-y-reverse").unwrap();
+        let justify_self_idx = get_property_index("justify-self").unwrap();
+        let overflow_idx = get_property_index("overflow").unwrap();
+        assert!(divide_y_idx > justify_self_idx);
+        assert!(divide_y_idx < overflow_idx);
+
+        // divide-x-reverse comes after outline-color, before filters
+        let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
+        let outline_color_idx = get_property_index("outline-color").unwrap();
+        let filter_idx = get_property_index("--tw-blur").unwrap();
+        assert!(divide_x_idx > outline_color_idx);
+        assert!(divide_x_idx < filter_idx);
 
         // Test common properties (indices shifted by -4 after border-radius section due to removed synthetics)
         assert_eq!(get_property_index("margin"), Some(26));
