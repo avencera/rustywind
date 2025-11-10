@@ -1,0 +1,1 @@
+transition-opacity transition-none

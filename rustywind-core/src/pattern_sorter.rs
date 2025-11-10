@@ -122,27 +122,6 @@ fn extract_base_name(utility: &str) -> &str {
     utility // Return full name if no modifier
 }
 
-/// Check if a utility has a -none modifier that should sort last.
-///
-/// Only applies to utilities where -none is a size/value modifier, not part of the base name:
-/// - `drop-shadow-none` → true (size modifier, sorts last)
-/// - `rounded-t-none` → true (size modifier, sorts last)
-/// - `select-none` → false (part of utility name, normal alphabetical order)
-///
-/// This ensures reset/disable utilities come after value utilities for utilities with size variants.
-fn has_none_modifier(utility: &str) -> bool {
-    if !utility.ends_with("-none") {
-        return false;
-    }
-
-    // Only apply to utilities where -none is a modifier, not part of the base name
-    // These utilities have size/value variants (sm, md, lg, xl, etc.)
-    utility.starts_with("drop-shadow-")
-        || utility.starts_with("shadow-")
-        || utility.starts_with("blur-")
-        || utility.starts_with("rounded-")
-        || utility.starts_with("backdrop-blur-")
-}
 ///
 /// This function extracts numeric values from utilities like:
 /// - `p-4` → Some(4.0)
@@ -307,16 +286,9 @@ impl Ord for SortKey {
                 let priority_other = get_utility_prefix_priority(&other.class);
                 priority_self.cmp(&priority_other)
             })
-            // Check for -none modifiers (should sort last)
-            .then_with(|| {
-                let self_has_none = has_none_modifier(&self.class);
-                let other_has_none = has_none_modifier(&other.class);
-                match (self_has_none, other_has_none) {
-                    (true, false) => Ordering::Greater, // self is -none, sort it last
-                    (false, true) => Ordering::Less,    // other is -none, sort it last
-                    _ => Ordering::Equal,               // Both or neither have -none
-                }
-            })
+            // NOTE: Removed has_none_modifier check - it was forcing -none variants to sort last
+            // when they should sort alphabetically. For utilities like shadow-none vs shadow-sm,
+            // alphabetical sorting (n < s) is correct per Tailwind v4 behavior.
             // Compare base names (extracts modifiers)
             .then_with(|| {
                 let base_self = extract_base_name(&self.class);

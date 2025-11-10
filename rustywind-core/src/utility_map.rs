@@ -722,18 +722,9 @@ impl UtilityMap {
         exact.insert("decoration-from-font", &["text-decoration-thickness"][..]);
 
         // Transition Property
-        // transition-none maps to all transition properties so it sorts last
-        // (utilities with more properties sort after those with fewer properties)
-        exact.insert(
-            "transition-none",
-            &[
-                "transition-property",
-                "transition-behavior",
-                "transition-delay",
-                "transition-duration",
-                "transition-timing-function",
-            ][..],
-        );
+        // transition-none only sets transition-property to 'none' (matches Tailwind v4)
+        // This ensures it sorts alphabetically with other transition utilities
+        exact.insert("transition-none", &["transition-property"][..]);
         exact.insert("transition-all", &["transition-property"][..]);
         exact.insert("transition-colors", &["transition-property"][..]);
         exact.insert("transition-opacity", &["transition-property"][..]);
