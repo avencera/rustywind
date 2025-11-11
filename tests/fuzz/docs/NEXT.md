@@ -82,67 +82,585 @@ The failures are quite diverse - only 2 specific class pairs occurred 3+ times:
 
 This indicates the failures are spread across many different edge cases rather than concentrated in a few fixable patterns.
 
+## Source Code Investigation (Tailwind CSS v4 & Prettier Plugin)
+
+**Investigation Date:** 2025-11-11
+**Repositories Analyzed:**
+- `tailwindlabs/tailwindcss` (main branch, v4)
+- `tailwindlabs/prettier-plugin-tailwindcss` (latest)
+
+### Key Files Analyzed
+
+1. **`packages/tailwindcss/src/property-order.ts`** - Definitive property order array (416 properties)
+2. **`packages/tailwindcss/src/compile.ts`** - Sorting algorithm implementation
+3. **`packages/tailwindcss/src/utilities.ts`** - Utility definitions and CSS generation
+4. **`prettier-plugin-tailwindcss/src/sorting.ts`** - Plugin sorting interface
+
+### Tailwind's Sorting Algorithm
+
+From `compile.ts:83-115`, the exact sorting order is:
+
+```typescript
+astNodes.sort((a, z) => {
+  // 1. Sort by variant order (bitwise OR of variant indices)
+  if (aSorting.variants - zSorting.variants !== 0n) {
+    return Number(aSorting.variants - zSorting.variants)
+  }
+
+  // 2. Find first different property
+  let offset = 0
+  while (
+    offset < aSorting.properties.order.length &&
+    offset < zSorting.properties.order.length &&
+    aSorting.properties.order[offset] === zSorting.properties.order[offset]
+  ) {
+    offset += 1
+  }
+
+  return (
+    // 3. Sort by lowest property index
+    (aSorting.properties.order[offset] ?? Infinity) -
+      (zSorting.properties.order[offset] ?? Infinity) ||
+    // 4. Sort by property count (more properties first)
+    zSorting.properties.count - aSorting.properties.count ||
+    // 5. Sort alphabetically
+    compare(aSorting.candidate, zSorting.candidate)
+  )
+})
+```
+
+**Key Insight:** Property indices come from the GLOBAL_PROPERTY_ORDER array in `property-order.ts`. Lower index = sorts first.
+
+### Finding #1: Ring vs Shadow Ordering
+
+**Source:** `property-order.ts:365-376`
+
+```typescript
+'box-shadow',              // Index 365 ← SHADOWS FIRST
+'--tw-shadow',             // Index 366
+'--tw-shadow-color',       // Index 367
+'--tw-ring-shadow',        // Index 368 ← RINGS AFTER
+'--tw-ring-color',         // Index 369
+'--tw-inset-shadow',       // Index 370
+'--tw-inset-shadow-color', // Index 371
+'--tw-inset-ring-shadow',  // Index 372
+'--tw-inset-ring-color',   // Index 373
+'--tw-ring-offset-width',  // Index 374
+'--tw-ring-offset-color',  // Index 375
+```
+
+**Utilities Mapping:**
+- `shadow-*` utilities generate `box-shadow` property → Index 365
+- `ring-*` utilities generate `--tw-ring-shadow` property → Index 368
+
+**Correct Order:** `shadow-gray-500` → `ring-1` (365 < 368)
+
+**RustyWind Issue:** Currently sorts rings before shadows, violating this order.
+
+**Solution:**
+```rust
+// In rustywind-core/src/property_order.rs
+// Ensure these indices maintain the correct order:
+("box-shadow", 365),           // shadows
+("--tw-shadow", 366),
+("--tw-shadow-color", 367),
+("--tw-ring-shadow", 368),     // rings (higher index)
+("--tw-ring-color", 369),
+("--tw-ring-offset-width", 374),
+("--tw-ring-offset-color", 375),
+```
+
+### Finding #2: Filter Utilities Ordering
+
+**Source:** `property-order.ts:382-402`
+
+```typescript
+'outline',                       // Index 377 ← OUTLINE FIRST
+'outline-width',                 // Index 378
+'outline-offset',                // Index 379
+'outline-color',                 // Index 380
+
+'--tw-blur',                     // Index 382 ← FILTERS AFTER OUTLINE
+'--tw-brightness',               // Index 383
+'--tw-contrast',                 // Index 384
+'--tw-drop-shadow',              // Index 385
+'--tw-grayscale',                // Index 386
+'--tw-hue-rotate',               // Index 387
+'--tw-invert',                   // Index 388
+'--tw-saturate',                 // Index 389
+'--tw-sepia',                    // Index 390
+'filter',                        // Index 391
+
+'--tw-backdrop-blur',            // Index 393 ← BACKDROP FILTERS
+'--tw-backdrop-brightness',      // Index 394
+'--tw-backdrop-contrast',        // Index 395
+'--tw-backdrop-grayscale',       // Index 396
+'--tw-backdrop-hue-rotate',      // Index 397
+'--tw-backdrop-invert',          // Index 398
+'--tw-backdrop-opacity',         // Index 399
+'--tw-backdrop-saturate',        // Index 400
+'--tw-backdrop-sepia',           // Index 401
+'backdrop-filter',               // Index 402
+
+'transition-property',           // Index 404 ← TRANSITIONS AFTER
+```
+
+**Utilities Mapping:**
+- `blur` → `--tw-blur` + `filter` properties → Indices [382, 391]
+- `brightness-*` → `--tw-brightness` + `filter` → Indices [383, 391]
+- `contrast-*` → `--tw-contrast` + `filter` → Indices [384, 391]
+- `grayscale-*` → `--tw-grayscale` + `filter` → Indices [386, 391]
+- `hue-rotate-*` → `--tw-hue-rotate` + `filter` → Indices [387, 391]
+- `invert-*` → `--tw-invert` + `filter` → Indices [388, 391]
+- `saturate-*` → `--tw-saturate` + `filter` → Indices [389, 391]
+- `sepia-*` → `--tw-sepia` + `filter` → Indices [390, 391]
+- `drop-shadow-*` → `--tw-drop-shadow` + `filter` → Indices [385, 391]
+
+- `backdrop-blur` → `--tw-backdrop-blur` + `backdrop-filter` → Indices [393, 402]
+- `backdrop-brightness-*` → `--tw-backdrop-brightness` + `backdrop-filter` → Indices [394, 402]
+- Similar for other backdrop filters...
+
+**Key Insight:** Filter utilities generate TWO properties:
+1. A CSS variable (e.g., `--tw-blur`)
+2. The `filter` property itself
+
+The lowest index (the CSS variable) determines the sort position. From `compile.ts:96-104`, it finds the **first different property** and uses the **lowest index**.
+
+**RustyWind Issue:** Filter utilities are not properly mapped to their CSS variable properties.
+
+**Solution:**
+```rust
+// In rustywind-core/src/property_order.rs
+// Add filter property mappings:
+("--tw-blur", 382),
+("--tw-brightness", 383),
+("--tw-contrast", 384),
+("--tw-drop-shadow", 385),
+("--tw-grayscale", 386),
+("--tw-hue-rotate", 387),
+("--tw-invert", 388),
+("--tw-saturate", 389),
+("--tw-sepia", 390),
+("filter", 391),
+
+("--tw-backdrop-blur", 393),
+("--tw-backdrop-brightness", 394),
+("--tw-backdrop-contrast", 395),
+("--tw-backdrop-grayscale", 396),
+("--tw-backdrop-hue-rotate", 397),
+("--tw-backdrop-invert", 398),
+("--tw-backdrop-opacity", 399),
+("--tw-backdrop-saturate", 400),
+("--tw-backdrop-sepia", 401),
+("backdrop-filter", 402),
+```
+
+And in the utility mapping logic (likely in `hybrid_sorter.rs` or `utility_map.rs`):
+```rust
+// Map filter utilities to their CSS variable properties
+"blur" => vec![382, 391],        // Uses --tw-blur (382) as primary sort key
+"brightness" => vec![383, 391],
+"contrast" => vec![384, 391],
+// etc...
+```
+
+### Finding #3: Arbitrary Border Edge Cases
+
+**Source Analysis:**
+
+1. **Property Order** (`property-order.ts:194-202`):
+```typescript
+'border-width',                  // Index 194 ← GENERIC BORDER
+'border-inline-width',           // Index 195
+'border-block-width',            // Index 196
+'border-inline-start-width',     // Index 197
+'border-inline-end-width',       // Index 198
+'border-top-width',              // Index 199 ← SPECIFIC SIDES
+'border-right-width',            // Index 200
+'border-bottom-width',           // Index 201
+'border-left-width',             // Index 202
+```
+
+2. **Utility Definitions** (`utilities.ts:2310-2356`):
+
+```typescript
+borderSideUtility('border', {
+  width: (value) => [
+    decl('border-style', 'var(--tw-border-style)'),
+    decl('border-width', value),  // ← Uses 'border-width' (index 194)
+  ],
+  // ...
+})
+
+borderSideUtility('border-t', {
+  width: (value) => [
+    decl('border-top-style', 'var(--tw-border-style)'),
+    decl('border-top-width', value),  // ← Uses 'border-top-width' (index 199)
+  ],
+  // ...
+})
+```
+
+**Correct Behavior:**
+- `border-[1.5px]` → generates `border-width: 1.5px` → Index 194
+- `border-t-0` → generates `border-top-width: 0` → Index 199
+- **Expected:** `border-[1.5px]` sorts BEFORE `border-t-0` (194 < 199) ✓
+
+**RustyWind Issue:** The failure occurs 3 times in testing, suggesting:
+1. Arbitrary value extraction might not be working for this specific case
+2. Property mapping might be incorrect for `border-[...]` utilities
+3. The comparison might not be reaching the property-level sort
+
+**Investigation Required:**
+
+From `pattern_sorter.rs`, check how `border-[1.5px]` is parsed:
+1. Does it extract the numeric value correctly?
+2. Is it mapped to the correct property (`border-width`)?
+3. Does it compare at the property level or numeric level?
+
+**Hypothesis:** RustyWind might be comparing these at the arbitrary value numeric level (both have numbers: 1.5 vs 0) instead of at the property index level first.
+
+**Solution:**
+```rust
+// In rustywind-core/src/hybrid_sorter.rs or utility_map.rs
+// Ensure border utilities map to correct properties:
+
+fn get_property_for_utility(utility: &str) -> Option<&'static str> {
+    // For border utilities with arbitrary values
+    if utility.starts_with("border-[") && utility.contains(']') {
+        return Some("border-width");  // Index 194
+    }
+
+    // For border-t utilities
+    if utility.starts_with("border-t-") {
+        return Some("border-top-width");  // Index 199
+    }
+
+    // Similar for border-r, border-b, border-l
+    // ...
+}
+```
+
+**Critical Fix:** Property-level comparison MUST happen BEFORE arbitrary value numeric comparison in the sorting algorithm.
+
+### Property Count Tiebreaker
+
+From `compile.ts:111`:
+```typescript
+zSorting.properties.count - aSorting.properties.count
+```
+
+Utilities with MORE properties sort BEFORE utilities with fewer properties (when property indices are equal).
+
+**Example:**
+- `border` generates 2 properties: `border-style` + `border-width` → count = 2
+- `border-t-0` generates 2 properties: `border-top-style` + `border-top-width` → count = 2
+
+So property count doesn't help distinguish these. The property index is the key differentiator.
+
 ## Actionable Recommendations
 
 ### Immediate Actions (Target: 97-98% pass rate)
 
 #### 1. Ring vs Shadow Ordering
 **Priority: HIGH** | **Impact: ~5.7% of failures**
+**Source:** See "Finding #1" in Source Code Investigation above
 
 **Current Issue:**
 - `ring-1` sorts before `shadow-gray-500` when Prettier expects the opposite
 - Ring utilities need to sort after shadow utilities
 
-**Implementation:**
+**Root Cause:**
+- Tailwind's `property-order.ts` has `box-shadow` at index 365, `--tw-ring-shadow` at index 368
+- RustyWind's property order might have these reversed or using incorrect indices
+
+**Implementation Steps:**
+
+1. **Update `rustywind-core/src/property_order.rs`:**
 ```rust
-// In rustywind-core/src/property_order.rs
-// Ensure shadow properties have lower indices than ring properties
-("box-shadow", 150),     // shadows first
-("--tw-ring-*", 160),    // rings after
+// Match Tailwind v4's exact indices from property-order.ts:365-376
+("box-shadow", 365),
+("--tw-shadow", 366),
+("--tw-shadow-color", 367),
+("--tw-ring-shadow", 368),      // Must be AFTER box-shadow
+("--tw-ring-color", 369),
+("--tw-inset-shadow", 370),
+("--tw-inset-shadow-color", 371),
+("--tw-inset-ring-shadow", 372),
+("--tw-inset-ring-color", 373),
+("--tw-ring-offset-width", 374),
+("--tw-ring-offset-color", 375),
+```
+
+2. **Update utility mapping in `utility_map.rs` or `hybrid_sorter.rs`:**
+```rust
+// Ensure shadow utilities map to box-shadow (365)
+"shadow" => vec![365],  // or appropriate property
+"shadow-sm" => vec![365],
+"shadow-lg" => vec![365],
+// etc.
+
+// Ensure ring utilities map to --tw-ring-shadow (368)
+"ring" => vec![368],
+"ring-0" => vec![368],
+"ring-1" => vec![368],
+// etc.
 ```
 
 **Testing:**
 - Add test case in `rustywind-core/tests/test_ring_shadow_ordering.rs`
 - Verify with `node tests/fuzz/test-ring-blur.mjs`
+- Test case: `assert_sorting("ring-1 shadow-gray-500", "shadow-gray-500 ring-1")`
 
 #### 2. Filter Utilities Ordering
 **Priority: HIGH** | **Impact: ~15.9% of failures**
+**Source:** See "Finding #2" in Source Code Investigation above
 
 **Current Issue:**
 - Filter utilities (blur, brightness, contrast, saturate, etc.) sort incorrectly relative to ring utilities
-- Need special handling for filter property group
+- Filter utilities are not mapped to their CSS variable properties
+
+**Root Cause:**
+- Filter utilities generate MULTIPLE properties (CSS variable + filter property)
+- Tailwind uses the LOWEST property index for sorting
+- Example: `blur` → `--tw-blur` (382) + `filter` (391) → sorts by 382
 
 **Affected Utilities:**
-- `blur`, `brightness`, `contrast`, `grayscale`, `hue-rotate`, `invert`, `saturate`, `sepia`
-- `backdrop-blur`, `backdrop-brightness`, `backdrop-contrast`, etc.
+- Regular filters: `blur`, `brightness`, `contrast`, `grayscale`, `hue-rotate`, `invert`, `saturate`, `sepia`, `drop-shadow`
+- Backdrop filters: `backdrop-blur`, `backdrop-brightness`, `backdrop-contrast`, `backdrop-grayscale`, `backdrop-hue-rotate`, `backdrop-invert`, `backdrop-opacity`, `backdrop-saturate`, `backdrop-sepia`
 
-**Implementation:**
-1. Add filter property mappings in `property_order.rs`
-2. Ensure filters sort before rings
-3. Add comprehensive filter tests in integration test suite
+**Implementation Steps:**
+
+1. **Update `rustywind-core/src/property_order.rs`:**
+```rust
+// Add ALL filter-related properties from Tailwind's property-order.ts:382-402
+("outline", 377),
+("outline-width", 378),
+("outline-offset", 379),
+("outline-color", 380),
+
+// Regular filters
+("--tw-blur", 382),
+("--tw-brightness", 383),
+("--tw-contrast", 384),
+("--tw-drop-shadow", 385),
+("--tw-grayscale", 386),
+("--tw-hue-rotate", 387),
+("--tw-invert", 388),
+("--tw-saturate", 389),
+("--tw-sepia", 390),
+("filter", 391),
+
+// Backdrop filters
+("--tw-backdrop-blur", 393),
+("--tw-backdrop-brightness", 394),
+("--tw-backdrop-contrast", 395),
+("--tw-backdrop-grayscale", 396),
+("--tw-backdrop-hue-rotate", 397),
+("--tw-backdrop-invert", 398),
+("--tw-backdrop-opacity", 399),
+("--tw-backdrop-saturate", 400),
+("--tw-backdrop-sepia", 401),
+("backdrop-filter", 402),
+
+("transition-property", 404),
+```
+
+2. **Update utility mapping to return multiple property indices:**
+```rust
+// In utility_map.rs or hybrid_sorter.rs
+// Filter utilities need to return BOTH their CSS variable AND filter property
+"blur" => vec![382, 391],           // --tw-blur, filter
+"blur-none" => vec![382, 391],
+"blur-sm" => vec![382, 391],
+"brightness" => vec![383, 391],     // --tw-brightness, filter
+"contrast" => vec![384, 391],       // --tw-contrast, filter
+"drop-shadow" => vec![385, 391],    // --tw-drop-shadow, filter
+"grayscale" => vec![386, 391],      // --tw-grayscale, filter
+"hue-rotate" => vec![387, 391],     // --tw-hue-rotate, filter
+"invert" => vec![388, 391],         // --tw-invert, filter
+"saturate" => vec![389, 391],       // --tw-saturate, filter
+"sepia" => vec![390, 391],          // --tw-sepia, filter
+
+"backdrop-blur" => vec![393, 402],  // --tw-backdrop-blur, backdrop-filter
+"backdrop-brightness" => vec![394, 402],
+"backdrop-contrast" => vec![395, 402],
+"backdrop-grayscale" => vec![396, 402],
+"backdrop-hue-rotate" => vec![397, 402],
+"backdrop-invert" => vec![398, 402],
+"backdrop-opacity" => vec![399, 402],
+"backdrop-saturate" => vec![400, 402],
+"backdrop-sepia" => vec![401, 402],
+```
+
+3. **Update sorting logic to use lowest property index:**
+```rust
+// In hybrid_sorter.rs comparison function
+// When comparing two utilities with multiple properties,
+// use the LOWEST property index from each (matching Tailwind's behavior)
+let a_min_prop = a_properties.iter().min().unwrap_or(&usize::MAX);
+let z_min_prop = z_properties.iter().min().unwrap_or(&usize::MAX);
+a_min_prop.cmp(z_min_prop)
+```
+
+**Testing:**
+- Add comprehensive filter tests in `rustywind-core/tests/test_filter_ordering.rs`
+- Test cases:
+  - `blur` vs `ring-1` (should sort: `blur` then `ring-1`)
+  - `brightness-50` vs `shadow-lg` (should sort: `shadow-lg` then `brightness-50`)
+  - `backdrop-blur` vs `transition` (should sort: `backdrop-blur` then `transition`)
 
 #### 3. Arbitrary Border Edge Cases
 **Priority: MEDIUM** | **Impact: ~21.6% combined (arbitrary failures)**
+**Source:** See "Finding #3" in Source Code Investigation above
 
 **Current Issue:**
-- `border-[1.5px]` vs `border-t-0` ordering inconsistent
+- `border-[1.5px]` vs `border-t-0` ordering inconsistent (fails 3 times in 10,000 tests)
 - Despite implementing arbitrary value prioritization, border-specific edge cases remain
 
-**Investigation Steps:**
-1. Check `pattern_sorter.rs` numeric value extraction from `border-[1.5px]`
-2. Verify property ordering for `border-width` vs `border-{side}-width`
-3. Add debug logging to understand comparison flow
+**Root Cause:**
+- `border-[1.5px]` should map to `border-width` property (index 194)
+- `border-t-0` maps to `border-top-width` property (index 199)
+- Property comparison must happen BEFORE arbitrary value numeric comparison
+- Possible issue: comparison happening at numeric level (1.5 vs 0) instead of property level
 
-**Test Case:**
+**Correct Behavior from Tailwind:**
+```typescript
+// border-[1.5px] generates:
+border-style: var(--tw-border-style);
+border-width: 1.5px;  // Index 194
+
+// border-t-0 generates:
+border-top-style: var(--tw-border-style);
+border-top-width: 0;  // Index 199
+
+// Expected order: border-[1.5px] → border-t-0 (194 < 199)
+```
+
+**Implementation Steps:**
+
+1. **Update property mapping for border utilities:**
+```rust
+// In utility_map.rs or hybrid_sorter.rs
+fn get_border_property(utility: &str) -> Option<&'static str> {
+    // Generic border (all sides)
+    if utility.starts_with("border") && !utility.contains('-', 7) {
+        // border, border-2, border-[1.5px], etc.
+        return Some("border-width");  // Index 194
+    }
+
+    // Side-specific borders
+    if utility.starts_with("border-t") {
+        return Some("border-top-width");  // Index 199
+    }
+    if utility.starts_with("border-r") {
+        return Some("border-right-width");  // Index 200
+    }
+    if utility.starts_with("border-b") {
+        return Some("border-bottom-width");  // Index 201
+    }
+    if utility.starts_with("border-l") {
+        return Some("border-left-width");  // Index 202
+    }
+
+    // Logical borders
+    if utility.starts_with("border-s") {
+        return Some("border-inline-start-width");  // Index 197
+    }
+    if utility.starts_with("border-e") {
+        return Some("border-inline-end-width");  // Index 198
+    }
+    if utility.starts_with("border-x") {
+        return Some("border-inline-width");  // Index 195
+    }
+    if utility.starts_with("border-y") {
+        return Some("border-block-width");  // Index 196
+    }
+
+    None
+}
+```
+
+2. **Ensure property comparison happens first in sorting logic:**
+```rust
+// In hybrid_sorter.rs or pattern_sorter.rs
+// The comparison order MUST be:
+// 1. Variant order
+// 2. Property index  ← THIS MUST COME BEFORE ARBITRARY VALUE COMPARISON
+// 3. Arbitrary value numeric comparison
+// 4. Alphabetical
+
+// Example implementation:
+fn compare_utilities(a: &str, z: &str) -> Ordering {
+    // 1. Compare variants (existing logic)
+    // ...
+
+    // 2. Compare property indices FIRST
+    let a_prop_idx = get_property_index(a);
+    let z_prop_idx = get_property_index(z);
+    match a_prop_idx.cmp(&z_prop_idx) {
+        Ordering::Equal => {
+            // 3. Only if properties are equal, compare arbitrary values
+            compare_arbitrary_values(a, z)
+        }
+        other => return other,
+    }
+}
+```
+
+3. **Add property order entries:**
+```rust
+// In property_order.rs (should already exist, but verify)
+("border-width", 194),
+("border-inline-width", 195),
+("border-block-width", 196),
+("border-inline-start-width", 197),
+("border-inline-end-width", 198),
+("border-top-width", 199),
+("border-right-width", 200),
+("border-bottom-width", 201),
+("border-left-width", 202),
+```
+
+**Debugging:**
+```rust
+// Add temporary debug logging to verify behavior:
+eprintln!("Comparing: {} vs {}", a, z);
+eprintln!("  {} property: {:?} (index: {:?})", a, get_border_property(a), get_property_index(a));
+eprintln!("  {} property: {:?} (index: {:?})", z, get_border_property(z), get_property_index(z));
+```
+
+**Testing:**
 ```rust
 #[test]
 fn test_arbitrary_border_ordering() {
+    // The key test case that fails 3 times
     assert_sorting(
         "border-[1.5px] border-t-0",
         "border-[1.5px] border-t-0"
     );
+
+    // Additional edge cases
+    assert_sorting(
+        "border-t-0 border-[1.5px]",
+        "border-[1.5px] border-t-0"
+    );
+
+    assert_sorting(
+        "border-[2px] border-r-4 border-b-0 border-l-8",
+        "border-[2px] border-r-4 border-b-0 border-l-8"
+    );
+
+    // Verify all border sides maintain correct order
+    assert_sorting(
+        "border-t-0 border-r-0 border-b-0 border-l-0 border-[1px]",
+        "border-[1px] border-t-0 border-r-0 border-b-0 border-l-0"
+    );
 }
 ```
+
+**Critical Implementation Note:**
+The failure rate is low (3/10,000) which suggests this might be a race condition or an edge case in the comparison logic where sometimes the property comparison is skipped. Review the entire comparison chain in `hybrid_sorter.rs` to ensure property indices are ALWAYS compared before numeric values.
 
 ### Medium-Term Improvements (Target: 98%+)
 
