@@ -414,10 +414,33 @@ fn extract_color_name(utility: &str) -> Option<&str> {
 
     // Known Tailwind color names (in alphabetical order)
     const COLOR_NAMES: &[&str] = &[
-        "amber", "black", "blue", "current", "cyan", "emerald", "fuchsia", "gray",
-        "green", "indigo", "inherit", "lime", "neutral", "orange", "pink", "purple",
-        "red", "rose", "sky", "slate", "stone", "teal", "transparent", "violet",
-        "white", "yellow", "zinc",
+        "amber",
+        "black",
+        "blue",
+        "current",
+        "cyan",
+        "emerald",
+        "fuchsia",
+        "gray",
+        "green",
+        "indigo",
+        "inherit",
+        "lime",
+        "neutral",
+        "orange",
+        "pink",
+        "purple",
+        "red",
+        "rose",
+        "sky",
+        "slate",
+        "stone",
+        "teal",
+        "transparent",
+        "violet",
+        "white",
+        "yellow",
+        "zinc",
     ];
 
     // Color utilities follow patterns like:
@@ -434,8 +457,21 @@ fn extract_color_name(utility: &str) -> Option<&str> {
 
     // Check common color property prefixes
     let color_prefixes = &[
-        "bg", "text", "border", "ring", "divide", "outline", "decoration",
-        "accent", "caret", "fill", "stroke", "shadow", "from", "via", "to",
+        "bg",
+        "text",
+        "border",
+        "ring",
+        "divide",
+        "outline",
+        "decoration",
+        "accent",
+        "caret",
+        "fill",
+        "stroke",
+        "shadow",
+        "from",
+        "via",
+        "to",
     ];
 
     if color_prefixes.contains(&parts[0]) {
@@ -539,23 +575,25 @@ impl Ord for SortKey {
             .cmp(&other.variant_order)
             // Then compare by property indices - compare ALL properties in order
             // This is crucial for utilities like rounded-t vs rounded-l that tie on first property
-            .then_with(|| (|| {
-                for (a_idx, b_idx) in self
-                .property_indices
-                .iter()
-                .zip(other.property_indices.iter())
-            {
-                match a_idx.cmp(b_idx) {
-                    Ordering::Equal => continue, // Tie on this property, check next
-                    other => return other,       // Found difference
-                }
-            }
-            // All common properties are equal, compare by length (MORE properties = earlier)
-            other
-                .property_indices
-                .len()
-                .cmp(&self.property_indices.len())
-        })())
+            .then_with(|| {
+                (|| {
+                    for (a_idx, b_idx) in self
+                        .property_indices
+                        .iter()
+                        .zip(other.property_indices.iter())
+                    {
+                        match a_idx.cmp(b_idx) {
+                            Ordering::Equal => continue, // Tie on this property, check next
+                            other => return other,       // Found difference
+                        }
+                    }
+                    // All common properties are equal, compare by length (MORE properties = earlier)
+                    other
+                        .property_indices
+                        .len()
+                        .cmp(&self.property_indices.len())
+                })()
+            })
             // CRITICAL FIX: When property indices match, check utility prefix priority
             // This fixes space-x vs gap-y ordering (both map to row-gap, but space-* has priority)
             // Must happen BEFORE numeric value comparison to prevent gap-y-0 sorting before space-x-4
@@ -577,7 +615,10 @@ impl Ord for SortKey {
             // This ensures bg-blue-500 comes before bg-red-50 (blue < red alphabetically)
             // rather than sorting by shade number (50 < 500)
             .then_with(|| {
-                match (extract_color_name(&self.class), extract_color_name(&other.class)) {
+                match (
+                    extract_color_name(&self.class),
+                    extract_color_name(&other.class),
+                ) {
                     (Some(self_color), Some(other_color)) => {
                         // Both are color utilities - compare by color name first
                         self_color.cmp(other_color)
@@ -589,7 +630,7 @@ impl Ord for SortKey {
             // Negative values (-rotate-1, -skew-y-3) should sort BEFORE positive values
             .then_with(|| {
                 match (self.is_negative, other.is_negative) {
-                    (true, false) => return Ordering::Less,    // Negative before positive
+                    (true, false) => return Ordering::Less, // Negative before positive
                     (false, true) => return Ordering::Greater, // Positive after negative
                     _ => Ordering::Equal, // Both negative or both positive, continue to numeric comparison
                 }

@@ -908,7 +908,9 @@ impl UtilityMap {
             "bg" if value.starts_with('[') => Some(&["background-color"][..]), // arbitrary value
 
             // Border Width
-            "border" if value.is_empty() || value.parse::<u32>().is_ok() || value.starts_with('[') => {
+            "border"
+                if value.is_empty() || value.parse::<u32>().is_ok() || value.starts_with('[') =>
+            {
                 Some(&["border-width"][..])
             }
             "border-x" => Some(&["border-inline-width"][..]), // Use border-inline-width for left+right
@@ -1079,7 +1081,9 @@ impl UtilityMap {
 
             // Text Decoration
             "decoration" if is_color_value(value) => Some(&["text-decoration-color"][..]),
-            "decoration" if value.parse::<u32>().is_ok() => Some(&["text-decoration-thickness"][..]),
+            "decoration" if value.parse::<u32>().is_ok() => {
+                Some(&["text-decoration-thickness"][..])
+            }
             "decoration" => Some(&["text-decoration-color"][..]), // Fallback: custom colors
 
             // Underline Offset
@@ -1098,8 +1102,8 @@ impl UtilityMap {
             "divide" => Some(&["divide-color"][..]),                      // divide-customcolor
             "ring" if !value.is_empty() => Some(&["--tw-ring-color"][..]), // ring-customcolor
             "ring-offset" if !value.is_empty() => Some(&["--tw-ring-offset-color"][..]), // ring-offset-customcolor
-            "accent" => Some(&["accent-color"][..]),                      // accent-customcolor
-            "caret" => Some(&["caret-color"][..]),                        // caret-customcolor
+            "accent" => Some(&["accent-color"][..]), // accent-customcolor
+            "caret" => Some(&["caret-color"][..]),   // caret-customcolor
             "outline" if !value.is_empty() && !value.parse::<u32>().is_ok() => {
                 Some(&["outline-color"][..]) // outline-customcolor (not outline-2)
             }

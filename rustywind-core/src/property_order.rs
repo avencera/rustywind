@@ -30,7 +30,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     //
     // WARNING: Do NOT modify property positions without thorough testing!
     // Index shifts of even a few positions can cause 10%+ pass rate drops
-
     "background-opacity",
     "container-type",
     "pointer-events",
