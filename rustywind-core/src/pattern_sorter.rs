@@ -308,9 +308,10 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
 /// logic used by Tailwind CSS.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SortKey {
-    /// Whether this class has BASE `group` or `peer` variants (not compounds)
-    /// Base group/peer sort FIRST (before base classes), matching Prettier's behavior
-    pub has_base_group_or_peer: bool,
+    /// Whether this class contains `group` or `peer` as a base variant (not compound like peer-hover)
+    /// Classes with group/peer variants sort BEFORE base classes
+    /// Examples: group:w-max, peer:text-red, xl:peer:flex, peer:read-only:list-item
+    pub is_simple_group_or_peer: bool,
 
     /// Variant order as bitwise flags (0 for no variants)
     pub variant_order: u128,
@@ -501,12 +502,12 @@ fn should_arbitrary_come_first(class: &str) -> bool {
     let utility = class.split(':').next_back().unwrap_or(class);
 
     // Properties where arbitrary values come BEFORE regular values
+    // NOTE: rounded- is NOT included because Prettier sorts rounded before rounded-[14px]
     utility.starts_with("max-w-")
         || utility.starts_with("max-h-")
         || (utility.starts_with("w-") && !utility.starts_with("will-"))
         || (utility.starts_with("h-") && !utility.starts_with("hue-"))
         || utility.starts_with("size-")
-        || utility.starts_with("rounded-")
         || utility.starts_with("leading-")
 }
 
@@ -545,22 +546,12 @@ impl Ord for SortKey {
     /// 7. Utility prefix priority (space-* before gap-* when properties match)
     /// 8. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
-        // 1. Base group/peer variants handling
-        // When BOTH have group/peer (simple OR compound), treat as EQUAL
-        // This matches Tailwind v4 behavior where group/peer variants don't affect class sorting
-        match (self.has_base_group_or_peer, other.has_base_group_or_peer) {
-            (true, true) => {
-                // Both have group/peer - treat as EQUAL, which triggers stable sort
-                // Stable sort preserves original order, matching Tailwind v4 behavior
-                // This applies to ALL combinations:
-                // - peer: vs group:
-                // - peer:hover: vs group:visited:
-                // - even:peer: vs group:focus:
-                return Ordering::Equal;
-            }
+        // 1. Simple group:/peer: classes sort BEFORE everything else
+        match (self.is_simple_group_or_peer, other.is_simple_group_or_peer) {
             (true, false) => return Ordering::Less,
             (false, true) => return Ordering::Greater,
-            _ => {} // Neither has group/peer, continue with normal sorting
+            (true, true) => {} // Both are simple group/peer, continue to comparison
+            (false, false) => {} // Neither is simple group/peer, continue
         }
 
         // 2. Base classes (variant_order=0) come next
@@ -568,9 +559,7 @@ impl Ord for SortKey {
             (true, false) => return Ordering::Less, // Base class before variant
             (false, true) => return Ordering::Greater, // Variant after base class
             (true, true) => {} // Both base classes, continue to property comparison
-            (false, false) => {
-                // Both have variants - compare by variant_order (unless simple group/peer handled above)
-            }
+            (false, false) => {} // Both have variants, continue to variant comparison
         }
 
         // 3. Compare by variant order and structured variant chain
@@ -875,16 +864,16 @@ impl PatternSorter {
         // Check if this is a negative value utility
         let is_negative = is_negative_value(class);
 
-        // Check if this class has BASE group or peer variants (not compounds)
-        // Base group/peer sort FIRST (before base classes), matching Prettier's behavior
-        // Compound variants (group-hover, peer-focus, etc.) do NOT get this special treatment
-        let has_base_group_or_peer = parsed
+        // Check if this class contains "group" or "peer" as a base variant (not compound)
+        // Examples: group:w-max, peer:text-red, peer:read-only:list-item, xl:peer:flex -> true
+        // Counter-examples: peer-hover:bg-blue (compound), hover:text-red (neither) -> false
+        let is_simple_group_or_peer = parsed
             .variants
             .iter()
             .any(|v| *v == "group" || *v == "peer");
 
         Some(SortKey {
-            has_base_group_or_peer,
+            is_simple_group_or_peer,
             variant_order,
             variant_chain,
             property_indices,
@@ -1075,7 +1064,6 @@ mod tests {
     fn test_sort_key_ordering() {
         // Create sort keys manually to test comparison
         let key1 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1086,7 +1074,6 @@ mod tests {
         };
 
         let key2 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 1,
             variant_chain: parse_variants(&["md"]),
             property_indices: vec![100],
@@ -1103,7 +1090,6 @@ mod tests {
     #[test]
     fn test_sort_key_property_index() {
         let key1 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![50],
@@ -1114,7 +1100,6 @@ mod tests {
         };
 
         let key2 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1131,7 +1116,6 @@ mod tests {
     #[test]
     fn test_sort_key_property_count() {
         let key1 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1142,7 +1126,6 @@ mod tests {
         };
 
         let key2 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1159,7 +1142,6 @@ mod tests {
     #[test]
     fn test_sort_key_alphabetical() {
         let key1 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1170,7 +1152,6 @@ mod tests {
         };
 
         let key2 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1302,7 +1283,6 @@ mod tests {
         // Test that utilities with same property but different numeric values sort correctly
         // p-4 should come before p-8 (4 < 8)
         let key1 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1312,7 +1292,6 @@ mod tests {
             class: "p-4".to_string(),
         };
         let key2 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1325,7 +1304,6 @@ mod tests {
 
         // scale-50 should come before scale-110 (50 < 110)
         let key3 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1335,7 +1313,6 @@ mod tests {
             class: "scale-50".to_string(),
         };
         let key4 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1348,7 +1325,6 @@ mod tests {
 
         // When one has numeric value and other doesn't, they should be equal (fall through to next tier)
         let key5 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
@@ -1358,7 +1334,6 @@ mod tests {
             class: "p-4".to_string(),
         };
         let key6 = SortKey {
-            has_base_group_or_peer: false,
             variant_order: 0,
             variant_chain: vec![],
             property_indices: vec![100],
