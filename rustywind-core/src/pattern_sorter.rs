@@ -324,6 +324,10 @@ pub struct SortKey {
     /// Classes with the same property are sorted by numeric value when available
     pub numeric_value: Option<f64>,
 
+    /// Whether this utility has a negative value (e.g., -rotate-1, -translate-x-4)
+    /// Negative values sort BEFORE positive values for the same utility
+    pub is_negative: bool,
+
     /// Number of properties this utility generates
     pub property_count: usize,
 
@@ -340,10 +344,111 @@ fn has_arbitrary_value(class: &str) -> bool {
 
 /// Check if a utility uses opacity syntax (has a slash like bg-white/20)
 /// Returns true for classes like: bg-white/20, text-black/75, border-gray-500/50
+/// Returns false for fractions like: w-1/4, h-1/2 (these are not opacity)
 fn has_opacity_syntax(class: &str) -> bool {
     // Strip variants to get the utility part
     let utility = class.split(':').next_back().unwrap_or(class);
-    utility.contains('/')
+
+    if let Some(slash_pos) = utility.rfind('/') {
+        let before_slash = &utility[..slash_pos];
+
+        // Count dashes to distinguish opacity from fractions:
+        // - bg-blue-500/75 (2 dashes) = color-shade/opacity
+        // - bg-white/30 (1 dash, non-numeric last part) = color/opacity
+        // - w-1/4 (1 dash, numeric last part) = utility-fraction
+        let dash_count = before_slash.matches('-').count();
+
+        if dash_count >= 2 {
+            // Multiple dashes before slash = color-shade/opacity like bg-blue-500/75
+            return true;
+        } else if dash_count == 1 {
+            // Single dash: check if last part before slash is a number
+            let parts: Vec<&str> = before_slash.split('-').collect();
+            if let Some(last_part) = parts.last() {
+                // If last part is NOT a number, it's opacity like bg-white/30
+                // If last part IS a number, it's a fraction like w-1/4
+                return last_part.parse::<f64>().is_err();
+            }
+        }
+    }
+
+    false
+}
+
+/// Check if a utility class has a negative value (e.g., -rotate-1, -translate-x-4)
+/// Returns true for classes like: -rotate-1, -skew-y-3, -translate-x-4
+/// Returns false for positive values: rotate-0, skew-y-1, translate-x-2
+fn is_negative_value(class: &str) -> bool {
+    // Strip variants first to get just the utility part
+    let utility = class.split(':').next_back().unwrap_or(class);
+
+    // Check if the utility starts with a dash followed by a letter
+    // This handles cases like: -rotate-1, -translate-x-4, -skew-y-3
+    // But not arbitrary values like: [--spacing-4] or bg-[#fff]
+    if let Some(rest) = utility.strip_prefix('-') {
+        // Make sure it's not an arbitrary value or a regular dash in a color name
+        // Negative utilities start with dash followed by a letter (e.g., -rotate, -translate)
+        rest.chars().next().map_or(false, |c| c.is_alphabetic())
+    } else {
+        false
+    }
+}
+
+/// Extract the color name from a Tailwind color utility.
+///
+/// Examples:
+/// - `bg-blue-500` → Some("blue")
+/// - `text-red-50` → Some("red")
+/// - `border-gray-500/50` → Some("gray")
+/// - `bg-white` → Some("white")
+/// - `p-4` → None (not a color utility)
+///
+/// This is used to ensure colors sort alphabetically by color name first,
+/// then by shade number when color names match (matching Prettier's behavior).
+fn extract_color_name(utility: &str) -> Option<&str> {
+    // Strip variants first to get just the utility part
+    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+
+    // Remove opacity suffix if present (e.g., bg-blue-500/50 → bg-blue-500)
+    let utility_without_opacity = utility_base.split('/').next().unwrap_or(utility_base);
+
+    // Known Tailwind color names (in alphabetical order)
+    const COLOR_NAMES: &[&str] = &[
+        "amber", "black", "blue", "current", "cyan", "emerald", "fuchsia", "gray",
+        "green", "indigo", "inherit", "lime", "neutral", "orange", "pink", "purple",
+        "red", "rose", "sky", "slate", "stone", "teal", "transparent", "violet",
+        "white", "yellow", "zinc",
+    ];
+
+    // Color utilities follow patterns like:
+    // bg-{color}-{shade}, text-{color}-{shade}, border-{color}-{shade}, etc.
+    // Or: bg-{color} (for white, black, transparent, etc.)
+
+    // Split by dash to extract parts
+    let parts: Vec<&str> = utility_without_opacity.split('-').collect();
+
+    // Need at least 2 parts: prefix-color or prefix-color-shade
+    if parts.len() < 2 {
+        return None;
+    }
+
+    // Check common color property prefixes
+    let color_prefixes = &[
+        "bg", "text", "border", "ring", "divide", "outline", "decoration",
+        "accent", "caret", "fill", "stroke", "shadow", "from", "via", "to",
+    ];
+
+    if color_prefixes.contains(&parts[0]) {
+        // Second part should be the color name
+        let potential_color = parts[1];
+
+        // Check if it's a known color name
+        if COLOR_NAMES.contains(&potential_color) {
+            return Some(potential_color);
+        }
+    }
+
+    None
 }
 
 /// Check if a utility property should have arbitrary values sort BEFORE regular values
@@ -456,64 +561,116 @@ impl Ord for SortKey {
             // means if z (other) has MORE properties, result is positive, so a (self) comes first
             // Therefore: compare other.count vs self.count (reversed)
             .then(other.property_count.cmp(&self.property_count))
+            // Then by color name alphabetically (when both are color utilities)
+            // This ensures bg-blue-500 comes before bg-red-50 (blue < red alphabetically)
+            // rather than sorting by shade number (50 < 500)
+            .then_with(|| {
+                match (extract_color_name(&self.class), extract_color_name(&other.class)) {
+                    (Some(self_color), Some(other_color)) => {
+                        // Both are color utilities - compare by color name first
+                        self_color.cmp(other_color)
+                    }
+                    _ => Ordering::Equal, // At least one is not a color utility, continue
+                }
+            })
+            // Then handle negative value priority
+            // Negative values (-rotate-1, -skew-y-3) should sort BEFORE positive values
+            .then_with(|| {
+                match (self.is_negative, other.is_negative) {
+                    (true, false) => return Ordering::Less,    // Negative before positive
+                    (false, true) => return Ordering::Greater, // Positive after negative
+                    _ => Ordering::Equal, // Both negative or both positive, continue to numeric comparison
+                }
+            })
             // Then handle numeric and arbitrary value comparison
-            // IMPORTANT: Numeric comparison comes FIRST!
-            // Prettier compares numeric values even between arbitrary and non-arbitrary
-            // e.g., w-2 (numeric: 2) comes before w-[70px] (numeric: 70)
-            // e.g., max-w-4xl (numeric: 4) comes before max-w-[485px] (numeric: 485)
+            // CRITICAL FIX: Check arbitrary status FIRST, before numeric comparison!
+            // This fixes the fraction vs arbitrary ordering issue (Issue 2 from FAILURE_ANALYSIS.md)
+            //
+            // Ordering rules:
+            // 1. Non-arbitrary numerics/fractions (w-1/2, w-4) come BEFORE arbitrary values (w-[50px])
+            // 2. Arbitrary values come before/after keywords based on property (should_arbitrary_come_first)
+            // 3. Within non-arbitrary numerics/fractions, sort by numeric value (w-0 < w-1/2 < w-4)
+            // 4. Within arbitrary values, sort by extracted numeric value (w-[10px] < w-[50px])
+            //
+            // Examples:
+            // - w-1/2 w-4 → w-1/2 w-4 (both non-arbitrary, compare numerically: 0.5 < 4)
+            // - w-4 w-[50px] → w-4 w-[50px] (non-arbitrary before arbitrary, even though 4 < 50)
+            // - w-2/3 w-[50px] → w-2/3 w-[50px] (fraction before arbitrary)
+            // - z-40 z-[-1] → z-40 z-[-1] (non-arbitrary before arbitrary)
+            // - w-full w-[50px] → w-[50px] w-full (for w-*, arbitrary before keyword)
             .then_with(|| {
                 let self_has_arbitrary = has_arbitrary_value(&self.class);
                 let other_has_arbitrary = has_arbitrary_value(&other.class);
                 let self_has_opacity = has_opacity_syntax(&self.class);
                 let other_has_opacity = has_opacity_syntax(&other.class);
 
-                // If BOTH have numeric values, check if we should compare numerically
+                // FIRST: Check arbitrary vs non-arbitrary status
+                // Fractions (w-1/2) are NOT arbitrary (no brackets)
+                // Numerics (w-4) are NOT arbitrary
+                // Arbitrary values (w-[50px]) ARE arbitrary (have brackets)
+                match (self_has_arbitrary, other_has_arbitrary) {
+                    (true, false) => {
+                        // self is arbitrary, other is not
+                        if other.numeric_value.is_some() {
+                            // other has numeric value (fraction or numeric like w-4, w-1/2)
+                            // Non-arbitrary numerics/fractions ALWAYS come before arbitrary
+                            return Ordering::Greater; // Arbitrary AFTER non-arbitrary numeric
+                        } else {
+                            // other is a keyword (w-full, w-auto, etc.)
+                            // Use property-specific rule for arbitrary vs keyword ordering
+                            if should_arbitrary_come_first(&self.class) {
+                                return Ordering::Less; // Arbitrary BEFORE keyword (e.g., w-[50px] before w-full)
+                            } else {
+                                return Ordering::Greater; // Arbitrary AFTER keyword
+                            }
+                        }
+                    }
+                    (false, true) => {
+                        // other is arbitrary, self is not
+                        if self.numeric_value.is_some() {
+                            // self has numeric value (fraction or numeric)
+                            // Non-arbitrary numerics/fractions ALWAYS come before arbitrary
+                            return Ordering::Less; // Non-arbitrary numeric BEFORE arbitrary
+                        } else {
+                            // self is a keyword
+                            // Use property-specific rule for keyword vs arbitrary ordering
+                            if should_arbitrary_come_first(&other.class) {
+                                return Ordering::Greater; // Keyword AFTER arbitrary
+                            } else {
+                                return Ordering::Less; // Keyword BEFORE arbitrary
+                            }
+                        }
+                    }
+                    _ => {
+                        // Both arbitrary OR both non-arbitrary - continue to numeric comparison
+                    }
+                }
+
+                // SECOND: Compare numeric values (for same arbitrary status)
+                // This applies to:
+                // 1. Both non-arbitrary: fractions and numerics compared together (w-1/2 vs w-4)
+                // 2. Both arbitrary: compare extracted numeric values (w-[50px] vs w-[100px])
                 // DON'T compare numerically if one has opacity syntax and the other doesn't
-                // (e.g., border-gray-500 vs border-white/20 should sort alphabetically)
                 match (self.numeric_value, other.numeric_value) {
                     (Some(a), Some(b)) => {
                         // Only compare numerically if both have same opacity status
                         // This prevents comparing shade values (gray-500) with opacity values (white/20)
                         if self_has_opacity == other_has_opacity {
-                            // Compare numeric values first
                             match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
                                 Ordering::Equal => {
-                                    // Numeric values are equal, fall through to arbitrary check
+                                    // Numeric values are equal, continue to next tier
                                 }
-                                ordering => return ordering, // Different numeric values, we're done
+                                ordering => return ordering, // Different numeric values
                             }
                         }
-                        // Different opacity status, fall through to arbitrary check
+                        // Different opacity status, continue to next tier
                     }
                     _ => {
-                        // At least one doesn't have a numeric value, continue to arbitrary check
+                        // At least one doesn't have a numeric value, continue
                     }
                 }
 
-                // If we get here, either:
-                // 1. Numeric values are equal, OR
-                // 2. At least one doesn't have a numeric value
-                // Now apply the arbitrary vs non-arbitrary rule (for non-numeric comparisons)
-                match (self_has_arbitrary, other_has_arbitrary) {
-                    (true, false) => {
-                        // Check if this is a property where arbitrary should come FIRST
-                        // (only applies when there's no numeric comparison)
-                        if should_arbitrary_come_first(&self.class) {
-                            Ordering::Less // Arbitrary BEFORE regular (e.g., max-w-[485px] before max-w-max)
-                        } else {
-                            Ordering::Greater // Arbitrary AFTER regular (e.g., p-auto before p-[20px])
-                        }
-                    }
-                    (false, true) => {
-                        // Inverse of above
-                        if should_arbitrary_come_first(&other.class) {
-                            Ordering::Greater // Regular AFTER arbitrary
-                        } else {
-                            Ordering::Less // Regular BEFORE arbitrary
-                        }
-                    }
-                    _ => Ordering::Equal, // Both or neither, continue
-                }
+                Ordering::Equal // Fall through to next comparison tier
             })
             // Then by alphanumeric comparison for utilities with numeric values
             // (space-* prefix priority is handled here)
@@ -653,6 +810,9 @@ impl PatternSorter {
         // Extract numeric value for value-based sub-sorting
         let numeric_value = extract_numeric_value(class);
 
+        // Check if this is a negative value utility
+        let is_negative = is_negative_value(class);
+
         // Check if this class has BASE group or peer variants (not compounds)
         // Base group/peer sort FIRST (before base classes), matching Prettier's behavior
         // Compound variants (group-hover, peer-focus, etc.) do NOT get this special treatment
@@ -666,6 +826,7 @@ impl PatternSorter {
             variant_order,
             property_indices,
             numeric_value,
+            is_negative,
             property_count,
             class: class.to_string(),
         })
