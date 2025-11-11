@@ -25,7 +25,8 @@ use std::collections::HashMap;
 /// ```
 pub const PROPERTY_ORDER: &[&str] = &[
     // Complete property order from Tailwind CSS v4
-    // Source: packages/tailwindcss/src/property-order.ts (337 properties)
+    // Source: packages/tailwindcss/src/property-order.ts (341 properties - includes 4 additional properties for compatibility)
+    // Added properties: outline-style, --tw-divide-x-reverse, --tw-ring-inset, user-select
     "container-type",
     "pointer-events",
     "visibility",
@@ -151,6 +152,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-space-y-reverse",
     "divide-x-width",
     "divide-y-width",
+    "--tw-divide-x-reverse",
     "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
@@ -330,10 +332,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
+    "--tw-ring-inset",
     "outline",
     "outline-width",
     "outline-offset",
     "outline-color",
+    "outline-style",
     "--tw-blur",
     "--tw-brightness",
     "--tw-contrast",
@@ -363,6 +367,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "contain",
     "content",
     "forced-color-adjust",
+    "user-select",
 ];
 
 /// Optimized HashMap for O(1) property index lookup.
@@ -389,8 +394,8 @@ static PROPERTY_INDEX_MAP: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
 /// ```
 /// use rustywind_core::property_order::get_property_index;
 ///
-/// assert_eq!(get_property_index("margin"), Some(26));
-/// assert_eq!(get_property_index("padding"), Some(254));
+/// assert_eq!(get_property_index("margin"), Some(25));
+/// assert_eq!(get_property_index("padding"), Some(253));
 /// assert_eq!(get_property_index("unknown-property"), None);
 /// ```
 #[inline]
@@ -404,9 +409,9 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Complete property order from Tailwind CSS v4
-        // Synced from packages/tailwindcss/src/property-order.ts (337 properties)
-        assert_eq!(PROPERTY_ORDER.len(), 337);
+        // Complete property order from Tailwind CSS v4 with compatibility additions
+        // Base: 337 properties + 4 added (outline-style, --tw-divide-x-reverse, --tw-ring-inset, user-select)
+        assert_eq!(PROPERTY_ORDER.len(), 341);
     }
 
     #[test]
@@ -417,30 +422,41 @@ mod tests {
 
         // Test critical properties for ring/shadow/filter ordering
         // These indices must match Tailwind v4 for correct sorting
-        assert_eq!(get_property_index("box-shadow"), Some(293));
-        assert_eq!(get_property_index("--tw-shadow"), Some(294));
-        assert_eq!(get_property_index("--tw-shadow-color"), Some(295));
-        assert_eq!(get_property_index("--tw-ring-shadow"), Some(296));
-        assert_eq!(get_property_index("--tw-ring-color"), Some(297));
+        assert_eq!(get_property_index("box-shadow"), Some(294));
+        assert_eq!(get_property_index("--tw-shadow"), Some(295));
+        assert_eq!(get_property_index("--tw-shadow-color"), Some(296));
+        assert_eq!(get_property_index("--tw-ring-shadow"), Some(297));
+        assert_eq!(get_property_index("--tw-ring-color"), Some(298));
+        assert_eq!(get_property_index("--tw-ring-inset"), Some(305)); // Added property
+
+        // Outline properties
+        assert_eq!(get_property_index("outline"), Some(306));
+        assert_eq!(get_property_index("outline-style"), Some(310)); // Added property
 
         // Filters come after rings
-        assert_eq!(get_property_index("--tw-blur"), Some(308));
-        assert_eq!(get_property_index("filter"), Some(317));
+        assert_eq!(get_property_index("--tw-blur"), Some(311));
+        assert_eq!(get_property_index("filter"), Some(320));
 
         // Border properties for arbitrary value sorting
-        assert_eq!(get_property_index("border-width"), Some(153));
-        assert_eq!(get_property_index("border-top-width"), Some(158));
+        assert_eq!(get_property_index("border-width"), Some(154));
+        assert_eq!(get_property_index("border-top-width"), Some(159));
 
-        // Test divide reverse properties
+        // Test divide reverse properties (both x and y)
+        let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
         let divide_y_idx = get_property_index("--tw-divide-y-reverse").unwrap();
         let divide_style_idx = get_property_index("divide-style").unwrap();
+        assert_eq!(divide_x_idx, 125); // Added property
+        assert_eq!(divide_y_idx, 126);
         assert_eq!(divide_y_idx, divide_style_idx - 1);
 
         // Test common properties
         assert_eq!(get_property_index("margin"), Some(25));
-        assert_eq!(get_property_index("padding"), Some(252));
+        assert_eq!(get_property_index("padding"), Some(253));
         assert_eq!(get_property_index("display"), Some(35));
-        assert_eq!(get_property_index("background-color"), Some(180));
+        assert_eq!(get_property_index("background-color"), Some(181));
+
+        // Test user-select (added property)
+        assert_eq!(get_property_index("user-select"), Some(340));
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);
