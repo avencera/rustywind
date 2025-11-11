@@ -30,7 +30,7 @@ use std::cmp::Ordering;
 
 use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
-use crate::variant_order::calculate_variant_order;
+use crate::variant_order::{calculate_variant_order, parse_variants, compare_variant_lists, VariantInfo};
 
 /// Compare two strings alphanumerically (like Tailwind CSS does).
 /// Numbers within strings are compared numerically rather than lexicographically.
@@ -315,6 +315,10 @@ pub struct SortKey {
     /// Variant order as bitwise flags (0 for no variants)
     pub variant_order: u128,
 
+    /// Structured variant information for recursive comparison
+    /// This is used to properly sort compound variants like peer-hover vs peer-focus
+    pub variant_chain: Vec<VariantInfo>,
+
     /// Property indices from PROPERTY_ORDER (lower = earlier)
     /// When utilities have multiple properties (e.g., rounded-t), ALL property indices
     /// are stored and compared in order for proper tiebreaking.
@@ -569,10 +573,12 @@ impl Ord for SortKey {
             }
         }
 
-        // 3. Compare by variant order (for compound variants and non-group/peer variants)
-        // Simple group/peer variants are already handled above and skip this comparison
+        // 3. Compare by variant order and structured variant chain
+        // First use the bitwise variant order (fast path for most cases)
+        // Then use structured variant comparison for compound variants (peer-hover vs peer-focus)
         self.variant_order
             .cmp(&other.variant_order)
+            .then_with(|| compare_variant_lists(&self.variant_chain, &other.variant_chain))
             // Then compare by property indices - compare ALL properties in order
             // This is crucial for utilities like rounded-t vs rounded-l that tie on first property
             .then_with(|| {
@@ -840,6 +846,9 @@ impl PatternSorter {
         // Calculate variant order using bitwise flags
         let variant_order = calculate_variant_order(&parsed.variants);
 
+        // Parse variants into structured form for recursive comparison
+        let variant_chain = parse_variants(&parsed.variants);
+
         // Get the CSS properties this utility generates
         let properties = parsed.get_properties()?;
 
@@ -877,6 +886,7 @@ impl PatternSorter {
         Some(SortKey {
             has_base_group_or_peer,
             variant_order,
+            variant_chain,
             property_indices,
             numeric_value,
             is_negative,
@@ -1067,8 +1077,10 @@ mod tests {
         let key1 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "flex".to_string(),
         };
@@ -1076,8 +1088,10 @@ mod tests {
         let key2 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 1,
+            variant_chain: parse_variants(&["md"]),
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "md:flex".to_string(),
         };
@@ -1091,8 +1105,10 @@ mod tests {
         let key1 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![50],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "a".to_string(),
         };
@@ -1100,8 +1116,10 @@ mod tests {
         let key2 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "b".to_string(),
         };
@@ -1115,8 +1133,10 @@ mod tests {
         let key1 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "a".to_string(),
         };
@@ -1124,8 +1144,10 @@ mod tests {
         let key2 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 2,
             class: "b".to_string(),
         };
@@ -1139,8 +1161,10 @@ mod tests {
         let key1 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "aaa".to_string(),
         };
@@ -1148,8 +1172,10 @@ mod tests {
         let key2 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "bbb".to_string(),
         };
@@ -1278,16 +1304,20 @@ mod tests {
         let key1 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: Some(4.0),
+            is_negative: false,
             property_count: 1,
             class: "p-4".to_string(),
         };
         let key2 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: Some(8.0),
+            is_negative: false,
             property_count: 1,
             class: "p-8".to_string(),
         };
@@ -1297,16 +1327,20 @@ mod tests {
         let key3 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: Some(50.0),
+            is_negative: false,
             property_count: 1,
             class: "scale-50".to_string(),
         };
         let key4 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: Some(110.0),
+            is_negative: false,
             property_count: 1,
             class: "scale-110".to_string(),
         };
@@ -1316,16 +1350,20 @@ mod tests {
         let key5 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: Some(4.0),
+            is_negative: false,
             property_count: 1,
             class: "p-4".to_string(),
         };
         let key6 = SortKey {
             has_base_group_or_peer: false,
             variant_order: 0,
+            variant_chain: vec![],
             property_indices: vec![100],
             numeric_value: None,
+            is_negative: false,
             property_count: 1,
             class: "p-auto".to_string(),
         };

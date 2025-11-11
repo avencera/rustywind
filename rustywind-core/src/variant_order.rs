@@ -7,6 +7,13 @@
 //! This module defines a simplified variant order that covers the most common
 //! Tailwind variants. The order is based on Tailwind's default variant registration
 //! sequence.
+//!
+//! ## Compound Variants
+//!
+//! Compound variants like `peer-hover` and `group-focus` require special handling.
+//! They are compared recursively: first by their base (peer, group), then by their
+//! modifier (hover, focus). This matches Tailwind's behavior where `peer-hover` comes
+//! before `peer-focus` because `hover` (index 37) comes before `focus` (index 38).
 
 /// The canonical order of variants from Tailwind CSS.
 ///
@@ -85,6 +92,85 @@ pub const VARIANT_ORDER: &[&str] = &[
     "print", // 57
 ];
 
+/// A structured representation of a variant that may be compound.
+///
+/// Compound variants like `peer-hover` are represented as a base (`peer`) with
+/// an optional modifier (`hover`). Simple variants like `dark` have no modifier.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VariantInfo {
+    /// The base variant (e.g., "peer", "group", "dark", "hover")
+    pub base: String,
+    /// Optional modifier for compound variants (e.g., "hover" in "peer-hover")
+    pub modifier: Option<Box<VariantInfo>>,
+}
+
+impl VariantInfo {
+    /// Create a simple variant with no modifier.
+    pub fn simple(base: &str) -> Self {
+        Self {
+            base: base.to_string(),
+            modifier: None,
+        }
+    }
+
+    /// Create a compound variant with a modifier.
+    pub fn compound(base: &str, modifier: VariantInfo) -> Self {
+        Self {
+            base: base.to_string(),
+            modifier: Some(Box::new(modifier)),
+        }
+    }
+
+    /// Parse a variant string into structured form.
+    ///
+    /// Examples:
+    /// - "hover" → VariantInfo { base: "hover", modifier: None }
+    /// - "peer-hover" → VariantInfo { base: "peer", modifier: Some("hover") }
+    /// - "peer-focus-within" → VariantInfo { base: "peer", modifier: Some("focus-within") }
+    pub fn parse(variant: &str) -> Self {
+        // Check for compound variants (peer-*, group-*)
+        if variant.starts_with("peer-") || variant.starts_with("group-") {
+            if let Some(dash_pos) = variant.find('-') {
+                let base = &variant[..dash_pos];
+                let modifier_str = &variant[dash_pos + 1..];
+                return Self::compound(base, Self::parse(modifier_str));
+            }
+        }
+        Self::simple(variant)
+    }
+
+    /// Compare two variant infos according to Tailwind's rules.
+    ///
+    /// This implements the recursive comparison: first by base, then by modifier.
+    pub fn cmp_variants(&self, other: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering;
+
+        // First compare base indices
+        let self_base_idx = get_variant_index(&self.base);
+        let other_base_idx = get_variant_index(&other.base);
+
+        match (self_base_idx, other_base_idx) {
+            (Some(a), Some(b)) => {
+                match a.cmp(&b) {
+                    Ordering::Equal => {
+                        // Bases are equal, compare modifiers recursively
+                        match (&self.modifier, &other.modifier) {
+                            (Some(m1), Some(m2)) => m1.cmp_variants(m2),
+                            (Some(_), None) => Ordering::Greater, // Compound after simple
+                            (None, Some(_)) => Ordering::Less,    // Simple before compound
+                            (None, None) => Ordering::Equal,
+                        }
+                    }
+                    other => other,
+                }
+            }
+            (Some(_), None) => Ordering::Less, // Known before unknown
+            (None, Some(_)) => Ordering::Greater, // Unknown after known
+            (None, None) => self.base.cmp(&other.base), // Both unknown, alphabetical
+        }
+    }
+}
+
 /// Get the index of a variant in the canonical order.
 ///
 /// Returns `Some(index)` if the variant is found, or `None` if it's not in the list.
@@ -112,6 +198,51 @@ pub const VARIANT_ORDER: &[&str] = &[
 #[inline]
 pub fn get_variant_index(variant: &str) -> Option<usize> {
     VARIANT_ORDER.iter().position(|&v| v == variant)
+}
+
+/// Parse a list of variant strings into structured variant infos.
+///
+/// This function converts raw variant strings into `VariantInfo` structures that
+/// can be compared recursively for proper compound variant sorting.
+///
+/// # Examples
+///
+/// ```
+/// use rustywind_core::variant_order::parse_variants;
+///
+/// let variants = parse_variants(&["peer-hover", "dark"]);
+/// assert_eq!(variants.len(), 2);
+/// ```
+pub fn parse_variants(variants: &[&str]) -> Vec<VariantInfo> {
+    variants.iter().map(|v| VariantInfo::parse(v)).collect()
+}
+
+/// Compare two lists of variants according to Tailwind's rules.
+///
+/// This function compares variant lists element by element, handling compound
+/// variants correctly by using the structured comparison in `VariantInfo`.
+///
+/// Returns:
+/// - `Ordering::Less` if `a` should come before `b`
+/// - `Ordering::Greater` if `a` should come after `b`
+/// - `Ordering::Equal` if they are equivalent for sorting purposes
+pub fn compare_variant_lists(a: &[VariantInfo], b: &[VariantInfo]) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    // Compare lengths first - fewer variants come first
+    match a.len().cmp(&b.len()) {
+        Ordering::Equal => {
+            // Same length, compare element by element
+            for (v1, v2) in a.iter().zip(b.iter()) {
+                match v1.cmp_variants(v2) {
+                    Ordering::Equal => continue,
+                    other => return other,
+                }
+            }
+            Ordering::Equal
+        }
+        other => other,
+    }
 }
 
 /// Calculate the variant order as a bitwise flag for sorting.
