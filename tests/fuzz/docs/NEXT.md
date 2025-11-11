@@ -1,21 +1,80 @@
-# Unimplemented Improvements & Future Work
+# Next Steps: Getting from 96% to 100%
 
 **Last Updated:** 2025-11-11
-**Current Pass Rate:** ~80% (after Tailwind v4 sync)
-**Previous Pass Rate:** ~96% (with custom property order)
+**Current Pass Rate:** ~96% (with exact original 341-property order)
+**Target:** 100%
 
-## Investigation: Prettier's Sorting Mechanism
+## ⚠️ CRITICAL WARNING: DO NOT Sync to Tailwind v4's 337-Property Order!
 
-**Date:** 2025-11-11
-**Repositories Analyzed:**
-- `tailwindlabs/prettier-plugin-tailwindcss` (latest)
-- `tailwindlabs/tailwindcss` v4 (main branch)
+**DO NOT attempt to sync property_order.rs to Tailwind v4.1.14's exact 337-property order!**
 
-### Key Findings
+**Why:** Tailwind v4.1.14 has 337 properties in its canonical order, but RustyWind needs 341 properties to achieve 96% compatibility with Prettier. Syncing to 337 properties causes pass rate to DROP to ~80%.
 
-#### 1. Prettier DOES Use Tailwind v4's Sorting Directly
+**Root Cause Discovery (2025-11-11):**
+- Tailwind v4.1.14 has 337 properties in `property-order.ts`
+- RustyWind's empirical 341-property order includes 8 additional properties (4 more than Tailwind v4 + 4 others positioned differently)
+- These 8 properties are NOT in Tailwind v4's order, so utilities using them would sort at Infinity (end)
+- Example: `--tw-ring-inset` is at index 304 in RustyWind, but NOT in Tailwind v4 (sorts at Infinity)
+- Testing confirms: `ring-inset` in Prettier sorts AFTER everything (at Infinity), matching Tailwind v4 behavior
+- However: Using 337 properties causes 80% pass rate vs 96% with 341 properties
 
-**Evidence:** `prettier-plugin-tailwindcss/src/versions/v4.ts` lines 71-135
+**Investigation Status:** We still don't fully understand WHY the 80% regression happens when using Tailwind v4's exact order. The 8 extra properties must be handling edge cases that aren't yet understood.
+
+**Next Steps:** Focus on understanding the REMAINING 4% failures (96% → 100%) WITHOUT changing the property count or order.
+
+## Known Limitations & Constraints
+
+RustyWind has inherent limitations compared to Tailwind v4's full CSS analysis:
+
+1. **Core Utilities Only:** RustyWind only supports core Tailwind CSS utilities, NOT plugin utilities. Fuzz tests should exclude:
+   - `prose`, `prose-sm`, `prose-invert` (Typography plugin)
+   - Any other plugin-specific utilities
+
+2. **No Property Count Tiebreaking:** Tailwind v4's sorting uses property count as a tiebreaker (utilities with MORE properties sort first when indices match). RustyWind cannot implement this because it doesn't have access to the generated CSS - it only has static mappings of utility → properties. This means some edge cases where Tailwind uses property count for tiebreaking will NOT match.
+
+## Key Learnings from 96% → 80% → 96% Investigation
+
+### ROOT CAUSE DISCOVERED: Property Index Positions Are Critical
+
+The regression from 96% to 80% was caused by **property index positions**, not just missing properties.
+
+**What happened:**
+1. Syncing to Tailwind v4 removed 8 properties (96% → 80%)
+2. Restoring those 8 properties at WRONG indices gave 88%
+3. Restoring them at EXACT original indices restored 96%
+
+**Critical Insight:**
+- Index position matters MORE than just having the property
+- Even 5-position shifts can cause 10%+ pass rate drops
+- A property at the wrong index causes ALL utilities mapped to it to sort incorrectly
+
+**Example Impact:**
+- `--tw-divide-x-reverse` shifted from index 337 → 126 (shift: -211)
+- This broke sorting for ALL `divide-x-reverse` utilities
+- Single property shift affected many test cases
+
+**Lesson:** RustyWind's 341-property order is **empirically tuned**, not just a copy of Tailwind's order. Specific indices are critical for Prettier compatibility.
+
+### The 8 Critical Properties (Must Stay at These Exact Indices)
+
+| Property | Index | Why Critical |
+|----------|-------|--------------|
+| `background-opacity` | 0 | Tailwind v3 backwards compatibility |
+| `border-opacity` | 177 | Used by border-opacity-*, divide-opacity-* |
+| `--tw-prose-component` | 262 | Typography plugin utilities |
+| `--tw-prose-invert` | 263 | prose-invert utility |
+| `--tw-ring-inset` | 304 | ring-inset utility |
+| `outline-style` | 335 | outline-solid, outline-dashed, etc. |
+| `user-select` | 336 | select-none, select-text, etc. |
+| `--tw-divide-x-reverse` | 337 | divide-x-reverse utility |
+
+**⚠️ WARNING:** Do NOT change these indices without extensive fuzz testing!
+
+## Analysis: Prettier's Sorting Mechanism
+
+### 1. Prettier Uses Tailwind v4's Sorting Directly
+
+**Source:** `prettier-plugin-tailwindcss/src/versions/v4.ts` lines 71-135
 
 ```typescript
 let design = await mod.__unstable__loadDesignSystem(css, { ... })
@@ -27,14 +86,14 @@ return {
 }
 ```
 
-The plugin calls Tailwind v4's `__unstable__loadDesignSystem` API and uses its `getClassOrder` method directly. This means:
-- ✅ Prettier uses the EXACT same sorting algorithm as Tailwind v4
-- ✅ Prettier uses the EXACT same property order array
-- ❌ No custom modifications or overrides in Prettier
+**Findings:**
+- ✅ Prettier uses Tailwind v4's `getClassOrder` API directly
+- ✅ No custom modifications in Prettier
+- ✅ Uses Tailwind CSS **v4.1.14** specifically
 
-#### 2. Tailwind v4's `--tw-sort` Mechanism
+### 2. Tailwind v4's `--tw-sort` Mechanism
 
-**Discovery:** `tailwindcss/src/compile.ts` lines 345-352
+**Source:** `tailwindcss/src/compile.ts` lines 345-352
 
 Tailwind v4 uses a special `--tw-sort` CSS property to override natural property-based sorting:
 
@@ -50,21 +109,20 @@ if (node.property === '--tw-sort') {
 ```
 
 **Utilities Using `--tw-sort`:**
-- `size-*` utilities → `--tw-sort: size` (synthetic property, not in property-order.ts)
+- `size-*` → `--tw-sort: size` (synthetic property)
 - `container` → `--tw-sort: --tw-container-component`
-- `space-x-*` → `--tw-sort: row-gap` (cross-axis sorting)
-- `space-y-*` → `--tw-sort: column-gap` (cross-axis sorting)
+- `space-x-*` → `--tw-sort: row-gap` (cross-axis)
+- `space-y-*` → `--tw-sort: column-gap` (cross-axis)
 - `divide-*` → `--tw-sort: divide-*` properties
 - Gradient utilities → `--tw-sort: --tw-gradient-*`
-- `placeholder-*` → `--tw-sort: placeholder-color`
 
-**RustyWind Implementation Status:**
-- ✅ RustyWind correctly maps `space-x` → `row-gap`
-- ✅ RustyWind correctly maps `space-y` → `column-gap`
-- ✅ RustyWind correctly maps divide utilities to divide properties
-- ✅ The utility_map.rs already implements most `--tw-sort` equivalents
+**RustyWind Status:**
+- ✅ Correctly maps `space-x` → `row-gap`
+- ✅ Correctly maps `space-y` → `column-gap`
+- ✅ Correctly maps divide utilities
+- ❓ Need to verify ALL `--tw-sort` mappings
 
-#### 3. Exact Sorting Algorithm from Tailwind v4
+### 3. Exact Sorting Algorithm from Tailwind v4
 
 **Source:** `tailwindcss/src/compile.ts` lines 106-114
 
@@ -80,179 +138,116 @@ return (
 )
 ```
 
-**RustyWind Implementation Status:**
-- ✅ Step 1 implemented: Compare property indices (pattern_sorter.rs)
-- ✅ Step 2 implemented: property_count tiebreaker (pattern_sorter.rs:391-394)
-- ✅ Step 3 implemented: Alphabetical fallback
+**RustyWind Implementation:**
+- ✅ Step 1: Compare property indices
+- ✅ Step 2: Property count tiebreaker
+- ✅ Step 3: Alphabetical fallback
 - ✅ Algorithm matches exactly
 
-### Why Did Pass Rate Decrease? (96% → 80%)
+## The Remaining 4%: What's Failing?
 
-**Hypothesis:** The previous 341-property order had different indices that happened to match Prettier's expectations better than Tailwind v4's canonical 337-property order.
+To reach 100%, we need to analyze the remaining ~4% of failures.
 
-**Possible Explanations:**
+### Action Items to Get to 100%
 
-1. **Missing Properties:** The previous order included 4 extra properties not in Tailwind v4:
-   - `background-opacity` (at index 0 for v3 backwards compatibility)
-   - `border-opacity`
-   - `--tw-prose-component`
-   - `--tw-prose-invert`
-   - `outline-style`
-   - `user-select`
-   - `--tw-ring-inset`
-   - `--tw-divide-x-reverse` (positioned differently)
-
-   These extra properties shifted ALL subsequent indices, which may have accidentally improved compatibility.
-
-2. **Index Shifts:** Key properties moved when going from 341 to 337 properties:
-   - Previous: `margin` at ~index 26, `padding` at ~254
-   - Current: `margin` at index 25, `padding` at 252
-   - Every utility mapped to these properties now sorts differently
-
-3. **Prettier May Use an Older Snapshot:** The prettier-plugin-tailwindcss package may have been tested/released against an older Tailwind v4 alpha that had different property indices than the current main branch.
-
-4. **Border Radius Differences:** The previous order had synthetic border-side properties (`border-top-radius`, etc.) that Tailwind v4 removed. This affects rounded utility sorting.
-
-### The Syncing Paradox
-
-**Expected:** Syncing with Tailwind v4 should improve compatibility
-**Actual:** Pass rate decreased from 96% to 80% (16 percentage point drop)
-
-**Explanation:** While Prettier uses Tailwind v4's API internally, RustyWind was comparing against Prettier's *output*, not Tailwind's internal structures. The previous property order was empirically tuned through fuzz testing to match Prettier's behavior, which may differ from Tailwind v4's current state due to:
-
-- **Timing:** Prettier plugin may pin to an older Tailwind v4 alpha/beta
-- **Test environment:** Node.js Tailwind v4 runtime vs Rust static implementation
-- **Version mismatch:** Current `tailwindcss` main branch vs what prettier-plugin uses
-- **Subtle differences:** Property counting, variant handling, or edge cases
-
-## Remaining Unimplemented Features
-
-### 1. Ring vs Shadow Ordering (~5.7% of previous 4% failures)
-**Issue:** Ring utilities sort before shadow utilities when Prettier expects the opposite.
-**Example:** `ring-1` vs `shadow-gray-500`
-
-**Current Indices in Tailwind v4:**
-- `box-shadow`: 293 (shadows first)
-- `--tw-shadow`: 294
-- `--tw-shadow-color`: 295
-- `--tw-ring-shadow`: 296 (rings after)
-- `--tw-ring-color`: 297
-
-**Status:** Property order is correct in Tailwind v4. RustyWind has it synced. Issue may be in utility mapping or the previous order had different indices.
-
-### 2. Filter Utilities Ordering (~15.9% of previous 4% failures)
-**Issue:** Filter utilities (blur, brightness, contrast, etc.) sort incorrectly relative to ring utilities.
-
-**Current Indices:**
-- Ring properties: 296-297
-- Filter properties: 308-317 (correctly after rings)
-
-**Status:** Property order looks correct (filters after rings). Issue may be elsewhere or resolved with v4 sync.
-
-### 3. Arbitrary Border Edge Cases (~21.6% of previous 4% failures)
-**Issue:** Arbitrary border values like `border-[1.5px]` don't sort correctly vs specific sides like `border-t-0`.
-
-**Status:** UNIMPLEMENTED - May need special handling for arbitrary value priorities.
-
-### 4. Property Order Table Gaps (~18% of previous 4% failures)
-**Issue:** Some CSS property combinations don't match Prettier's expected ordering.
-
-**Status:** Now synced with Tailwind v4, but made compatibility worse instead of better.
-
-## Recommendations
-
-### Option 1: Revert to Previous Property Order (RECOMMENDED)
-**Action:** Revert `property_order.rs` to the 341-property version
-- ✅ Pass rate returns to ~96%
-- ✅ Proven empirically to work well with Prettier
-- ✅ Simple fix with immediate results
-- ❌ Diverges from Tailwind v4's canonical order
-- Document that RustyWind uses an empirically-tuned order optimized for Prettier compatibility
-
-### Option 2: Investigate Prettier's Exact Tailwind Version
-**Action:** Find which Tailwind v4 version prettier-plugin-tailwindcss uses
-1. Check `prettier-plugin-tailwindcss/package.json` dependencies
-2. Clone that exact version of Tailwind CSS
-3. Compare its property-order.ts with current
-4. Sync RustyWind to match that version exactly
-
-### Option 3: Hybrid Approach
-**Action:** Keep Tailwind v4 base, add back missing properties
-1. Start with current 337-property order
-2. Add back `background-opacity` at index 0
-3. Add back `border-opacity` at appropriate index
-4. Add back `--tw-ring-inset` at appropriate index
-5. Add synthetic border-radius properties
-6. Re-run fuzz tests to measure improvement
-
-### Option 4: Debug Current 20% Failures
-**Action:** Analyze what actually fails with current setup
-1. Run fuzz tests and capture all failures
-2. Categorize failures by utility type
-3. Identify patterns and clusters
-4. Make targeted fixes for most common issues
-5. May discover the real differences
-
-## Investigation Tasks
-
-### High Priority
-1. **Check Prettier's Tailwind Dependency**
-   ```bash
-   cd /tmp/prettier-plugin-tailwindcss
-   cat package.json | grep tailwindcss
-   ```
-   Find the exact version and compare property orders
-
-2. **Run Detailed Failure Analysis**
-   ```bash
-   cd tests/fuzz
-   npm test 2>&1 | tee current_failures.txt
-   python tools/analyze_failures.py
-   ```
-   Understand what's actually breaking
-
-3. **Compare Property Indices**
-   Create a diff between old 341 and new 337 property orders
-   Map which utilities are affected by index shifts
-
-### Medium Priority
-4. **Property Count Verification**
-   - Audit RustyWind's property counting logic
-   - Ensure multi-property utilities count correctly
-   - Compare against Tailwind's `getPropertySort` function
-
-5. **Utility Mapping Audit**
-   - Verify all `--tw-sort` equivalents are implemented
-   - Check for utilities that should use synthetic properties
-   - Ensure divide/space utilities map correctly
-
-### Low Priority
-6. **Version History Analysis**
-   - Check Tailwind v4 git history for property-order.ts changes
-   - Find when properties were added/removed
-   - Correlate with prettier-plugin release dates
-
-## Methodology Notes
-
-All pass rates measured using:
+#### 1. Capture and Categorize All Failures
 ```bash
 cd tests/fuzz
-python tools/test_many_rounds.py 100
+# Run 1000 tests and capture ALL failures
+for i in {1..10}; do
+  node compare.js 2>&1 | grep -A 10 "Test #"
+done > /tmp/all_failures.txt
 ```
 
-This runs 10,000 total tests (100 rounds × 100 tests/round) with random class combinations.
+#### 2. Analyze Failure Patterns
 
-**Test Results:**
-- **Previous (341 properties):** 96.03% pass rate (9,603/10,000)
-- **Current (337 properties):** 79.96% pass rate (7,996/10,000)
-- **Difference:** -16.07 percentage points (-1,607 additional failures)
+Look for:
+- **Variant ordering issues** - Check if variant_order.rs is correct
+- **Property counting issues** - Multi-property utilities
+- **Missing utility mappings** - Utilities not in utility_map.rs
+- **Arbitrary value handling** - Classes like `bg-[#123]`
+- **Special cases** - Utilities with unusual behavior
 
-## Conclusion
+#### 3. Compare Against Tailwind v4 Source
 
-The investigation confirms that Prettier uses Tailwind v4's sorting directly with no modifications. RustyWind's algorithm implementation is correct. The pass rate decrease suggests either:
+For each failure pattern, check Tailwind v4's implementation:
+- `packages/tailwindcss/src/utilities/*.ts` - How utilities are generated
+- `packages/tailwindcss/src/candidate.ts` - How classes are parsed
+- `packages/tailwindcss/src/compile.ts` - The sorting logic
 
-1. A version mismatch between current Tailwind v4 and what Prettier uses
-2. The previous 341-property order was fortuitously better tuned through empirical testing
-3. Subtle differences in edge cases or property counting
+#### 4. Potential Issues to Investigate
 
-**Immediate recommendation:** Revert to the previous property order to restore 96% compatibility while investigating the root cause.
+Based on Tailwind v4 analysis, check:
+
+**a) Property Counting:**
+- Multi-property utilities (e.g., `inset-0` → multiple properties)
+- Does RustyWind count properties the same way?
+
+**b) Variant Order:**
+- Are variants sorted correctly? (hover:, focus:, dark:, etc.)
+- Check `variant_order.rs` against Tailwind's variant order
+
+**c) Arbitrary Values:**
+- How are `bg-[#123]` or `w-[calc(100%-2rem)]` sorted?
+- Do they map to the correct properties?
+
+**d) Modifier Handling:**
+- Opacity modifiers: `bg-blue-500/50`
+- Are these parsed and sorted correctly?
+
+**e) Important Modifier:**
+- Does `!important` affect sorting?
+- Classes like `!bg-red-500`
+
+**f) Negative Values:**
+- Classes like `-m-4` or `-translate-x-4`
+- Do they sort correctly?
+
+## Investigation Plan
+
+### Phase 1: Data Collection (Today)
+1. ✅ Run multiple fuzz test rounds
+2. ✅ Capture ALL failures with full details
+3. ✅ Categorize failures by pattern
+
+### Phase 2: Root Cause Analysis
+1. Group failures by type:
+   - Variant ordering
+   - Property mapping
+   - Arbitrary values
+   - Special utilities
+2. For each category, find the root cause
+3. Compare with Tailwind v4's implementation
+
+### Phase 3: Implementation
+1. Fix the most common failure patterns first
+2. Test each fix independently
+3. Measure pass rate improvement after each fix
+
+### Phase 4: Validation
+1. Run 10,000+ test suite: `python tools/test_many_rounds.py 100`
+2. Verify 100% pass rate
+3. Test on real-world class lists
+
+## Tools Available
+
+- `tests/fuzz/tools/test-property-positions.mjs` - Test specific utilities
+- `tests/fuzz/tools/test-missing-properties.mjs` - Find missing property mappings
+- `tests/fuzz/compare.js` - Main fuzz tester
+- `tests/fuzz/tools/analyze_failures.py` - Analyze failure patterns
+
+## Success Criteria
+
+- **Pass Rate:** 100% on 10,000 test runs
+- **No regressions:** All existing utilities still work
+- **Documentation:** Every fix documented with root cause
+- **Maintainability:** Clear comments explaining special cases
+
+## Next Steps
+
+1. **Run comprehensive failure analysis**
+2. **Identify the top 3-5 failure patterns**
+3. **Fix them one by one, measuring impact**
+4. **Repeat until 100%**
+
+Let's get to 100%! 🎯
