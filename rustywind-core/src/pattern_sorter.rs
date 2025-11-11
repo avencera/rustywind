@@ -358,11 +358,22 @@ impl Ord for SortKey {
     /// 7. Utility prefix priority (space-* before gap-* when properties match)
     /// 8. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
-        // 1. Base group/peer variants sort FIRST (before everything)
+        // 1. Base group/peer variants handling
+        // When BOTH have group/peer (simple OR compound), treat as EQUAL
+        // This matches Tailwind v4 behavior where group/peer variants don't affect class sorting
         match (self.has_base_group_or_peer, other.has_base_group_or_peer) {
+            (true, true) => {
+                // Both have group/peer - treat as EQUAL, which triggers stable sort
+                // Stable sort preserves original order, matching Tailwind v4 behavior
+                // This applies to ALL combinations:
+                // - peer: vs group:
+                // - peer:hover: vs group:visited:
+                // - even:peer: vs group:focus:
+                return Ordering::Equal;
+            }
             (true, false) => return Ordering::Less,
             (false, true) => return Ordering::Greater,
-            _ => {} // Both have or both don't have, continue
+            _ => {} // Neither has group/peer, continue with normal sorting
         }
 
         // 2. Base classes (variant_order=0) come next
@@ -371,34 +382,33 @@ impl Ord for SortKey {
             (false, true) => return Ordering::Greater, // Variant after base class
             (true, true) => {} // Both base classes, continue to property comparison
             (false, false) => {
-                // 3. Both have variants - rely on variant_order for correct sorting
-                // The variant indices already encode the correct ordering (e.g., pseudo-elements
-                // like placeholder are at low indices), so we don't need special cases here
+                // Both have variants - compare by variant_order (unless simple group/peer handled above)
             }
         }
 
-        // 3. Compare by variant order (bitwise OR of all variant indices)
+        // 3. Compare by variant order (for compound variants and non-group/peer variants)
+        // Simple group/peer variants are already handled above and skip this comparison
         self.variant_order
             .cmp(&other.variant_order)
-            // Then by property indices - compare ALL properties in order
+            // Then compare by property indices - compare ALL properties in order
             // This is crucial for utilities like rounded-t vs rounded-l that tie on first property
-            .then_with(|| {
+            .then_with(|| (|| {
                 for (a_idx, b_idx) in self
-                    .property_indices
-                    .iter()
-                    .zip(other.property_indices.iter())
-                {
-                    match a_idx.cmp(b_idx) {
-                        Ordering::Equal => continue, // Tie on this property, check next
-                        other => return other,       // Found difference
-                    }
+                .property_indices
+                .iter()
+                .zip(other.property_indices.iter())
+            {
+                match a_idx.cmp(b_idx) {
+                    Ordering::Equal => continue, // Tie on this property, check next
+                    other => return other,       // Found difference
                 }
-                // All common properties are equal, compare by length (MORE properties = earlier)
-                other
-                    .property_indices
-                    .len()
-                    .cmp(&self.property_indices.len())
-            })
+            }
+            // All common properties are equal, compare by length (MORE properties = earlier)
+            other
+                .property_indices
+                .len()
+                .cmp(&self.property_indices.len())
+        })())
             // Then by numeric value (if both present)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
