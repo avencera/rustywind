@@ -414,16 +414,16 @@ impl Ord for SortKey {
             // means if z (other) has MORE properties, result is positive, so a (self) comes first
             // Therefore: compare other.count vs self.count (reversed)
             .then(other.property_count.cmp(&self.property_count))
-            // Then prioritize arbitrary values (text-[14px] before text-sm)
-            // Within the same property group, arbitrary values sort BEFORE regular values
+            // Then handle arbitrary values (text-[14px] vs text-sm)
+            // Within the same property group, arbitrary values sort AFTER regular values
             // IMPORTANT: This must come BEFORE numeric comparison to ensure arbitrary
-            // values are prioritized even when they contain numbers (e.g., text-[40px] before text-4xl)
+            // values don't get resolved alphabetically (e.g., p-[15px] vs p-4)
             .then_with(|| {
                 let self_has_arbitrary = has_arbitrary_value(&self.class);
                 let other_has_arbitrary = has_arbitrary_value(&other.class);
                 match (self_has_arbitrary, other_has_arbitrary) {
-                    (true, false) => Ordering::Less,    // Arbitrary before regular
-                    (false, true) => Ordering::Greater, // Regular after arbitrary
+                    (true, false) => Ordering::Greater, // Arbitrary after regular
+                    (false, true) => Ordering::Less,    // Regular before arbitrary
                     _ => Ordering::Equal,               // Both or neither, continue
                 }
             })
