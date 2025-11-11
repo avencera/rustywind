@@ -173,3 +173,44 @@ The one remaining targeted test failure needs analysis:
 - Targeted tests: 5/6 passing (83%)
 - Expected: Significantly improved overall pass rate
 - Goal: 100% pass rate on comprehensive suite
+
+---
+
+## 📈 Fuzz Test Results After Bug Fixes
+
+**Date:** 2025-11-11  
+**Test:** 25 rounds × 100 tests = 2,500 total tests
+
+### Results
+
+| Metric | Value |
+|--------|-------|
+| **Total Tests** | 2,500 |
+| **Passed** | 2,435 |
+| **Failed** | 65 |
+| **Pass Rate** | **97.40%** |
+| **Previous Baseline** | ~96% |
+| **Improvement** | **+1.40%** ✅ |
+
+### Per-Round Performance
+- **Best:** Round 15 (100% - perfect score!)
+- **Worst:** Round 10 (94%)
+- **Median:** 98%
+- **Most common:** 98% (10 rounds)
+
+### Analysis
+The 3 bug fixes resulted in measurable improvement:
+1. Property count fix affects ALL multi-property utilities
+2. Ring-inset position fix resolves filter utility conflicts
+3. Group/peer variant fix enables stable sort for these common patterns
+
+The pass rate increase from 96% → 97.40% represents ~35 additional tests passing per 2,500 tests.
+
+### Remaining Failures (~2.6%)
+Common patterns to investigate:
+- Arbitrary value ordering (`text-[40px]` vs regular utilities)
+- Rounded vs rounded-[arbitrary] ordering
+- Gradient utilities with group/peer variants
+- Complex multi-variant edge cases
+
+**Next Goal:** Analyze the remaining 65 failures to reach 100%
