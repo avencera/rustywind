@@ -30,7 +30,11 @@ RustyWind has inherent limitations compared to Tailwind v4's full CSS analysis:
    - `prose`, `prose-sm`, `prose-invert` (Typography plugin)
    - Any other plugin-specific utilities
 
-2. **No Property Count Tiebreaking:** Tailwind v4's sorting uses property count as a tiebreaker (utilities with MORE properties sort first when indices match). RustyWind cannot implement this because it doesn't have access to the generated CSS - it only has static mappings of utility → properties. This means some edge cases where Tailwind uses property count for tiebreaking will NOT match.
+2. **Property Count Bug (DISCOVERED 2025-11-11):** RustyWind has the property count comparison BACKWARDS:
+   - **Tailwind v4:** Utilities with MORE properties sort FIRST (tiebreaker when indices match)
+   - **RustyWind:** Currently sorts utilities with FEWER properties first (WRONG!)
+   - **Fix:** In `pattern_sorter.rs` line ~410: Change `self.property_count.cmp(&other.property_count)` to `other.property_count.cmp(&self.property_count)`
+   - This bug may explain some of the remaining 4% failures
 
 ## Key Learnings from 96% → 80% → 96% Investigation
 

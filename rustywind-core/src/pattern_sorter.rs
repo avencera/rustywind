@@ -417,10 +417,11 @@ impl Ord for SortKey {
                     _ => Ordering::Equal,
                 }
             })
-            // Then by property count (fewer properties = earlier)
+            // Then by property count (MORE properties = earlier, matching Tailwind v4)
             // Tailwind's: zSorting.properties.count - aSorting.properties.count
-            // means if z has MORE properties, result is positive, so a comes first
-            .then(self.property_count.cmp(&other.property_count))
+            // means if z (other) has MORE properties, result is positive, so a (self) comes first
+            // Therefore: compare other.count vs self.count (reversed)
+            .then(other.property_count.cmp(&self.property_count))
             // Then prioritize arbitrary values (text-[14px] before text-sm)
             // Within the same property group, arbitrary values sort BEFORE regular values
             .then_with(|| {
