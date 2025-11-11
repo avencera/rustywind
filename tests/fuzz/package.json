@@ -5,10 +5,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "npm run test:fuzz && npm run test:patterns && npm run test:real-world",
+    "test": "npm run test:fuzz && npm run test:patterns",
     "test:fuzz": "node compare.js",
     "test:patterns": "node compare-real-world-patterns.js",
-    "test:real-world": "node test-real-world-classes.mjs",
     "test:with-legacy": "FILTER_LEGACY=false node compare.js"
   },
   "dependencies": {

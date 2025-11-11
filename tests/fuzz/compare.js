@@ -4,7 +4,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { allClasses, variants } from './tailwind-classes.js';
+import { allClasses, variants, variantStackingPatterns, opacityClasses, arbitraryValueClasses } from './tailwind-classes.js';
 import { filterLegacyClasses, isLegacyClass } from './legacy-classes.js';
 import prettier from 'prettier';
 import seedrandom from 'seedrandom';
@@ -22,8 +22,9 @@ const FILTER_LEGACY = process.env.FILTER_LEGACY !== 'false'; // Filter legacy cl
 const SEED = process.env.FUZZ_SEED || Math.random().toString(36).substring(2, 15);
 const rng = seedrandom(SEED);
 
-// Filter classes if needed
-const classPool = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
+// Filter classes if needed and add real-world pattern classes
+const baseClasses = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
+const classPool = [...baseClasses, ...opacityClasses, ...arbitraryValueClasses];
 
 /**
  * Generate a random integer between min and max (inclusive)
@@ -47,13 +48,19 @@ function generateRandomClass() {
 
   // Maybe add a variant (30% chance)
   if (rng() < VARIANT_PROBABILITY) {
-    const variant = randomPick(variants);
-    className = `${variant}:${className}`;
+    // 40% chance to use a known stacking pattern (from real-world data)
+    if (rng() < 0.4 && variantStackingPatterns.length > 0) {
+      const pattern = randomPick(variantStackingPatterns);
+      className = `${pattern[0]}:${pattern[1]}:${className}`;
+    } else {
+      const variant = randomPick(variants);
+      className = `${variant}:${className}`;
 
-    // Small chance (10%) of adding a second variant
-    if (rng() < 0.1) {
-      const variant2 = randomPick(variants);
-      className = `${variant2}:${className}`;
+      // 20% chance of adding a second variant (increased from 10%)
+      if (rng() < 0.2) {
+        const variant2 = randomPick(variants);
+        className = `${variant2}:${className}`;
+      }
     }
   }
 

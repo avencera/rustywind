@@ -179,6 +179,68 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
     // Remove variants to get just the utility part
     let utility = utility.split(':').next_back()?;
 
+    // Handle arbitrary values first (e.g., h-[120px], bg-white/30, max-w-[485px])
+    // Check for brackets [...] or opacity /number
+    if let Some(bracket_start) = utility.find('[') {
+        if let Some(bracket_end) = utility.find(']') {
+            // Extract content within brackets: h-[120px] -> "120px"
+            let value_str = &utility[bracket_start + 1..bracket_end];
+
+            // Try to extract number from the start of the string
+            // Handles: "120px", "2rem", "0.5", "50%", etc.
+            let mut num_str = String::new();
+            let mut seen_dot = false;
+
+            for ch in value_str.chars() {
+                if ch.is_numeric() {
+                    num_str.push(ch);
+                } else if ch == '.' && !seen_dot {
+                    num_str.push(ch);
+                    seen_dot = true;
+                } else {
+                    // Stop at first non-numeric, non-dot character
+                    break;
+                }
+            }
+
+            if let Ok(num) = num_str.parse::<f64>() {
+                return Some(num);
+            }
+        }
+    }
+
+    // Handle opacity syntax: bg-white/30 -> extract 30
+    // Distinguish from fractions like w-1/2
+    if let Some(slash_pos) = utility.rfind('/') {
+        let after_slash = &utility[slash_pos + 1..];
+        let before_slash = &utility[..slash_pos];
+
+        // Count dashes to distinguish opacity from fractions:
+        // - bg-blue-500/75 (2 dashes) = color-shade/opacity
+        // - bg-white/30 (1 dash, non-numeric last part) = color/opacity
+        // - w-1/2 (1 dash, numeric last part) = utility-fraction
+        let dash_count = before_slash.matches('-').count();
+
+        if dash_count >= 2 {
+            // Multiple dashes before slash = color-shade/opacity like bg-blue-500/75
+            if let Ok(num) = after_slash.parse::<f64>() {
+                return Some(num);
+            }
+        } else if dash_count == 1 {
+            // Single dash: check if last part is a number
+            let parts: Vec<&str> = before_slash.split('-').collect();
+            if let Some(last_part) = parts.last() {
+                // If last part is NOT a number, it's opacity like bg-white/30
+                // If last part IS a number, it's a fraction like w-1/2 - skip to fraction logic
+                if last_part.parse::<f64>().is_err() {
+                    if let Ok(num) = after_slash.parse::<f64>() {
+                        return Some(num);
+                    }
+                }
+            }
+        }
+    }
+
     // Split by dash to get potential numeric parts
     let parts: Vec<&str> = utility.split('-').collect();
 
@@ -228,6 +290,10 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
 /// logic used by Tailwind CSS.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SortKey {
+    /// Whether this class has BASE `group` or `peer` variants (not compounds)
+    /// Base group/peer sort FIRST (before base classes), matching Prettier's behavior
+    pub has_base_group_or_peer: bool,
+
     /// Variant order as bitwise flags (0 for no variants)
     pub variant_order: u128,
 
@@ -248,6 +314,14 @@ pub struct SortKey {
 }
 
 impl Eq for SortKey {}
+
+/// Check if a class contains an arbitrary value (e.g., h-[120px], border-[1.5px])
+///
+/// Arbitrary values should sort BEFORE regular values within the same property group,
+/// matching Tailwind/Prettier's behavior.
+fn has_arbitrary_value(class: &str) -> bool {
+    class.contains('[') && class.contains(']')
+}
 
 /// Get the utility prefix priority for tiebreaking when properties match.
 ///
@@ -275,13 +349,35 @@ impl Ord for SortKey {
     /// Compare sort keys using Tailwind's exact algorithm with value-based sub-sorting.
     ///
     /// Order of comparison:
-    /// 1. Variant order (0 first, then by bit flags)
-    /// 2. Property indices (compare ALL properties in order for proper tiebreaking)
-    /// 3. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
-    /// 4. Property count (MORE properties first - utilities with more properties sort earlier)
-    /// 5. Utility prefix priority (space-* before gap-* when properties match)
-    /// 6. Alphabetical (final tiebreaker)
+    /// 1. Base group/peer variants (group:, peer:) sort FIRST
+    /// 2. Base classes (no variants) sort next
+    /// 3. Other variants sort by variant_order (bitwise OR of variant indices)
+    /// 4. Property indices (compare ALL properties in order for proper tiebreaking)
+    /// 5. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
+    /// 6. Property count (MORE properties first - utilities with more properties sort earlier)
+    /// 7. Utility prefix priority (space-* before gap-* when properties match)
+    /// 8. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
+        // 1. Base group/peer variants sort FIRST (before everything)
+        match (self.has_base_group_or_peer, other.has_base_group_or_peer) {
+            (true, false) => return Ordering::Less,
+            (false, true) => return Ordering::Greater,
+            _ => {} // Both have or both don't have, continue
+        }
+
+        // 2. Base classes (variant_order=0) come next
+        match (self.variant_order == 0, other.variant_order == 0) {
+            (true, false) => return Ordering::Less, // Base class before variant
+            (false, true) => return Ordering::Greater, // Variant after base class
+            (true, true) => {} // Both base classes, continue to property comparison
+            (false, false) => {
+                // 3. Both have variants - rely on variant_order for correct sorting
+                // The variant indices already encode the correct ordering (e.g., pseudo-elements
+                // like placeholder are at low indices), so we don't need special cases here
+            }
+        }
+
+        // 3. Compare by variant order (bitwise OR of all variant indices)
         self.variant_order
             .cmp(&other.variant_order)
             // Then by property indices - compare ALL properties in order
@@ -325,6 +421,17 @@ impl Ord for SortKey {
             // Tailwind's: zSorting.properties.count - aSorting.properties.count
             // means if z has MORE properties, result is positive, so a comes first
             .then(self.property_count.cmp(&other.property_count))
+            // Then prioritize arbitrary values (text-[14px] before text-sm)
+            // Within the same property group, arbitrary values sort BEFORE regular values
+            .then_with(|| {
+                let self_has_arbitrary = has_arbitrary_value(&self.class);
+                let other_has_arbitrary = has_arbitrary_value(&other.class);
+                match (self_has_arbitrary, other_has_arbitrary) {
+                    (true, false) => Ordering::Less,    // Arbitrary before regular
+                    (false, true) => Ordering::Greater, // Regular after arbitrary
+                    _ => Ordering::Equal,               // Both or neither, continue
+                }
+            })
             // Then by utility prefix priority (space-* before gap-* when properties match)
             .then_with(|| {
                 let priority_self = get_utility_prefix_priority(&self.class);
@@ -444,7 +551,16 @@ impl PatternSorter {
         // Extract numeric value for value-based sub-sorting
         let numeric_value = extract_numeric_value(class);
 
+        // Check if this class has BASE group or peer variants (not compounds)
+        // Base group/peer sort FIRST (before base classes), matching Prettier's behavior
+        // Compound variants (group-hover, peer-focus, etc.) do NOT get this special treatment
+        let has_base_group_or_peer = parsed
+            .variants
+            .iter()
+            .any(|v| *v == "group" || *v == "peer");
+
         Some(SortKey {
+            has_base_group_or_peer,
             variant_order,
             property_indices,
             numeric_value,
@@ -521,20 +637,22 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
     // Classes with valid keys (known Tailwind utilities) come after, sorted by key
     // This matches prettier-plugin-tailwindcss behavior where getClassOrder() returns
     // null for unknown classes, which are sorted to the front.
-    with_keys.sort_by(|(a_key, a_variant_order, a_class), (z_key, z_variant_order, z_class)| {
-        match (a_key, z_key) {
-            (Some(a), Some(z)) => a.cmp(z),
-            (Some(_), None) => Ordering::Greater, // Known classes after unknown
-            (None, Some(_)) => Ordering::Less,    // Unknown classes before known
-            (None, None) => {
-                // Unknown classes: sort by variant order first, then alphabetically
-                // Lower variant order values come first (0 for no variants, then increasing)
-                a_variant_order
-                    .cmp(&z_variant_order)
-                    .then_with(|| a_class.cmp(z_class))
+    with_keys.sort_by(
+        |(a_key, a_variant_order, a_class), (z_key, z_variant_order, z_class)| {
+            match (a_key, z_key) {
+                (Some(a), Some(z)) => a.cmp(z),
+                (Some(_), None) => Ordering::Greater, // Known classes after unknown
+                (None, Some(_)) => Ordering::Less,    // Unknown classes before known
+                (None, None) => {
+                    // Unknown classes: sort by variant order first, then alphabetically
+                    // Lower variant order values come first (0 for no variants, then increasing)
+                    a_variant_order
+                        .cmp(z_variant_order)
+                        .then_with(|| a_class.cmp(z_class))
+                }
             }
-        }
-    });
+        },
+    );
 
     // Extract the sorted classes
     with_keys.iter().map(|(_, _, class)| *class).collect()
@@ -631,6 +749,7 @@ mod tests {
     fn test_sort_key_ordering() {
         // Create sort keys manually to test comparison
         let key1 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -639,6 +758,7 @@ mod tests {
         };
 
         let key2 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 1,
             property_indices: vec![100],
             numeric_value: None,
@@ -653,6 +773,7 @@ mod tests {
     #[test]
     fn test_sort_key_property_index() {
         let key1 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![50],
             numeric_value: None,
@@ -661,6 +782,7 @@ mod tests {
         };
 
         let key2 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -675,6 +797,7 @@ mod tests {
     #[test]
     fn test_sort_key_property_count() {
         let key1 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -683,6 +806,7 @@ mod tests {
         };
 
         let key2 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -697,6 +821,7 @@ mod tests {
     #[test]
     fn test_sort_key_alphabetical() {
         let key1 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -705,6 +830,7 @@ mod tests {
         };
 
         let key2 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -804,15 +930,16 @@ mod tests {
     }
 
     #[test]
-    fn test_variants_beyond_64_all_work() {
-        // Test multiple variants beyond the old u64 limit
+    fn test_high_index_variants_all_work() {
+        // Test multiple variants including higher-indexed ones
+        // With the corrected VARIANT_ORDER, we have 58 variants total
         let classes = vec![
             "flex",
-            "@3xl:flex",     // index 66
-            "dark:flex",     // index 74
-            "print:flex",    // index 76
-            "portrait:flex", // index 72
-            "hover:flex",    // index 35 (before 64)
+            "hover:flex",    // index 37
+            "sm:flex",       // index 47
+            "portrait:flex", // index 52
+            "dark:flex",     // index 56
+            "print:flex",    // index 57
         ];
         let sorted = sort_classes(&classes);
 
@@ -820,9 +947,9 @@ mod tests {
         assert_eq!(sorted[0], "flex");
 
         // Then variants in index order:
-        // hover (35) < @3xl (66) < portrait (72) < dark (74) < print (76)
+        // hover (37) < sm (47) < portrait (52) < dark (56) < print (57)
         assert_eq!(sorted[1], "hover:flex");
-        assert_eq!(sorted[2], "@3xl:flex");
+        assert_eq!(sorted[2], "sm:flex");
         assert_eq!(sorted[3], "portrait:flex");
         assert_eq!(sorted[4], "dark:flex");
         assert_eq!(sorted[5], "print:flex");
@@ -833,6 +960,7 @@ mod tests {
         // Test that utilities with same property but different numeric values sort correctly
         // p-4 should come before p-8 (4 < 8)
         let key1 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: Some(4.0),
@@ -840,6 +968,7 @@ mod tests {
             class: "p-4".to_string(),
         };
         let key2 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: Some(8.0),
@@ -850,6 +979,7 @@ mod tests {
 
         // scale-50 should come before scale-110 (50 < 110)
         let key3 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: Some(50.0),
@@ -857,6 +987,7 @@ mod tests {
             class: "scale-50".to_string(),
         };
         let key4 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: Some(110.0),
@@ -867,6 +998,7 @@ mod tests {
 
         // When one has numeric value and other doesn't, they should be equal (fall through to next tier)
         let key5 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: Some(4.0),
@@ -874,6 +1006,7 @@ mod tests {
             class: "p-4".to_string(),
         };
         let key6 = SortKey {
+            has_base_group_or_peer: false,
             variant_order: 0,
             property_indices: vec![100],
             numeric_value: None,
@@ -947,6 +1080,29 @@ mod tests {
         // Color shades are numeric and get extracted (bg-blue-500 → 500)
         assert_eq!(extract_numeric_value("bg-blue-500"), Some(500.0));
 
+        // Arbitrary values with brackets
+        assert_eq!(extract_numeric_value("h-[120px]"), Some(120.0));
+        assert_eq!(extract_numeric_value("h-[2px]"), Some(2.0));
+        assert_eq!(extract_numeric_value("w-[50px]"), Some(50.0));
+        assert_eq!(extract_numeric_value("w-[120px]"), Some(120.0));
+        assert_eq!(extract_numeric_value("max-w-[485px]"), Some(485.0));
+        assert_eq!(extract_numeric_value("text-[14px]"), Some(14.0));
+
+        // Arbitrary values with different units
+        assert_eq!(extract_numeric_value("h-[2rem]"), Some(2.0));
+        assert_eq!(extract_numeric_value("w-[50%]"), Some(50.0));
+        assert_eq!(extract_numeric_value("h-[0.5rem]"), Some(0.5));
+
+        // Opacity syntax (color/opacity)
+        assert_eq!(extract_numeric_value("bg-white/5"), Some(5.0));
+        assert_eq!(extract_numeric_value("bg-white/30"), Some(30.0));
+        assert_eq!(extract_numeric_value("text-black/50"), Some(50.0));
+        assert_eq!(extract_numeric_value("bg-blue-500/75"), Some(75.0));
+
+        // Arbitrary values with variants
+        assert_eq!(extract_numeric_value("md:h-[120px]"), Some(120.0));
+        assert_eq!(extract_numeric_value("dark:bg-white/30"), Some(30.0));
+
         // Edge cases
         assert_eq!(extract_numeric_value("p-0"), Some(0.0));
         assert_eq!(extract_numeric_value("w-1/4"), Some(0.25));
@@ -988,6 +1144,201 @@ mod tests {
             sorted,
             vec!["space-y-reverse", "gap-x-2", "space-x-reverse", "gap-y-4"],
             "Should sort by property index first, then by prefix priority within same index"
+        );
+    }
+
+    #[test]
+    fn test_base_peer_group_still_work() {
+        // Base peer and group (without compounds) should still work
+        let classes = vec!["first:p-4", "peer:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["peer:p-4", "first:p-4"],
+            "peer should sort before first"
+        );
+
+        let classes = vec!["last:p-4", "group:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["group:p-4", "last:p-4"],
+            "group should sort before last"
+        );
+    }
+
+    #[test]
+    fn test_group_before_peer() {
+        // CRITICAL: group:p-4 must come before peer:p-4 to match Tailwind's ordering
+        // In the corrected VARIANT_ORDER, group is at index 1, peer is at index 2
+        let classes = vec!["peer:p-4", "group:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["group:p-4", "peer:p-4"],
+            "group: must sort before peer: to match Tailwind"
+        );
+
+        // Also test with different properties to ensure it's not property-dependent
+        let classes = vec!["peer:translate-x-full", "group:min-w-max"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["group:min-w-max", "peer:translate-x-full"],
+            "group: must sort before peer: regardless of property"
+        );
+    }
+
+    #[test]
+    fn test_base_classes_before_compound_variants() {
+        // Base classes (no variants) should come before compound peer/group variants
+        let classes = vec!["group-hover:leading-tight", "my-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["my-4", "group-hover:leading-tight"],
+            "base class should come before compound variant"
+        );
+
+        let classes = vec!["peer-focus:lowercase", "mb-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["mb-4", "peer-focus:lowercase"],
+            "base class should come before compound variant"
+        );
+    }
+
+    #[test]
+    fn test_compound_variants_among_themselves() {
+        // Compound variants now sort by their BASE only (peer at index 2, group at index 1)
+        // The modifier (hover, focus) is used for alphabetical tiebreaking
+
+        // Both peer-hover and peer-focus sort at peer's position (index 2)
+        // Tiebreaking is alphabetical: "peer-focus" < "peer-hover"
+        let classes = vec!["peer-hover:p-4", "peer-focus:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["peer-focus:p-4", "peer-hover:p-4"],
+            "peer compounds sort alphabetically when base is same"
+        );
+
+        // Both group-hover and group-focus sort at group's position (index 1)
+        // Tiebreaking is alphabetical: "group-focus" < "group-hover"
+        let classes = vec!["group-hover:p-4", "group-focus:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["group-focus:p-4", "group-hover:p-4"],
+            "group compounds sort alphabetically when base is same"
+        );
+
+        // Mix of group and peer compounds
+        // group (index 1) < peer (index 2)
+        let classes = vec!["peer-hover:p-4", "group-hover:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["group-hover:p-4", "peer-hover:p-4"],
+            "group compounds (index 1) sort before peer compounds (index 2)"
+        );
+    }
+
+    #[test]
+    fn test_complex_stacked_variants() {
+        // Test complex stacking scenarios
+        // dark:hover:p-4 vs hover:p-4
+        let classes = vec!["hover:p-4", "dark:hover:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["hover:p-4", "dark:hover:p-4"],
+            "single variant before stacked variants"
+        );
+
+        // lg:hover:p-4 vs md:hover:p-4
+        let classes = vec!["lg:hover:p-4", "md:hover:p-4"];
+        let sorted = sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["md:hover:p-4", "lg:hover:p-4"],
+            "md (index 58) before lg (index 59)"
+        );
+    }
+
+    #[test]
+    fn test_responsive_plus_interactive_stacking() {
+        // Test responsive breakpoints with interactive variants
+        let classes = vec!["dark:focus:p-4", "dark:hover:p-4", "dark:md:p-4"];
+        let sorted = sort_classes(&classes);
+        // dark is at index 77
+        // hover is at index 35, focus is at index 36, md is at index 58
+        // Combined order: dark|hover < dark|focus < dark|md
+        assert_eq!(
+            sorted,
+            vec!["dark:hover:p-4", "dark:focus:p-4", "dark:md:p-4"],
+            "stacked variants should combine bitwise"
+        );
+    }
+
+    #[test]
+    fn test_all_peer_compound_variants() {
+        // All peer-* compound variants now sort at peer's position (index 2)
+        // They are tiebroken alphabetically by the full variant name
+        let classes = vec![
+            "peer-required:p-4",
+            "peer-invalid:p-4",
+            "peer-disabled:p-4",
+            "peer-checked:p-4",
+            "peer-active:p-4",
+            "peer-focus-visible:p-4",
+            "peer-focus-within:p-4",
+            "peer-focus:p-4",
+            "peer-hover:p-4",
+        ];
+        let sorted = sort_classes(&classes);
+        // Should sort alphabetically since all use peer (index 2)
+        assert_eq!(
+            sorted,
+            vec![
+                "peer-active:p-4",
+                "peer-checked:p-4",
+                "peer-disabled:p-4",
+                "peer-focus-visible:p-4",
+                "peer-focus-within:p-4",
+                "peer-focus:p-4",
+                "peer-hover:p-4",
+                "peer-invalid:p-4",
+                "peer-required:p-4",
+            ],
+            "peer-* variants should sort alphabetically when all at peer's position"
+        );
+    }
+
+    #[test]
+    fn test_all_group_compound_variants() {
+        // All group-* compound variants now sort at group's position (index 1)
+        // They are tiebroken alphabetically by the full variant name
+        let classes = vec![
+            "group-active:p-4",
+            "group-focus-visible:p-4",
+            "group-focus-within:p-4",
+            "group-focus:p-4",
+            "group-hover:p-4",
+        ];
+        let sorted = sort_classes(&classes);
+        // Should sort alphabetically since all use group (index 1)
+        assert_eq!(
+            sorted,
+            vec![
+                "group-active:p-4",
+                "group-focus-visible:p-4",
+                "group-focus-within:p-4",
+                "group-focus:p-4",
+                "group-hover:p-4",
+            ],
+            "group-* variants should sort alphabetically when all at group's position"
         );
     }
 }

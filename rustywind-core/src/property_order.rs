@@ -358,24 +358,26 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "opacity",
     "background-blend-mode",
     "mix-blend-mode",
-    // Shadows (295-305)
+    // Shadows FIRST (295-299) - matches Tailwind v4 canonical order
     "box-shadow",
     "--tw-shadow",
-    "--tw-ring-shadow",
     "--tw-shadow-color",
-    "--tw-ring-color",
     "--tw-inset-shadow",
     "--tw-inset-shadow-color",
+    // Ring properties (300-306)
+    "--tw-ring-shadow",
+    "--tw-ring-color",
     "--tw-inset-ring-shadow",
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
-    // Outline (306-309)
+    "--tw-ring-inset",
+    // Outline (307-310)
     "outline",
     "outline-width",
     "outline-offset",
     "outline-color",
-    // Filters (310-329)
+    // Filters (311-330)
     "--tw-blur",
     "--tw-brightness",
     "--tw-contrast",
@@ -407,9 +409,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "will-change",
     "outline-style",
     "user-select",
-    // divide-x-reverse positioned here to match Tailwind v4 behavior (after all filters, before ring-inset)
+    // divide-x-reverse positioned here to match Tailwind v4 behavior (after all filters)
     "--tw-divide-x-reverse",
-    "--tw-ring-inset",
     "contain",
     "content",
     "forced-color-adjust",
@@ -473,17 +474,17 @@ mod tests {
         let divide_style_idx = get_property_index("divide-style").unwrap();
         let place_self_idx = get_property_index("place-self").unwrap();
         let overflow_idx = get_property_index("overflow").unwrap();
-        assert!(divide_y_idx > divide_style_idx - 1); // Right after divide-y-width
+        assert_eq!(divide_y_idx, divide_style_idx - 1); // Right before divide-style (after divide-y-width)
         assert!(divide_y_idx < divide_style_idx); // Before divide-style
         assert!(divide_y_idx < place_self_idx); // Before place-self
         assert!(divide_y_idx < overflow_idx); // Before overflow
 
-        // divide-x-reverse comes after outline-color, before filters
+        // divide-x-reverse comes after outline-color and after filters
         let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
         let outline_color_idx = get_property_index("outline-color").unwrap();
         let filter_idx = get_property_index("--tw-blur").unwrap();
         assert!(divide_x_idx > outline_color_idx);
-        assert!(divide_x_idx < filter_idx);
+        assert!(divide_x_idx > filter_idx);
 
         // Test common properties (indices shifted by -4 after border-radius section due to removed synthetics)
         assert_eq!(get_property_index("margin"), Some(26));

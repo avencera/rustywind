@@ -23,106 +23,66 @@
 /// assert!(get_variant_index("focus").unwrap() < get_variant_index("focus-visible").unwrap());
 /// ```
 pub const VARIANT_ORDER: &[&str] = &[
-    // Pseudo-elements (appear first in variant hierarchy)
-    "first-line",
-    "first-letter",
-    "before",
-    "after",
-    "placeholder",
-    "file",
-    "marker",
-    "selection",
-    "backdrop",
-    // Positional & structural
-    "first",
-    "last",
-    "only",
-    "odd",
-    "even",
-    "first-of-type",
-    "last-of-type",
-    "only-of-type",
-    // State variants
-    "visited",
-    "target",
-    "open",
-    "default",
-    "checked",
-    "indeterminate",
-    "placeholder-shown",
-    "autofill",
-    "optional",
-    "required",
-    "valid",
-    "invalid",
-    "in-range",
-    "out-of-range",
-    "read-only",
-    "read-write",
-    // Empty variant (after state variants)
-    "empty",
-    // Interactive variants (user interaction) - order from Tailwind v4 source (variants.ts:713-719)
-    "focus-within",
-    "hover",
-    "focus",
-    "focus-visible",
-    "active",
-    // Enabled & disabled (enabled comes first)
-    "enabled",
-    "disabled",
-    // Group & peer base modifiers (standalone, for stacking with other variants)
-    "group",
-    "peer",
-    // Group & peer compound variants (legacy/shorthand forms)
-    "group-hover",
-    "group-focus",
-    "group-focus-within",
-    "group-focus-visible",
-    "group-active",
-    "peer-hover",
-    "peer-focus",
-    "peer-focus-within",
-    "peer-focus-visible",
-    "peer-active",
-    "peer-checked",
-    "peer-disabled",
-    "peer-invalid",
-    "peer-required",
-    // Responsive variants (breakpoints)
-    "sm",
-    "md",
-    "lg",
-    "xl",
-    "2xl",
-    // Container queries
-    "@sm",
-    "@md",
-    "@lg",
-    "@xl",
-    "@2xl",
-    "@3xl",
-    "@4xl",
-    "@5xl",
-    "@6xl",
-    "@7xl",
-    // Motion preferences (variants.ts:909-910)
-    "motion-safe",
-    "motion-reduce",
-    // Orientation (variants.ts:1137-1138 - portrait before landscape)
-    "portrait",
-    "landscape",
-    // Directionality
-    "ltr",
-    "rtl",
-    // Dark mode (variants.ts:1143)
-    "dark",
-    // Starting style (variants.ts:1145)
-    "starting",
-    // Print (variants.ts:1147)
-    "print",
-    // Contrast (variants.ts:912-913)
-    "contrast-more",
-    "contrast-less",
+    // Tailwind's exact variant order (extracted from Prettier plugin and Tailwind v4 source)
+    // This order is CRITICAL - group/peer MUST be early (indices 1-2), dark MUST be at index 56
+    "read-write",        // 0
+    "group", // 1 ← CRITICAL! Was at index 76, causing peer-focus/group-hover to sort incorrectly
+    "peer",  // 2 ← CRITICAL! Was at index 75, causing peer-focus/group-hover to sort incorrectly
+    "first-letter", // 3
+    "first-line", // 4
+    "marker", // 5
+    "selection", // 6
+    "file",  // 7
+    "placeholder", // 8 ← Key for dark:placeholder
+    "backdrop", // 9
+    "before", // 10
+    "after", // 11
+    "first", // 12
+    "last",  // 13
+    "only",  // 14
+    "odd",   // 15
+    "even",  // 16
+    "first-of-type", // 17
+    "last-of-type", // 18
+    "only-of-type", // 19
+    "visited", // 20
+    "target", // 21
+    "open",  // 22
+    "default", // 23
+    "checked", // 24
+    "indeterminate", // 25
+    "placeholder-shown", // 26
+    "autofill", // 27
+    "optional", // 28
+    "required", // 29
+    "valid", // 30
+    "invalid", // 31
+    "in-range", // 32
+    "out-of-range", // 33
+    "read-only", // 34
+    "empty", // 35
+    "focus-within", // 36
+    "hover", // 37
+    "focus", // 38
+    "focus-visible", // 39
+    "active", // 40
+    "enabled", // 41
+    "disabled", // 42
+    "motion-safe", // 43
+    "motion-reduce", // 44
+    "contrast-more", // 45
+    "contrast-less", // 46
+    "sm",    // 47
+    "md",    // 48
+    "lg",    // 49
+    "xl",    // 50
+    "2xl",   // 51
+    "portrait", // 52
+    "landscape", // 53
+    "ltr",   // 54
+    "rtl",   // 55
+    "dark",  // 56 ← CRITICAL! Was at index 74, causing dark:placeholder to sort incorrectly
+    "print", // 57
 ];
 
 /// Get the index of a variant in the canonical order.
@@ -138,12 +98,15 @@ pub const VARIANT_ORDER: &[&str] = &[
 /// ```
 /// use rustywind_core::variant_order::get_variant_index;
 ///
-/// assert_eq!(get_variant_index("focus-within"), Some(34));
-/// assert_eq!(get_variant_index("hover"), Some(35));
-/// assert_eq!(get_variant_index("focus"), Some(36));
-/// assert_eq!(get_variant_index("focus-visible"), Some(37));
-/// assert_eq!(get_variant_index("sm"), Some(55));
-/// assert_eq!(get_variant_index("portrait"), Some(72));
+/// assert_eq!(get_variant_index("group"), Some(1));
+/// assert_eq!(get_variant_index("peer"), Some(2));
+/// assert_eq!(get_variant_index("placeholder"), Some(8));
+/// assert_eq!(get_variant_index("focus-within"), Some(36));
+/// assert_eq!(get_variant_index("hover"), Some(37));
+/// assert_eq!(get_variant_index("focus"), Some(38));
+/// assert_eq!(get_variant_index("focus-visible"), Some(39));
+/// assert_eq!(get_variant_index("sm"), Some(47));
+/// assert_eq!(get_variant_index("dark"), Some(56));
 /// assert_eq!(get_variant_index("unknown-variant"), None);
 /// ```
 #[inline]
@@ -169,8 +132,8 @@ pub fn get_variant_index(variant: &str) -> Option<usize> {
 /// // Single variant
 /// assert!(calculate_variant_order(&["hover"]) > 0);
 ///
-/// // Multiple variants
-/// let order = calculate_variant_order(&["hover", "focus"]);
+/// // Multiple variants (e.g., dark:placeholder:)
+/// let order = calculate_variant_order(&["placeholder", "dark"]);
 /// assert!(order > calculate_variant_order(&["hover"]));
 /// ```
 pub fn calculate_variant_order(variants: &[&str]) -> u128 {
@@ -182,9 +145,25 @@ pub fn calculate_variant_order(variants: &[&str]) -> u128 {
     for variant in variants {
         if let Some(idx) = get_variant_index(variant) {
             // Set bit at position idx
-            // u128 supports up to 128 variants, which is sufficient for our current 80 variants
+            // u128 supports up to 128 variants, which is sufficient for our current 58 variants
             if idx < 128 {
                 order |= 1u128 << idx;
+            }
+        } else if variant.contains('-') {
+            // Handle compound variants like "peer-hover", "group-focus", or "peer-focus-within"
+            // CRITICAL: For compound variants, use ONLY the base part (peer, group) for sorting
+            // The modifier (hover, focus) is used for tiebreaking elsewhere, not in bitwise order
+            // This makes peer-hover sort at peer's position (index 2), not hover's position (index 37)
+            if let Some(dash_pos) = variant.find('-') {
+                let first_part = &variant[..dash_pos];
+
+                // Only add the first part (base variant) to the order
+                // This ensures peer-hover sorts near peer (index 2), not near hover (index 37)
+                if let Some(idx) = get_variant_index(first_part) {
+                    if idx < 128 {
+                        order |= 1u128 << idx;
+                    }
+                }
             }
         }
     }
@@ -197,34 +176,43 @@ mod tests {
 
     #[test]
     fn test_variant_count() {
-        assert_eq!(VARIANT_ORDER.len(), 83);
+        assert_eq!(VARIANT_ORDER.len(), 58);
     }
 
     #[test]
     fn test_get_variant_index() {
+        // Test critical early positions
+        assert_eq!(get_variant_index("read-write"), Some(0));
+        assert_eq!(get_variant_index("group"), Some(1));
+        assert_eq!(get_variant_index("peer"), Some(2));
+
         // Test pseudo-elements
-        assert_eq!(get_variant_index("before"), Some(2));
-        assert_eq!(get_variant_index("after"), Some(3));
+        assert_eq!(get_variant_index("placeholder"), Some(8));
+        assert_eq!(get_variant_index("before"), Some(10));
+        assert_eq!(get_variant_index("after"), Some(11));
 
-        // Test interactive variants (new order: focus-within, hover, focus, focus-visible, active)
-        assert_eq!(get_variant_index("focus-within"), Some(34));
-        assert_eq!(get_variant_index("hover"), Some(35));
-        assert_eq!(get_variant_index("focus"), Some(36));
-        assert_eq!(get_variant_index("focus-visible"), Some(37));
-        assert_eq!(get_variant_index("active"), Some(38));
+        // Test interactive variants (order: focus-within, hover, focus, focus-visible, active)
+        assert_eq!(get_variant_index("focus-within"), Some(36));
+        assert_eq!(get_variant_index("hover"), Some(37));
+        assert_eq!(get_variant_index("focus"), Some(38));
+        assert_eq!(get_variant_index("focus-visible"), Some(39));
+        assert_eq!(get_variant_index("active"), Some(40));
 
-        // Test enabled/disabled (enabled now comes before disabled)
-        assert_eq!(get_variant_index("enabled"), Some(39));
-        assert_eq!(get_variant_index("disabled"), Some(40));
+        // Test enabled/disabled (enabled comes before disabled)
+        assert_eq!(get_variant_index("enabled"), Some(41));
+        assert_eq!(get_variant_index("disabled"), Some(42));
 
-        // Test responsive variants (indices shifted by 2 after adding group/peer)
-        assert_eq!(get_variant_index("sm"), Some(57));
-        assert_eq!(get_variant_index("md"), Some(58));
-        assert_eq!(get_variant_index("lg"), Some(59));
+        // Test responsive variants
+        assert_eq!(get_variant_index("sm"), Some(47));
+        assert_eq!(get_variant_index("md"), Some(48));
+        assert_eq!(get_variant_index("lg"), Some(49));
 
-        // Test orientation (portrait before landscape) (indices shifted by 2)
-        assert_eq!(get_variant_index("portrait"), Some(74));
-        assert_eq!(get_variant_index("landscape"), Some(75));
+        // Test orientation (portrait before landscape)
+        assert_eq!(get_variant_index("portrait"), Some(52));
+        assert_eq!(get_variant_index("landscape"), Some(53));
+
+        // Test critical dark position
+        assert_eq!(get_variant_index("dark"), Some(56));
 
         // Test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);
@@ -241,6 +229,20 @@ mod tests {
         assert!(focus_within_idx < hover_idx);
         assert!(hover_idx < focus_idx);
         assert!(focus_idx < focus_visible_idx);
+    }
+
+    #[test]
+    fn test_group_before_peer() {
+        // CRITICAL: group must come before peer to match Tailwind's ordering
+        let peer_idx = get_variant_index("peer").unwrap();
+        let group_idx = get_variant_index("group").unwrap();
+
+        assert!(
+            group_idx < peer_idx,
+            "group (index {}) must come before peer (index {}) to match Tailwind",
+            group_idx,
+            peer_idx
+        );
     }
 
     #[test]
@@ -320,51 +322,51 @@ mod tests {
     }
 
     #[test]
-    fn test_variants_beyond_64() {
-        // Test variants at index >= 64 (the old u64 limit)
-        // @3xl is at index 64, dark is at index 70, etc.
+    fn test_high_index_variants() {
+        // Test variants at higher indices to ensure they work correctly
+        // dark is at index 56, portrait at 52, print at 57
 
         // Get the actual indices
-        let at_3xl_idx = get_variant_index("@3xl").unwrap();
         let dark_idx = get_variant_index("dark").unwrap();
         let portrait_idx = get_variant_index("portrait").unwrap();
+        let print_idx = get_variant_index("print").unwrap();
 
-        // Verify they're beyond the old u64 limit
-        assert!(at_3xl_idx >= 64, "@3xl should be at index >= 64");
-        assert!(dark_idx >= 64, "dark should be at index >= 64");
-        assert!(portrait_idx >= 64, "portrait should be at index >= 64");
+        // Verify expected indices
+        assert_eq!(dark_idx, 56, "dark should be at index 56");
+        assert_eq!(portrait_idx, 52, "portrait should be at index 52");
+        assert_eq!(print_idx, 57, "print should be at index 57");
 
         // Calculate variant orders - these should NOT be 0
-        let at_3xl_order = calculate_variant_order(&["@3xl"]);
         let dark_order = calculate_variant_order(&["dark"]);
         let portrait_order = calculate_variant_order(&["portrait"]);
+        let print_order = calculate_variant_order(&["print"]);
 
         // All should have non-zero variant order
-        assert!(at_3xl_order > 0, "@3xl should have non-zero variant order");
         assert!(dark_order > 0, "dark should have non-zero variant order");
         assert!(
             portrait_order > 0,
             "portrait should have non-zero variant order"
         );
+        assert!(print_order > 0, "print should have non-zero variant order");
 
         // They should all have different orders
-        assert_ne!(at_3xl_order, dark_order);
         assert_ne!(dark_order, portrait_order);
-        assert_ne!(at_3xl_order, portrait_order);
+        assert_ne!(dark_order, print_order);
+        assert_ne!(portrait_order, print_order);
 
         // Base classes should still have order 0
         let base_order = calculate_variant_order(&[]);
         assert_eq!(base_order, 0);
 
         // All variant orders should be greater than base order
-        assert!(at_3xl_order > base_order);
         assert!(dark_order > base_order);
         assert!(portrait_order > base_order);
+        assert!(print_order > base_order);
     }
 
     #[test]
     fn test_dark_variant_order() {
-        // Specific test for the dark variant mentioned in the bug report
+        // Specific test for the dark variant - critical for dark:placeholder sorting
         let dark_order = calculate_variant_order(&["dark"]);
         let hover_order = calculate_variant_order(&["hover"]);
         let base_order = calculate_variant_order(&[]);
@@ -376,8 +378,63 @@ mod tests {
         assert!(dark_order > base_order);
         assert!(hover_order > base_order);
 
-        // dark (index 74) should come after hover (index 35)
+        // dark (index 56) should come after hover (index 37)
         assert!(dark_order > hover_order);
+    }
+
+    #[test]
+    fn test_compound_variants() {
+        // Test that compound variants use ONLY the base part for ordering
+        // This is critical for proper sorting where peer-hover sorts at peer's position (index 2)
+        let peer_hover_order = calculate_variant_order(&["peer-hover"]);
+        let peer_order = calculate_variant_order(&["peer"]);
+        let hover_order = calculate_variant_order(&["hover"]);
+
+        // peer-hover should equal peer (not peer | hover)
+        // This makes it sort at peer's early position (index 2), not hover's later position (index 37)
+        assert_eq!(
+            peer_hover_order, peer_order,
+            "peer-hover should sort at peer's position"
+        );
+
+        // Test group-focus
+        let group_focus_order = calculate_variant_order(&["group-focus"]);
+        let group_order = calculate_variant_order(&["group"]);
+
+        assert_eq!(
+            group_focus_order, group_order,
+            "group-focus should sort at group's position"
+        );
+
+        // Test multi-dash compound (peer-focus-within)
+        let peer_focus_within_order = calculate_variant_order(&["peer-focus-within"]);
+
+        assert_eq!(
+            peer_focus_within_order, peer_order,
+            "peer-focus-within should sort at peer's position"
+        );
+
+        // Test that compound variants sort correctly relative to simple variants
+        // peer-hover uses peer's index (2), so it sorts BEFORE after (index 11)
+        let after_order = calculate_variant_order(&["after"]);
+        assert!(
+            peer_hover_order < after_order,
+            "peer-hover (index 2) should sort before after (index 11)"
+        );
+
+        // peer-hover also sorts before dark (index 56)
+        let dark_order = calculate_variant_order(&["dark"]);
+        assert!(
+            peer_hover_order < dark_order,
+            "peer-hover (index 2) should sort before dark (index 56)"
+        );
+
+        // But peer-hover sorts after group (index 1) since peer is at index 2
+        let group_hover_order = calculate_variant_order(&["group-hover"]);
+        assert!(
+            group_hover_order < peer_hover_order,
+            "group-hover (index 1) should sort before peer-hover (index 2)"
+        );
     }
 
     #[test]
@@ -417,12 +474,13 @@ mod tests {
             seen_orders.insert(order);
         }
 
-        // Verify we have unique orders for all 80 variants + base (0)
+        // Verify we have unique orders for all 58 variants + base (0)
         assert_eq!(
             seen_orders.len(),
             VARIANT_ORDER.len() + 1,
-            "Should have {} unique orders (80 variants + base)",
-            VARIANT_ORDER.len() + 1
+            "Should have {} unique orders ({} variants + base)",
+            VARIANT_ORDER.len() + 1,
+            VARIANT_ORDER.len()
         );
     }
 }

@@ -141,14 +141,15 @@ impl HybridSorter {
             .collect();
 
         // Sort by keys
-        // Classes with valid keys come first (sorted by key)
-        // Classes without keys come last (maintaining relative order)
+        // Classes without keys (unknown/custom) come first (maintaining relative order)
+        // Classes with valid keys come after (sorted by key)
+        // This matches prettier-plugin-tailwindcss behavior where unknown classes sort first
         with_keys.sort_by(
             |(a_key, _a_class), (z_key, _z_class)| match (a_key, z_key) {
                 (Some(a), Some(z)) => a.cmp(z),
-                (Some(_), None) => Ordering::Less, // Known classes before unknown
-                (None, Some(_)) => Ordering::Greater, // Unknown classes after known
-                (None, None) => Ordering::Equal,   // Unknown classes maintain relative order
+                (Some(_), None) => Ordering::Greater, // Known classes after unknown
+                (None, Some(_)) => Ordering::Less,    // Unknown classes before known
+                (None, None) => Ordering::Equal,      // Unknown classes maintain relative order
             },
         );
 
@@ -302,12 +303,12 @@ mod tests {
         let classes = vec!["flex", "unknown-class", "grid", "fake-utility"];
         let sorted = sorter.sort_classes(&classes);
 
-        // Known classes first
-        assert_eq!(sorted[0], "flex");
-        assert_eq!(sorted[1], "grid");
-        // Unknown classes after, maintaining relative order
-        assert_eq!(sorted[2], "unknown-class");
-        assert_eq!(sorted[3], "fake-utility");
+        // Unknown classes first, maintaining relative order
+        assert_eq!(sorted[0], "unknown-class");
+        assert_eq!(sorted[1], "fake-utility");
+        // Known classes after
+        assert_eq!(sorted[2], "flex");
+        assert_eq!(sorted[3], "grid");
     }
 
     #[test]
@@ -318,41 +319,41 @@ mod tests {
 
         // Test multiple unknown classes in various orders
         let classes = vec![
-            "flex",           // Known: should be first
-            "zebra-class",    // Unknown: should be 3rd (original position)
-            "grid",           // Known: should be second
-            "apple-class",    // Unknown: should be 4th (original position)
-            "m-4",            // Known: should sort by property order
-            "[custom:value]", // Unknown: should be 5th (original position)
-            "banana-class",   // Unknown: should be 6th (original position)
+            "flex",           // Known: should be 5th
+            "zebra-class",    // Unknown: should be 1st (original position)
+            "grid",           // Known: should be 6th
+            "apple-class",    // Unknown: should be 2nd (original position)
+            "m-4",            // Known: should be 4th (by property order)
+            "[custom:value]", // Unknown: should be 3rd (original position)
+            "banana-class",   // Unknown: should be 7th (original position)
         ];
         let sorted = sorter.sort_classes(&classes);
 
-        // Verify known classes are sorted first by their sort keys
-        assert!(sorted[0] == "flex" || sorted[0] == "grid" || sorted[0] == "m-4");
-        assert!(sorted[1] == "flex" || sorted[1] == "grid" || sorted[1] == "m-4");
-        assert!(sorted[2] == "flex" || sorted[2] == "grid" || sorted[2] == "m-4");
-
-        // Verify unknown classes maintain relative order (not alphabetized)
+        // Verify unknown classes come first and maintain relative order (not alphabetized)
         // Original order: zebra-class, apple-class, [custom:value], banana-class
         // If alphabetized it would be: [custom:value], apple-class, banana-class, zebra-class
         // But we want to preserve original order
         assert_eq!(
-            sorted[3], "zebra-class",
+            sorted[0], "zebra-class",
             "First unknown class should maintain position"
         );
         assert_eq!(
-            sorted[4], "apple-class",
+            sorted[1], "apple-class",
             "Second unknown class should maintain position"
         );
         assert_eq!(
-            sorted[5], "[custom:value]",
+            sorted[2], "[custom:value]",
             "Third unknown class should maintain position"
         );
         assert_eq!(
-            sorted[6], "banana-class",
+            sorted[3], "banana-class",
             "Fourth unknown class should maintain position"
         );
+
+        // Verify known classes are sorted last by their sort keys
+        assert!(sorted[4] == "flex" || sorted[4] == "grid" || sorted[4] == "m-4");
+        assert!(sorted[5] == "flex" || sorted[5] == "grid" || sorted[5] == "m-4");
+        assert!(sorted[6] == "flex" || sorted[6] == "grid" || sorted[6] == "m-4");
     }
 
     #[test]
@@ -414,5 +415,66 @@ mod tests {
         let (entries, capacity) = sorter.cache_stats();
         // Should not exceed capacity (though exact behavior depends on LRU)
         assert!(entries <= capacity);
+    }
+
+    #[test]
+    fn test_opacity_slash_custom_colors_sort_first() {
+        // Custom colors with opacity (like to-stroke/0, bg-primary/20) should be
+        // treated as unknown and sort FIRST, before known classes
+        let sorter = HybridSorter::new();
+
+        let classes = vec!["flex", "to-stroke/0"];
+        let sorted = sorter.sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["to-stroke/0", "flex"],
+            "Custom color to-stroke/0 should sort BEFORE known class flex"
+        );
+
+        let classes = vec!["sticky", "bg-primary/20"];
+        let sorted = sorter.sort_classes(&classes);
+        assert_eq!(
+            sorted,
+            vec!["bg-primary/20", "sticky"],
+            "Custom color bg-primary/20 should sort BEFORE known class sticky"
+        );
+
+        let classes = vec!["from-stroke/0", "via-stroke", "to-stroke/0"];
+        let sorted = sorter.sort_classes(&classes);
+        // from-stroke/0 and to-stroke/0 are unknown (custom colors)
+        // via-stroke is also unknown
+        // All should maintain relative order
+        assert_eq!(
+            sorted,
+            vec!["from-stroke/0", "via-stroke", "to-stroke/0"],
+            "Unknown gradient colors should maintain relative order"
+        );
+    }
+
+    #[test]
+    fn test_opacity_slash_standard_colors_sort_by_property() {
+        // Standard colors with opacity (like text-white/60, bg-black/25) should be
+        // treated as known and sort according to property order
+        let sorter = HybridSorter::new();
+
+        let classes = vec!["text-white/60", "flex"];
+        let sorted = sorter.sort_classes(&classes);
+        // flex (display) vs text-white/60 (color)
+        // display has lower property index than color, so flex comes first
+        assert_eq!(
+            sorted,
+            vec!["flex", "text-white/60"],
+            "flex should sort BEFORE text-white/60 (by property order)"
+        );
+
+        let classes = vec!["bg-black/25", "sticky"];
+        let sorted = sorter.sort_classes(&classes);
+        // sticky (position) vs bg-black/25 (background-color)
+        // position has lower property index than background-color, so sticky comes first
+        assert_eq!(
+            sorted,
+            vec!["sticky", "bg-black/25"],
+            "sticky should sort BEFORE bg-black/25 (by property order)"
+        );
     }
 }

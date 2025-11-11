@@ -584,6 +584,67 @@ export const variants = [
   'dark',
   'portrait', 'landscape',
   'print',
+  'group', 'peer',
+  'group-hover', 'group-focus',
+  'peer-hover', 'peer-focus',
+];
+
+// Common variant stacking patterns found in real-world code
+// These represent the most frequent double/triple variant combinations
+export const variantStackingPatterns = [
+  ['dark', 'hover'],      // dark:hover: - 43 occurrences in real-world
+  ['dark', 'lg'],          // dark:lg: - 18 occurrences
+  ['lg', 'hover'],         // lg:hover: - 4 occurrences
+  ['dark', 'focus'],       // dark:focus: - 3 occurrences
+  ['dark', 'placeholder'], // dark:placeholder: - 3 occurrences
+  ['xl', 'dark'],          // xl:dark: - 2 occurrences
+  ['dark', 'md'],
+  ['dark', 'sm'],
+  ['md', 'hover'],
+  ['sm', 'focus'],
+];
+
+// Classes with opacity slash syntax (found heavily in real-world code)
+// These use the modern opacity syntax: color/opacity
+export const opacityClasses = [
+  // Text colors with opacity (37+ occurrences)
+  'text-white/90', 'text-white/60', 'text-white/30',
+  'text-black/90', 'text-black/60', 'text-black/30',
+  'text-gray-900/90', 'text-gray-800/80', 'text-gray-500/50',
+
+  // Background colors with opacity (heavy usage)
+  'bg-white/5', 'bg-white/10', 'bg-white/20', 'bg-white/30', 'bg-white/50', 'bg-white/95',
+  'bg-black/25', 'bg-black/50', 'bg-black/75',
+  'bg-gray-900/90', 'bg-gray-800/80', 'bg-gray-500/50',
+
+  // Border colors with opacity
+  'border-white/10', 'border-white/20',
+  'border-black/10', 'border-black/20',
+
+  // Gradient colors with opacity
+  'to-stroke/0', 'from-stroke/0',
+];
+
+// Common arbitrary value patterns from real-world usage
+export const arbitraryValueClasses = [
+  // Spacing (heavy usage)
+  'py-[10px]', 'py-[30px]', 'px-[14px]', 'px-[30px]',
+  'my-[6px]', 'mb-[18px]', 'mb-[50px]', 'mb-[60px]',
+
+  // Sizing (very common)
+  'w-[30px]', 'w-[50px]', 'w-[70px]', 'w-[120px]',
+  'h-[2px]', 'h-[50px]', 'h-[70px]', 'h-[120px]',
+  'max-w-[180px]', 'max-w-[370px]', 'max-w-[485px]',
+
+  // Border radius
+  'rounded-[5px]', 'rounded-[14px]',
+
+  // Typography
+  'text-[40px]', 'text-[42px]', 'leading-[1.2]',
+
+  // Layout
+  'gap-[10px]', 'gap-[22px]', 'z-[-1]',
+  'pt-[120px]', 'border-[1.5px]',
 ];
 
 export default allClasses;

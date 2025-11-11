@@ -959,6 +959,14 @@ impl UtilityMap {
 
             // Shadow
             "shadow" if is_color_value(value) => Some(&["--tw-shadow-color"][..]),
+            "shadow"
+                if value.is_empty()
+                    || is_size_keyword(value)
+                    || value == "inner"
+                    || value == "none" =>
+            {
+                Some(&["box-shadow"][..])
+            }
 
             // Ring (uses multiple properties)
             "ring" if value.is_empty() || value.parse::<u32>().is_ok() => {

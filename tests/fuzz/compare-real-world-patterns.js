@@ -7,7 +7,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { allClasses, variants } from './tailwind-classes.js';
+import { allClasses, variants, variantStackingPatterns, opacityClasses, arbitraryValueClasses } from './tailwind-classes.js';
 import { filterLegacyClasses } from './legacy-classes.js';
 import { readFileSync } from 'fs';
 import prettier from 'prettier';
@@ -27,7 +27,8 @@ const rng = seedrandom(SEED);
 // Use classes that appear in FAILURES (70% of the time)
 // And general class pool (30% of the time) for variety
 const failingClasses = failurePatterns.failingClasses;
-const classPool = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
+const baseClasses = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
+const classPool = [...baseClasses, ...opacityClasses, ...arbitraryValueClasses];
 
 // Extract modifiers that appear in failures
 const failingModifiers = failurePatterns.failingModifiers;
