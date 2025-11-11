@@ -359,12 +359,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-backdrop-saturate",
     "--tw-backdrop-sepia",
     "backdrop-filter",
-    "--tw-ring-inset",
     "transition-property",
     "transition-behavior",
     "transition-delay",
     "transition-duration",
     "transition-timing-function",
+    "--tw-ring-inset",
     "will-change",
     "outline-style",
     "user-select",
@@ -459,9 +459,9 @@ mod tests {
         assert_eq!(get_property_index("--tw-shadow-color"), Some(295));
         assert_eq!(get_property_index("--tw-ring-shadow"), Some(298));
         assert_eq!(get_property_index("--tw-ring-color"), Some(299));
-        // --tw-ring-inset moved to 328 (after backdrop-filter) to match Tailwind v4 behavior
-        // where it sorts after filter utilities like saturate, blur, etc.
-        assert_eq!(get_property_index("--tw-ring-inset"), Some(328));
+        // --tw-ring-inset at index 333 (after transition properties) to match Tailwind v4/Prettier behavior
+        // Transition properties (delay, duration, timing-function) sort before ring-inset
+        assert_eq!(get_property_index("--tw-ring-inset"), Some(333));
 
         // Outline properties (shifted down by 1 after removing ring-inset from 304)
         assert_eq!(get_property_index("outline"), Some(304));

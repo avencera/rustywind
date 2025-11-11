@@ -316,11 +316,27 @@ pub struct SortKey {
 impl Eq for SortKey {}
 
 /// Check if a class contains an arbitrary value (e.g., h-[120px], border-[1.5px])
-///
-/// Arbitrary values should sort BEFORE regular values within the same property group,
-/// matching Tailwind/Prettier's behavior.
 fn has_arbitrary_value(class: &str) -> bool {
     class.contains('[') && class.contains(']')
+}
+
+/// Check if a utility property should have arbitrary values sort BEFORE regular values
+///
+/// Tailwind/Prettier uses property-specific ordering:
+/// - max-*, w, h, size, rounded, leading: arbitrary BEFORE keyword (more specific first)
+/// - min-*, spacing, text, etc.: keyword BEFORE arbitrary (semantic first)
+fn should_arbitrary_come_first(class: &str) -> bool {
+    // Strip variants to get the base utility
+    let utility = class.split(':').next_back().unwrap_or(class);
+
+    // Properties where arbitrary values come BEFORE regular values
+    utility.starts_with("max-w-")
+        || utility.starts_with("max-h-")
+        || (utility.starts_with("w-") && !utility.starts_with("will-"))
+        || (utility.starts_with("h-") && !utility.starts_with("hue-"))
+        || utility.starts_with("size-")
+        || utility.starts_with("rounded-")
+        || utility.starts_with("leading-")
 }
 
 /// Get the utility prefix priority for tiebreaking when properties match.
@@ -414,17 +430,33 @@ impl Ord for SortKey {
             // means if z (other) has MORE properties, result is positive, so a (self) comes first
             // Therefore: compare other.count vs self.count (reversed)
             .then(other.property_count.cmp(&self.property_count))
-            // Then handle arbitrary values (text-[14px] vs text-sm)
-            // Within the same property group, arbitrary values sort AFTER regular values
+            // Then handle arbitrary values with property-specific rules
+            // Some properties (max-*, w, h, size, rounded, leading) put arbitrary BEFORE keyword
+            // Others (min-*, spacing, text, etc.) put keyword BEFORE arbitrary
             // IMPORTANT: This must come BEFORE numeric comparison to ensure arbitrary
             // values don't get resolved alphabetically (e.g., p-[15px] vs p-4)
             .then_with(|| {
                 let self_has_arbitrary = has_arbitrary_value(&self.class);
                 let other_has_arbitrary = has_arbitrary_value(&other.class);
+
                 match (self_has_arbitrary, other_has_arbitrary) {
-                    (true, false) => Ordering::Greater, // Arbitrary after regular
-                    (false, true) => Ordering::Less,    // Regular before arbitrary
-                    _ => Ordering::Equal,               // Both or neither, continue
+                    (true, false) => {
+                        // Check if this is a property where arbitrary should come FIRST
+                        if should_arbitrary_come_first(&self.class) {
+                            Ordering::Less // Arbitrary BEFORE regular (e.g., max-w-[485px] before max-w-max)
+                        } else {
+                            Ordering::Greater // Arbitrary AFTER regular (e.g., p-4 before p-[10px])
+                        }
+                    }
+                    (false, true) => {
+                        // Inverse of above
+                        if should_arbitrary_come_first(&other.class) {
+                            Ordering::Greater // Regular AFTER arbitrary
+                        } else {
+                            Ordering::Less // Regular BEFORE arbitrary (current behavior for most)
+                        }
+                    }
+                    _ => Ordering::Equal, // Both or neither, continue
                 }
             })
             // Then by numeric value (if both present)
