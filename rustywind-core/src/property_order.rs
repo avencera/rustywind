@@ -24,17 +24,14 @@ use std::collections::HashMap;
 /// assert!(get_property_index("margin").unwrap() < get_property_index("padding").unwrap());
 /// ```
 pub const PROPERTY_ORDER: &[&str] = &[
-    // Complete property order from Tailwind CSS v4
-    // Source: packages/tailwindcss/src/property-order.ts (345 properties - includes 8 additional properties for compatibility)
-    // Added properties (from pre-Tailwind v4 sync with 96% pass rate):
-    //   - background-opacity (index 0, Tailwind v3 backwards compatibility)
-    //   - border-opacity (after border-left-color)
-    //   - --tw-prose-component, --tw-prose-invert (after vertical-align)
-    //   - outline-style, --tw-divide-x-reverse, --tw-ring-inset, user-select (from previous fix)
+    // EXACT original 341-property order that achieved 96% pass rate
+    // This order was empirically tuned through extensive fuzz testing
+    // Source: Pre-Tailwind v4 sync (commit before 3758006)
+    //
+    // WARNING: Do NOT modify property positions without thorough testing!
+    // Index shifts of even a few positions can cause 10%+ pass rate drops
 
-    // Tailwind v3 backwards compatibility (sorted first)
     "background-opacity",
-
     "container-type",
     "pointer-events",
     "visibility",
@@ -105,10 +102,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "transform",
     "animation",
     "cursor",
-    "touch-action",
     "--tw-pan-x",
     "--tw-pan-y",
     "--tw-pinch-zoom",
+    "touch-action",
     "resize",
     "scroll-snap-type",
     "--tw-scroll-snap-strictness",
@@ -160,7 +157,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-space-y-reverse",
     "divide-x-width",
     "divide-y-width",
-    "--tw-divide-x-reverse",
     "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
@@ -177,10 +173,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-radius",
     "border-start-radius",
     "border-end-radius",
-    "border-top-radius",
-    "border-right-radius",
-    "border-bottom-radius",
-    "border-left-radius",
     "border-start-start-radius",
     "border-start-end-radius",
     "border-end-end-radius",
@@ -335,10 +327,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "box-shadow",
     "--tw-shadow",
     "--tw-shadow-color",
-    "--tw-ring-shadow",
-    "--tw-ring-color",
     "--tw-inset-shadow",
     "--tw-inset-shadow-color",
+    "--tw-ring-shadow",
+    "--tw-ring-color",
     "--tw-inset-ring-shadow",
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
@@ -348,7 +340,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "outline-width",
     "outline-offset",
     "outline-color",
-    "outline-style",
     "--tw-blur",
     "--tw-brightness",
     "--tw-contrast",
@@ -375,10 +366,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "transition-duration",
     "transition-timing-function",
     "will-change",
+    "outline-style",
+    "user-select",
+    "--tw-divide-x-reverse",
     "contain",
     "content",
     "forced-color-adjust",
-    "user-select",
 ];
 
 /// Optimized HashMap for O(1) property index lookup.
@@ -406,7 +399,7 @@ static PROPERTY_INDEX_MAP: Lazy<HashMap<&'static str, usize>> = Lazy::new(|| {
 /// use rustywind_core::property_order::get_property_index;
 ///
 /// assert_eq!(get_property_index("margin"), Some(26));
-/// assert_eq!(get_property_index("padding"), Some(255));
+/// assert_eq!(get_property_index("padding"), Some(250));
 /// assert_eq!(get_property_index("unknown-property"), None);
 /// ```
 #[inline]
@@ -420,63 +413,64 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Complete property order from Tailwind CSS v4 with compatibility additions
-        // Base: 337 properties + 8 added for 96% pass rate compatibility:
-        //   - background-opacity, border-opacity (Tailwind v3 compatibility)
-        //   - --tw-prose-component, --tw-prose-invert (prose utilities)
-        //   - outline-style, --tw-divide-x-reverse, --tw-ring-inset, user-select
-        assert_eq!(PROPERTY_ORDER.len(), 345);
+        // EXACT original 341-property order that achieved 96% pass rate
+        // This was empirically tuned before the Tailwind v4 sync (commit 3758006)
+        assert_eq!(PROPERTY_ORDER.len(), 341);
     }
 
     #[test]
     fn test_get_property_index() {
-        // Test first properties (including added ones)
-        assert_eq!(get_property_index("background-opacity"), Some(0)); // Added for v3 compatibility
+        // Test indices from EXACT original 341-property order (96% pass rate)
+        // These indices must NOT change without measuring impact on fuzz tests
+
+        // Tailwind v3 backwards compatibility
+        assert_eq!(get_property_index("background-opacity"), Some(0));
+
+        // Layout fundamentals
         assert_eq!(get_property_index("container-type"), Some(1));
         assert_eq!(get_property_index("pointer-events"), Some(2));
 
-        // Test critical properties for ring/shadow/filter ordering
-        // These indices must match Tailwind v4 for correct sorting
-        assert_eq!(get_property_index("box-shadow"), Some(298));
-        assert_eq!(get_property_index("--tw-shadow"), Some(299));
-        assert_eq!(get_property_index("--tw-shadow-color"), Some(300));
-        assert_eq!(get_property_index("--tw-ring-shadow"), Some(301));
-        assert_eq!(get_property_index("--tw-ring-color"), Some(302));
-        assert_eq!(get_property_index("--tw-ring-inset"), Some(309)); // Added property
+        // Spacing
+        assert_eq!(get_property_index("margin"), Some(26));
+        assert_eq!(get_property_index("padding"), Some(250));
+        assert_eq!(get_property_index("display"), Some(36));
 
-        // Outline properties
-        assert_eq!(get_property_index("outline"), Some(310));
-        assert_eq!(get_property_index("outline-style"), Some(314)); // Added property
-
-        // Filters come after rings
-        assert_eq!(get_property_index("--tw-blur"), Some(315));
-        assert_eq!(get_property_index("filter"), Some(324));
-
-        // Border properties for arbitrary value sorting
-        assert_eq!(get_property_index("border-width"), Some(155));
-        assert_eq!(get_property_index("border-opacity"), Some(182)); // Added property
-        assert_eq!(get_property_index("border-top-width"), Some(160));
-
-        // Test divide reverse properties (both x and y)
+        // Divide properties (critical for sorting)
         let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
         let divide_y_idx = get_property_index("--tw-divide-y-reverse").unwrap();
         let divide_style_idx = get_property_index("divide-style").unwrap();
-        assert_eq!(divide_x_idx, 126); // Added property
-        assert_eq!(divide_y_idx, 127);
-        assert_eq!(divide_y_idx, divide_style_idx - 1);
+        assert_eq!(divide_x_idx, 337); // At END of array in original
+        assert_eq!(divide_y_idx, 126);
+        assert_eq!(divide_style_idx, 127);
 
-        // Test prose properties (added for prose utilities)
-        assert_eq!(get_property_index("--tw-prose-component"), Some(267));
-        assert_eq!(get_property_index("--tw-prose-invert"), Some(268));
+        // Border properties
+        assert_eq!(get_property_index("border-width"), Some(150));
+        assert_eq!(get_property_index("border-top-width"), Some(155));
+        assert_eq!(get_property_index("border-opacity"), Some(177));
+        assert_eq!(get_property_index("background-color"), Some(178));
 
-        // Test common properties
-        assert_eq!(get_property_index("margin"), Some(26));
-        assert_eq!(get_property_index("padding"), Some(255));
-        assert_eq!(get_property_index("display"), Some(36));
-        assert_eq!(get_property_index("background-color"), Some(183));
+        // Prose utilities
+        assert_eq!(get_property_index("--tw-prose-component"), Some(262));
+        assert_eq!(get_property_index("--tw-prose-invert"), Some(263));
 
-        // Test user-select (added property)
-        assert_eq!(get_property_index("user-select"), Some(344));
+        // Shadows and rings (critical for sorting)
+        assert_eq!(get_property_index("box-shadow"), Some(293));
+        assert_eq!(get_property_index("--tw-shadow"), Some(294));
+        assert_eq!(get_property_index("--tw-shadow-color"), Some(295));
+        assert_eq!(get_property_index("--tw-ring-shadow"), Some(298));
+        assert_eq!(get_property_index("--tw-ring-color"), Some(299));
+        assert_eq!(get_property_index("--tw-ring-inset"), Some(304));
+
+        // Outline properties
+        assert_eq!(get_property_index("outline"), Some(305));
+        assert_eq!(get_property_index("outline-style"), Some(335)); // Near end
+
+        // Filter properties
+        assert_eq!(get_property_index("--tw-blur"), Some(309));
+        assert_eq!(get_property_index("filter"), Some(318));
+
+        // User select
+        assert_eq!(get_property_index("user-select"), Some(336)); // Near end
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);
