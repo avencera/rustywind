@@ -181,31 +181,31 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
 
     // Handle arbitrary values first (e.g., h-[120px], bg-white/30, max-w-[485px])
     // Check for brackets [...] or opacity /number
-    if let Some(bracket_start) = utility.find('[') {
-        if let Some(bracket_end) = utility.find(']') {
-            // Extract content within brackets: h-[120px] -> "120px"
-            let value_str = &utility[bracket_start + 1..bracket_end];
+    if let Some(bracket_start) = utility.find('[')
+        && let Some(bracket_end) = utility.find(']')
+    {
+        // Extract content within brackets: h-[120px] -> "120px"
+        let value_str = &utility[bracket_start + 1..bracket_end];
 
-            // Try to extract number from the start of the string
-            // Handles: "120px", "2rem", "0.5", "50%", etc.
-            let mut num_str = String::new();
-            let mut seen_dot = false;
+        // Try to extract number from the start of the string
+        // Handles: "120px", "2rem", "0.5", "50%", etc.
+        let mut num_str = String::new();
+        let mut seen_dot = false;
 
-            for ch in value_str.chars() {
-                if ch.is_numeric() {
-                    num_str.push(ch);
-                } else if ch == '.' && !seen_dot {
-                    num_str.push(ch);
-                    seen_dot = true;
-                } else {
-                    // Stop at first non-numeric, non-dot character
-                    break;
-                }
+        for ch in value_str.chars() {
+            if ch.is_numeric() {
+                num_str.push(ch);
+            } else if ch == '.' && !seen_dot {
+                num_str.push(ch);
+                seen_dot = true;
+            } else {
+                // Stop at first non-numeric, non-dot character
+                break;
             }
+        }
 
-            if let Ok(num) = num_str.parse::<f64>() {
-                return Some(num);
-            }
+        if let Ok(num) = num_str.parse::<f64>() {
+            return Some(num);
         }
     }
 
@@ -232,10 +232,10 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
             if let Some(last_part) = parts.last() {
                 // If last part is NOT a number, it's opacity like bg-white/30
                 // If last part IS a number, it's a fraction like w-1/2 - skip to fraction logic
-                if last_part.parse::<f64>().is_err() {
-                    if let Ok(num) = after_slash.parse::<f64>() {
-                        return Some(num);
-                    }
+                if last_part.parse::<f64>().is_err()
+                    && let Ok(num) = after_slash.parse::<f64>()
+                {
+                    return Some(num);
                 }
             }
         }

@@ -159,10 +159,10 @@ pub fn calculate_variant_order(variants: &[&str]) -> u128 {
 
                 // Only add the first part (base variant) to the order
                 // This ensures peer-hover sorts near peer (index 2), not near hover (index 37)
-                if let Some(idx) = get_variant_index(first_part) {
-                    if idx < 128 {
-                        order |= 1u128 << idx;
-                    }
+                if let Some(idx) = get_variant_index(first_part)
+                    && idx < 128
+                {
+                    order |= 1u128 << idx;
                 }
             }
         }
