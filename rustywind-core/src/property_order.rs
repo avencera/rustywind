@@ -335,7 +335,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
-    "--tw-ring-inset",
     "outline",
     "outline-width",
     "outline-offset",
@@ -360,6 +359,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-backdrop-saturate",
     "--tw-backdrop-sepia",
     "backdrop-filter",
+    "--tw-ring-inset",
     "transition-property",
     "transition-behavior",
     "transition-delay",
@@ -459,15 +459,17 @@ mod tests {
         assert_eq!(get_property_index("--tw-shadow-color"), Some(295));
         assert_eq!(get_property_index("--tw-ring-shadow"), Some(298));
         assert_eq!(get_property_index("--tw-ring-color"), Some(299));
-        assert_eq!(get_property_index("--tw-ring-inset"), Some(304));
+        // --tw-ring-inset moved to 328 (after backdrop-filter) to match Tailwind v4 behavior
+        // where it sorts after filter utilities like saturate, blur, etc.
+        assert_eq!(get_property_index("--tw-ring-inset"), Some(328));
 
-        // Outline properties
-        assert_eq!(get_property_index("outline"), Some(305));
+        // Outline properties (shifted down by 1 after removing ring-inset from 304)
+        assert_eq!(get_property_index("outline"), Some(304));
         assert_eq!(get_property_index("outline-style"), Some(335)); // Near end
 
-        // Filter properties
-        assert_eq!(get_property_index("--tw-blur"), Some(309));
-        assert_eq!(get_property_index("filter"), Some(318));
+        // Filter properties (shifted down by 1)
+        assert_eq!(get_property_index("--tw-blur"), Some(308));
+        assert_eq!(get_property_index("filter"), Some(317));
 
         // User select
         assert_eq!(get_property_index("user-select"), Some(336)); // Near end
