@@ -260,6 +260,24 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
         return Some(num as f64);
     }
 
+    // Try to extract leading digits from values like "4xl", "2xl", etc.
+    // This allows numeric comparison between max-w-4xl and max-w-[485px]
+    if !value_str.is_empty() {
+        let mut num_str = String::new();
+        for ch in value_str.chars() {
+            if ch.is_numeric() {
+                num_str.push(ch);
+            } else {
+                break; // Stop at first non-numeric character
+            }
+        }
+        if !num_str.is_empty() {
+            if let Ok(num) = num_str.parse::<f64>() {
+                return Some(num);
+            }
+        }
+    }
+
     // Try to parse as fraction (e.g., "1/2")
     if value_str.contains('/') {
         let fraction_parts: Vec<&str> = value_str.split('/').collect();
@@ -318,6 +336,14 @@ impl Eq for SortKey {}
 /// Check if a class contains an arbitrary value (e.g., h-[120px], border-[1.5px])
 fn has_arbitrary_value(class: &str) -> bool {
     class.contains('[') && class.contains(']')
+}
+
+/// Check if a utility uses opacity syntax (has a slash like bg-white/20)
+/// Returns true for classes like: bg-white/20, text-black/75, border-gray-500/50
+fn has_opacity_syntax(class: &str) -> bool {
+    // Strip variants to get the utility part
+    let utility = class.split(':').next_back().unwrap_or(class);
+    utility.contains('/')
 }
 
 /// Check if a utility property should have arbitrary values sort BEFORE regular values
@@ -430,22 +456,52 @@ impl Ord for SortKey {
             // means if z (other) has MORE properties, result is positive, so a (self) comes first
             // Therefore: compare other.count vs self.count (reversed)
             .then(other.property_count.cmp(&self.property_count))
-            // Then handle arbitrary values with property-specific rules
-            // Some properties (max-*, w, h, size, rounded, leading) put arbitrary BEFORE keyword
-            // Others (min-*, spacing, text, etc.) put keyword BEFORE arbitrary
-            // IMPORTANT: This must come BEFORE numeric comparison to ensure arbitrary
-            // values don't get resolved alphabetically (e.g., p-[15px] vs p-4)
+            // Then handle numeric and arbitrary value comparison
+            // IMPORTANT: Numeric comparison comes FIRST!
+            // Prettier compares numeric values even between arbitrary and non-arbitrary
+            // e.g., w-2 (numeric: 2) comes before w-[70px] (numeric: 70)
+            // e.g., max-w-4xl (numeric: 4) comes before max-w-[485px] (numeric: 485)
             .then_with(|| {
                 let self_has_arbitrary = has_arbitrary_value(&self.class);
                 let other_has_arbitrary = has_arbitrary_value(&other.class);
+                let self_has_opacity = has_opacity_syntax(&self.class);
+                let other_has_opacity = has_opacity_syntax(&other.class);
 
+                // If BOTH have numeric values, check if we should compare numerically
+                // DON'T compare numerically if one has opacity syntax and the other doesn't
+                // (e.g., border-gray-500 vs border-white/20 should sort alphabetically)
+                match (self.numeric_value, other.numeric_value) {
+                    (Some(a), Some(b)) => {
+                        // Only compare numerically if both have same opacity status
+                        // This prevents comparing shade values (gray-500) with opacity values (white/20)
+                        if self_has_opacity == other_has_opacity {
+                            // Compare numeric values first
+                            match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
+                                Ordering::Equal => {
+                                    // Numeric values are equal, fall through to arbitrary check
+                                }
+                                ordering => return ordering, // Different numeric values, we're done
+                            }
+                        }
+                        // Different opacity status, fall through to arbitrary check
+                    }
+                    _ => {
+                        // At least one doesn't have a numeric value, continue to arbitrary check
+                    }
+                }
+
+                // If we get here, either:
+                // 1. Numeric values are equal, OR
+                // 2. At least one doesn't have a numeric value
+                // Now apply the arbitrary vs non-arbitrary rule (for non-numeric comparisons)
                 match (self_has_arbitrary, other_has_arbitrary) {
                     (true, false) => {
                         // Check if this is a property where arbitrary should come FIRST
+                        // (only applies when there's no numeric comparison)
                         if should_arbitrary_come_first(&self.class) {
                             Ordering::Less // Arbitrary BEFORE regular (e.g., max-w-[485px] before max-w-max)
                         } else {
-                            Ordering::Greater // Arbitrary AFTER regular (e.g., p-4 before p-[10px])
+                            Ordering::Greater // Arbitrary AFTER regular (e.g., p-auto before p-[20px])
                         }
                     }
                     (false, true) => {
@@ -453,13 +509,14 @@ impl Ord for SortKey {
                         if should_arbitrary_come_first(&other.class) {
                             Ordering::Greater // Regular AFTER arbitrary
                         } else {
-                            Ordering::Less // Regular BEFORE arbitrary (current behavior for most)
+                            Ordering::Less // Regular BEFORE arbitrary
                         }
                     }
                     _ => Ordering::Equal, // Both or neither, continue
                 }
             })
-            // Then by numeric value (if both present)
+            // Then by alphanumeric comparison for utilities with numeric values
+            // (space-* prefix priority is handled here)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
                     (Some(_), Some(_)) => {

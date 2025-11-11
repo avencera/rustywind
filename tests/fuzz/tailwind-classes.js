@@ -622,7 +622,8 @@ export const opacityClasses = [
   'border-black/10', 'border-black/20',
 
   // Gradient colors with opacity
-  'to-stroke/0', 'from-stroke/0',
+  // NOTE: Custom colors removed - test with core Tailwind colors only
+  // to-stroke/0, from-stroke/0 removed (custom color "stroke" not in core)
 ];
 
 // Common arbitrary value patterns from real-world usage

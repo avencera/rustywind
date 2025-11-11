@@ -1079,13 +1079,30 @@ impl UtilityMap {
 
             // Text Decoration
             "decoration" if is_color_value(value) => Some(&["text-decoration-color"][..]),
-            "decoration" => Some(&["text-decoration-thickness"][..]),
+            "decoration" if value.parse::<u32>().is_ok() => Some(&["text-decoration-thickness"][..]),
+            "decoration" => Some(&["text-decoration-color"][..]), // Fallback: custom colors
 
             // Underline Offset
             "underline-offset" => Some(&["text-underline-offset"][..]),
 
             // Text Indent
             "indent" => Some(&["text-indent"][..]),
+
+            // Fallbacks for color utilities with custom/unknown color names
+            // These catch utilities that didn't match is_color_value() checks above
+            // In real projects with Tailwind config, these custom colors would be recognized
+            "from" => Some(&["--tw-gradient-from"][..]),
+            "to" => Some(&["--tw-gradient-to"][..]),
+            "via" => Some(&["--tw-gradient-via"][..]),
+            "border" if !value.is_empty() => Some(&["border-color"][..]), // border-customcolor
+            "divide" => Some(&["divide-color"][..]),                      // divide-customcolor
+            "ring" if !value.is_empty() => Some(&["--tw-ring-color"][..]), // ring-customcolor
+            "ring-offset" if !value.is_empty() => Some(&["--tw-ring-offset-color"][..]), // ring-offset-customcolor
+            "accent" => Some(&["accent-color"][..]),                      // accent-customcolor
+            "caret" => Some(&["caret-color"][..]),                        // caret-customcolor
+            "outline" if !value.is_empty() && !value.parse::<u32>().is_ok() => {
+                Some(&["outline-color"][..]) // outline-customcolor (not outline-2)
+            }
 
             // Unknown utility
             _ => None,
