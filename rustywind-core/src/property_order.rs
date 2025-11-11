@@ -364,11 +364,11 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "transition-delay",
     "transition-duration",
     "transition-timing-function",
-    "--tw-ring-inset",
     "will-change",
     "outline-style",
     "user-select",
     "--tw-divide-x-reverse",
+    "--tw-ring-inset",
     "contain",
     "content",
     "forced-color-adjust",
@@ -439,7 +439,7 @@ mod tests {
         let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
         let divide_y_idx = get_property_index("--tw-divide-y-reverse").unwrap();
         let divide_style_idx = get_property_index("divide-style").unwrap();
-        assert_eq!(divide_x_idx, 337); // At END of array in original
+        assert_eq!(divide_x_idx, 336); // Near end of array
         assert_eq!(divide_y_idx, 126);
         assert_eq!(divide_style_idx, 127);
 
@@ -459,20 +459,20 @@ mod tests {
         assert_eq!(get_property_index("--tw-shadow-color"), Some(295));
         assert_eq!(get_property_index("--tw-ring-shadow"), Some(298));
         assert_eq!(get_property_index("--tw-ring-color"), Some(299));
-        // --tw-ring-inset at index 333 (after transition properties) to match Tailwind v4/Prettier behavior
-        // Transition properties (delay, duration, timing-function) sort before ring-inset
-        assert_eq!(get_property_index("--tw-ring-inset"), Some(333));
+        // --tw-ring-inset at index 337 (after outline-style, will-change, user-select, --tw-divide-x-reverse) to match Tailwind v4/Prettier behavior
+        // This ensures outline-* classes sort before ring-inset
+        assert_eq!(get_property_index("--tw-ring-inset"), Some(337));
 
         // Outline properties (shifted down by 1 after removing ring-inset from 304)
         assert_eq!(get_property_index("outline"), Some(304));
-        assert_eq!(get_property_index("outline-style"), Some(335)); // Near end
+        assert_eq!(get_property_index("outline-style"), Some(334)); // Near end
 
         // Filter properties (shifted down by 1)
         assert_eq!(get_property_index("--tw-blur"), Some(308));
         assert_eq!(get_property_index("filter"), Some(317));
 
         // User select
-        assert_eq!(get_property_index("user-select"), Some(336)); // Near end
+        assert_eq!(get_property_index("user-select"), Some(335)); // Near end
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);

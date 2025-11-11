@@ -556,6 +556,18 @@ impl Ord for SortKey {
                 .len()
                 .cmp(&self.property_indices.len())
         })())
+            // CRITICAL FIX: When property indices match, check utility prefix priority
+            // This fixes space-x vs gap-y ordering (both map to row-gap, but space-* has priority)
+            // Must happen BEFORE numeric value comparison to prevent gap-y-0 sorting before space-x-4
+            .then_with(|| {
+                // Only apply prefix priority when property indices are identical
+                if self.property_indices == other.property_indices {
+                    let priority_self = get_utility_prefix_priority(&self.class);
+                    let priority_other = get_utility_prefix_priority(&other.class);
+                    return priority_self.cmp(&priority_other);
+                }
+                Ordering::Equal
+            })
             // Then by property count (MORE properties = earlier, matching Tailwind v4)
             // Tailwind's: zSorting.properties.count - aSorting.properties.count
             // means if z (other) has MORE properties, result is positive, so a (self) comes first
