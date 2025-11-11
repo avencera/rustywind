@@ -871,3 +871,288 @@ The path to 97-98% is clear with actionable fixes for:
 Beyond 98%, improvements require deeper analysis and potentially complex features like CSS declaration counting. However, the current compatibility level is already excellent for production use.
 
 **Current Recommendation:** Focus on Phase 1 (ring/shadow + filters) to reach 97%, which provides excellent production-ready compatibility for the vast majority of use cases. The cost-benefit ratio for pushing beyond 98% should be carefully evaluated based on user feedback and real-world impact.
+
+---
+
+## Concrete Implementation Plan
+
+**Investigation Date:** 2025-11-11
+**RustyWind Codebase Analysis Results**
+
+### Current State Assessment
+
+After analyzing RustyWind's source code, here's what we found:
+
+#### ✅ What's Already Working
+
+1. **Infrastructure is excellent:**
+   - `SortKey` struct supports `property_indices: Vec<usize>` (multiple properties per utility)
+   - Property comparison iterates through ALL indices in order
+   - `property_count: usize` already tracks number of properties
+   - Comparison algorithm matches Tailwind's 5-step process
+
+2. **Filter utilities already mapped:**
+   - `blur` → `--tw-blur`
+   - `brightness` → `--tw-brightness`
+   - All filter CSS variables are mapped correctly
+
+3. **Border utilities properly structured:**
+   - Border width utilities map to appropriate properties
+   - Arbitrary value handling exists
+
+#### ❌ Critical Issue Found: Property Order Out of Sync
+
+**Root Cause of All 3 Failure Categories:**
+
+```
+RustyWind property_order.rs: 341 properties
+Tailwind CSS v4 property-order.ts: 416 properties
+Difference: 75 properties MISSING
+```
+
+**Index Comparison:**
+```
+Property              | Tailwind v4 | RustyWind | Delta
+--------------------- | ----------- | --------- | -----
+box-shadow            | 365         | ~336      | -29
+--tw-ring-shadow      | 368         | ~342      | -26
+--tw-blur             | 382         | ~355      | -27
+filter                | 391         | ~364      | -27
+```
+
+**Impact:** Because indices are shifted, sorting relationships between utilities are incorrect, causing:
+- Ring vs Shadow failures (wrong relative order)
+- Filter vs Ring failures (wrong relative order)
+- Border edge cases (property indices don't match Tailwind's)
+
+### Feasibility Analysis
+
+#### ✅ Can Be Fixed (Without CSS Parsing)
+
+1. **Property Order Sync** → **PRIMARY FIX**
+   - Update `property_order.rs` to match Tailwind v4's exact 416-property list
+   - This alone should fix ALL 3 categories of failures
+   - **Feasibility: HIGH** - Just update a static array
+
+2. **Property Count** → **ALREADY IMPLEMENTED**
+   - `SortKey.property_count` already tracks this
+   - Comparison already uses it (line 423 in pattern_sorter.rs)
+   - **No changes needed**
+
+3. **Multiple Properties Per Utility** → **ALREADY SUPPORTED**
+   - `property_indices: Vec<usize>` already handles this
+   - Comparison iterates through all indices
+   - **No changes needed**
+
+#### ❌ Cannot Be Easily Fixed (Would Require CSS Parsing)
+
+1. **Exact Property Count from CSS Generation**
+   - RustyWind doesn't generate actual CSS
+   - Currently approximates property count from utility_map.rs
+   - Would need to parse Tailwind's CSS generation logic
+   - **Feasibility: LOW** - Major architectural change
+   - **Impact: MINIMAL** - Only affects <1% of edge cases
+
+### Implementation Steps
+
+#### Phase 1: Sync Property Order (Target: Fix all 3 issues)
+
+**Time Estimate: 2-4 hours**
+**Expected Impact: 96% → 98% pass rate**
+
+1. **Extract Tailwind v4's complete property order:**
+   ```bash
+   # From /tmp/tailwindcss clone
+   cat packages/tailwindcss/src/property-order.ts
+   ```
+
+2. **Update `rustywind-core/src/property_order.rs`:**
+   ```rust
+   pub const PROPERTY_ORDER: &[&str] = &[
+       // Replace entire array with Tailwind v4's 416 properties
+       // Exact copy from property-order.ts lines 1-416
+   ];
+   ```
+
+3. **Verify critical indices:**
+   ```rust
+   #[test]
+   fn test_tailwind_v4_indices() {
+       // Verify key properties match Tailwind v4
+       assert_eq!(get_property_index("box-shadow"), Some(365));
+       assert_eq!(get_property_index("--tw-ring-shadow"), Some(368));
+       assert_eq!(get_property_index("--tw-blur"), Some(382));
+       assert_eq!(get_property_index("filter"), Some(391));
+       assert_eq!(get_property_index("border-width"), Some(194));
+       assert_eq!(get_property_index("border-top-width"), Some(199));
+   }
+   ```
+
+4. **Run tests:**
+   ```bash
+   # Unit tests
+   cargo test
+
+   # Fuzz tests
+   cd tests/fuzz && python tools/test_many_rounds.py 100
+   ```
+
+**Files to Modify:**
+- `rustywind-core/src/property_order.rs` (replace PROPERTY_ORDER array)
+
+**No Other Changes Needed:**
+- ✅ `utility_map.rs` - Already correct
+- ✅ `pattern_sorter.rs` - Already correct
+- ✅ `hybrid_sorter.rs` - Already correct
+
+#### Phase 2: Optional Enhancements (Target: 98% → 99%)
+
+**Only if Phase 1 doesn't reach 98%:**
+
+1. **Add filter + property mappings** (if needed):
+   ```rust
+   // In utility_map.rs, change from:
+   "blur" => Some(&["--tw-blur"][..]),
+
+   // To:
+   "blur" => Some(&["--tw-blur", "filter"][..]),
+   ```
+
+   But this is likely **NOT needed** because:
+   - Pattern sorter uses ALL property indices
+   - First index (--tw-blur at 382) is what matters for sorting
+   - Adding "filter" (391) would only affect tiebreaking
+
+2. **Verify border utility mappings:**
+   ```rust
+   #[test]
+   fn test_border_property_mapping() {
+       let map = UtilityMap::new();
+       assert_eq!(map.get_properties("border-[1.5px]"), Some(&["border-width"][..]));
+       assert_eq!(map.get_properties("border-t-0"), Some(&["border-top-width"][..]));
+   }
+   ```
+
+#### Phase 3: Validation (Target: Confirm 97-98%)
+
+1. **Run comprehensive fuzz tests:**
+   ```bash
+   cd tests/fuzz
+   python tools/test_many_rounds.py 100 > results.txt
+   ```
+
+2. **Analyze remaining failures:**
+   ```bash
+   python tools/collect_failures.py
+   python tools/analyze_failures.py
+   ```
+
+3. **Create regression tests:**
+   ```rust
+   // In rustywind-core/tests/test_ring_shadow_ordering.rs
+   #[test]
+   fn test_ring_after_shadow() {
+       assert_sorting("ring-1 shadow-gray-500", "shadow-gray-500 ring-1");
+   }
+
+   // In rustywind-core/tests/test_filter_ordering.rs
+   #[test]
+   fn test_blur_before_ring() {
+       assert_sorting("ring-1 blur", "blur ring-1");
+   }
+
+   // In rustywind-core/tests/test_border_arbitrary.rs
+   #[test]
+   fn test_border_arbitrary_vs_side() {
+       assert_sorting("border-t-0 border-[1.5px]", "border-[1.5px] border-t-0");
+   }
+   ```
+
+### Why This Should Work
+
+1. **Root Cause Identified:**
+   - The 75 missing properties cause index mismatches
+   - All utilities are already correctly mapped
+   - Just need indices to match Tailwind v4
+
+2. **Infrastructure Ready:**
+   - Multi-property support already exists
+   - Property count tracking already exists
+   - Comparison logic already correct
+
+3. **Minimal Changes:**
+   - Only need to update one array in one file
+   - No algorithmic changes required
+   - No new features to implement
+
+### Success Criteria
+
+**After Phase 1 (Property Order Sync):**
+- ✅ Fuzz test pass rate: **97-98%**
+- ✅ `ring-1 shadow-gray-500` sorts correctly
+- ✅ `blur brightness-50` vs `ring-1` sorts correctly
+- ✅ `border-[1.5px] border-t-0` sorts correctly
+
+**Measurement:**
+```bash
+# Before fix: ~96% pass rate
+# After fix: Target 97-98% pass rate
+# Improvement: +1-2% (fixing ~150-200 failures out of 397)
+```
+
+### Risk Assessment
+
+**LOW RISK:**
+- Only updating static data (property order array)
+- No logic changes
+- Easy to revert if issues arise
+- Comprehensive test suite exists
+
+**Testing Strategy:**
+1. Unit tests verify indices
+2. Integration tests verify specific cases
+3. Fuzz tests verify overall pass rate
+4. Real-world tests verify no regressions
+
+### Timeline
+
+- **Investigation:** ✅ Complete (2 hours)
+- **Phase 1 Implementation:** 2-4 hours
+  - Extract property order: 30 minutes
+  - Update property_order.rs: 30 minutes
+  - Write verification tests: 1 hour
+  - Run full test suite: 1-2 hours
+- **Phase 2 (if needed):** 1-2 hours
+- **Phase 3 Validation:** 1 hour
+
+**Total Estimate:** 4-7 hours to reach 97-98% pass rate
+
+### Next Steps
+
+1. ✅ **COMPLETE:** Source code investigation
+2. ✅ **COMPLETE:** Implementation plan
+3. **TODO:** Extract Tailwind v4 property order (416 properties)
+4. **TODO:** Update rustywind-core/src/property_order.rs
+5. **TODO:** Add verification tests
+6. **TODO:** Run fuzz tests and measure improvement
+7. **TODO:** Document results
+
+### Questions Answered
+
+**Q: Can we do property counting without CSS parsing?**
+**A:** ✅ Yes! Already implemented via `property_count` in SortKey.
+
+**Q: Can we fix ring/shadow ordering?**
+**A:** ✅ Yes! Just sync property order indices.
+
+**Q: Can we fix filter utilities?**
+**A:** ✅ Yes! Just sync property order indices. (Multi-property support already exists if needed)
+
+**Q: Can we fix border arbitrary values?**
+**A:** ✅ Yes! Just sync property order indices. (Utilities already mapped correctly)
+
+**Q: Do we need to parse CSS?**
+**A:** ❌ No! All issues can be fixed by syncing the property order array.
+
+**Q: How much work is this?**
+**A:** ⚡ Minimal! Just update one file (property_order.rs) with Tailwind v4's property list.
