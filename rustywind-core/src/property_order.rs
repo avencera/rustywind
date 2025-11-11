@@ -24,14 +24,12 @@ use std::collections::HashMap;
 /// assert!(get_property_index("margin").unwrap() < get_property_index("padding").unwrap());
 /// ```
 pub const PROPERTY_ORDER: &[&str] = &[
-    // Deprecated Tailwind v3 properties (sorted first for backwards compatibility)
-    "background-opacity",
-    // Container & Layout (1-5)
+    // Complete property order from Tailwind CSS v4
+    // Source: packages/tailwindcss/src/property-order.ts (337 properties)
     "container-type",
     "pointer-events",
     "visibility",
     "position",
-    // Positioning (5-13)
     "inset",
     "inset-inline",
     "inset-block",
@@ -41,22 +39,18 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "right",
     "bottom",
     "left",
-    // Stacking & Order (14-16)
     "isolation",
     "z-index",
     "order",
-    // Grid Column (17-22)
     "grid-column",
     "grid-column-start",
     "grid-column-end",
     "grid-row",
     "grid-row-start",
     "grid-row-end",
-    // Float & Clear (23-25)
     "float",
     "clear",
     "--tw-container-component",
-    // Spacing - Margin (26-34)
     "margin",
     "margin-inline",
     "margin-block",
@@ -66,7 +60,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "margin-right",
     "margin-bottom",
     "margin-left",
-    // Box Model (35-44)
     "box-sizing",
     "display",
     "field-sizing",
@@ -77,17 +70,14 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "width",
     "max-width",
     "min-width",
-    // Flexbox (45-48)
     "flex",
     "flex-shrink",
     "flex-grow",
     "flex-basis",
-    // Table (49-52)
     "table-layout",
     "caption-side",
     "border-collapse",
     "border-spacing",
-    // Transforms (53-68)
     "transform-origin",
     "translate",
     "--tw-translate-x",
@@ -104,15 +94,13 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-skew-x",
     "--tw-skew-y",
     "transform",
-    // Animation & Interaction (69-75)
     "animation",
     "cursor",
+    "touch-action",
     "--tw-pan-x",
     "--tw-pan-y",
     "--tw-pinch-zoom",
-    "touch-action",
     "resize",
-    // Scroll Snap (76-97)
     "scroll-snap-type",
     "--tw-scroll-snap-strictness",
     "scroll-snap-align",
@@ -135,23 +123,19 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "scroll-padding-right",
     "scroll-padding-bottom",
     "scroll-padding-left",
-    // List Styles (98-100)
     "list-style-position",
     "list-style-type",
     "list-style-image",
-    // Appearance & Breaks (101-105)
     "appearance",
     "columns",
     "break-before",
     "break-inside",
     "break-after",
-    // Grid Template (106-110)
     "grid-auto-columns",
     "grid-auto-flow",
     "grid-auto-rows",
     "grid-template-columns",
     "grid-template-rows",
-    // Flexbox & Grid Layout (111-121)
     "flex-direction",
     "flex-wrap",
     "place-content",
@@ -163,22 +147,16 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "gap",
     "column-gap",
     "row-gap",
-    // Space (166-167) - Must be right after row-gap per Tailwind's canonical order
-    // Note: --tw-space-x and --tw-space-y are NOT in Tailwind v4's property-order.ts
-    // Space utilities use --tw-sort: row-gap internally for sorting
     "--tw-space-x-reverse",
     "--tw-space-y-reverse",
-    // Divide (168-172)
     "divide-x-width",
     "divide-y-width",
     "--tw-divide-y-reverse",
     "divide-style",
     "divide-color",
-    // Alignment (176-178)
     "place-self",
     "align-self",
     "justify-self",
-    // Overflow (133-139)
     "overflow",
     "overflow-x",
     "overflow-y",
@@ -186,12 +164,13 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "overscroll-behavior-x",
     "overscroll-behavior-y",
     "scroll-behavior",
-    // Border Radius (140-150)
-    // Removed synthetic side properties (border-top-radius, etc.) - not real in Tailwind v4
-    // Side utilities (rounded-t) now map to their minimum corner property for proper sorting
     "border-radius",
     "border-start-radius",
     "border-end-radius",
+    "border-top-radius",
+    "border-right-radius",
+    "border-bottom-radius",
+    "border-left-radius",
     "border-start-start-radius",
     "border-start-end-radius",
     "border-end-end-radius",
@@ -200,7 +179,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-top-right-radius",
     "border-bottom-right-radius",
     "border-bottom-left-radius",
-    // Border Width (155-163)
     "border-width",
     "border-inline-width",
     "border-block-width",
@@ -210,7 +188,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-width",
     "border-bottom-width",
     "border-left-width",
-    // Border Style (164-172)
     "border-style",
     "border-inline-style",
     "border-block-style",
@@ -220,7 +197,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-style",
     "border-bottom-style",
     "border-left-style",
-    // Border Color (173-181)
     "border-color",
     "border-inline-color",
     "border-block-color",
@@ -230,8 +206,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-right-color",
     "border-bottom-color",
     "border-left-color",
-    "border-opacity",
-    // Background (182-192)
     "background-color",
     "background-image",
     "--tw-gradient-position",
@@ -243,7 +217,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-gradient-via-position",
     "--tw-gradient-to",
     "--tw-gradient-to-position",
-    // Mask Image & Gradients (193-233)
     "mask-image",
     "--tw-mask-top",
     "--tw-mask-top-from-color",
@@ -285,7 +258,6 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-mask-conic-from-position",
     "--tw-mask-conic-to-color",
     "--tw-mask-conic-to-position",
-    // Background Properties (234-248)
     "box-decoration-break",
     "background-size",
     "background-attachment",
@@ -301,14 +273,11 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "mask-position",
     "mask-repeat",
     "mask-origin",
-    // SVG (249-251)
     "fill",
     "stroke",
     "stroke-width",
-    // Object (252-253)
     "object-fit",
     "object-position",
-    // Spacing - Padding (254-262)
     "padding",
     "padding-inline",
     "padding-block",
@@ -318,14 +287,9 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "padding-right",
     "padding-bottom",
     "padding-left",
-    // Typography - Alignment (263-265)
     "text-align",
     "text-indent",
     "vertical-align",
-    // Typography - Prose Component (266-267)
-    "--tw-prose-component",
-    "--tw-prose-invert",
-    // Typography - Font (268-283)
     "font-family",
     "font-size",
     "line-height",
@@ -342,42 +306,34 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "font-style",
     "font-stretch",
     "font-variant-numeric",
-    // Typography - Decoration (284-288)
     "text-decoration-line",
     "text-decoration-color",
     "text-decoration-style",
     "text-decoration-thickness",
     "text-underline-offset",
-    // Typography - Misc (289-293)
     "-webkit-font-smoothing",
     "placeholder-color",
     "caret-color",
     "accent-color",
     "color-scheme",
-    // Visual Effects - Opacity & Blend (292-294)
     "opacity",
     "background-blend-mode",
     "mix-blend-mode",
-    // Shadows FIRST (295-299) - matches Tailwind v4 canonical order
     "box-shadow",
     "--tw-shadow",
     "--tw-shadow-color",
-    "--tw-inset-shadow",
-    "--tw-inset-shadow-color",
-    // Ring properties (300-306)
     "--tw-ring-shadow",
     "--tw-ring-color",
+    "--tw-inset-shadow",
+    "--tw-inset-shadow-color",
     "--tw-inset-ring-shadow",
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
-    "--tw-ring-inset",
-    // Outline (307-310)
     "outline",
     "outline-width",
     "outline-offset",
     "outline-color",
-    // Filters (311-330)
     "--tw-blur",
     "--tw-brightness",
     "--tw-contrast",
@@ -398,19 +354,12 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-backdrop-saturate",
     "--tw-backdrop-sepia",
     "backdrop-filter",
-    // Additional properties for proper sorting
-    // Transitions & Animations (331-335)
     "transition-property",
     "transition-behavior",
     "transition-delay",
     "transition-duration",
     "transition-timing-function",
-    // Misc (341-346)
     "will-change",
-    "outline-style",
-    "user-select",
-    // divide-x-reverse positioned here to match Tailwind v4 behavior (after all filters)
-    "--tw-divide-x-reverse",
     "contain",
     "content",
     "forced-color-adjust",
@@ -455,42 +404,43 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // Total: 341 (removed synthetic border radius properties per Tailwind v4, added prose properties)
-        // Removed: border-top-radius, border-right-radius, border-bottom-radius, border-left-radius
-        // Added: --tw-prose-component, --tw-prose-invert (for @tailwindcss/typography plugin)
-        // divide-x-reverse and divide-y-reverse are positioned to match Tailwind v4 behavior
-        assert_eq!(PROPERTY_ORDER.len(), 341);
+        // Complete property order from Tailwind CSS v4
+        // Synced from packages/tailwindcss/src/property-order.ts (337 properties)
+        assert_eq!(PROPERTY_ORDER.len(), 337);
     }
 
     #[test]
     fn test_get_property_index() {
-        // Test first property (background-opacity for v3 backwards compatibility)
-        assert_eq!(get_property_index("background-opacity"), Some(0));
-        assert_eq!(get_property_index("container-type"), Some(1));
+        // Test first property
+        assert_eq!(get_property_index("container-type"), Some(0));
+        assert_eq!(get_property_index("pointer-events"), Some(1));
 
-        // Test divide reverse properties are positioned correctly
-        // divide-y-reverse comes in the divide section, before place-self and overflow
+        // Test critical properties for ring/shadow/filter ordering
+        // These indices must match Tailwind v4 for correct sorting
+        assert_eq!(get_property_index("box-shadow"), Some(293));
+        assert_eq!(get_property_index("--tw-shadow"), Some(294));
+        assert_eq!(get_property_index("--tw-shadow-color"), Some(295));
+        assert_eq!(get_property_index("--tw-ring-shadow"), Some(296));
+        assert_eq!(get_property_index("--tw-ring-color"), Some(297));
+
+        // Filters come after rings
+        assert_eq!(get_property_index("--tw-blur"), Some(308));
+        assert_eq!(get_property_index("filter"), Some(317));
+
+        // Border properties for arbitrary value sorting
+        assert_eq!(get_property_index("border-width"), Some(153));
+        assert_eq!(get_property_index("border-top-width"), Some(158));
+
+        // Test divide reverse properties
         let divide_y_idx = get_property_index("--tw-divide-y-reverse").unwrap();
         let divide_style_idx = get_property_index("divide-style").unwrap();
-        let place_self_idx = get_property_index("place-self").unwrap();
-        let overflow_idx = get_property_index("overflow").unwrap();
-        assert_eq!(divide_y_idx, divide_style_idx - 1); // Right before divide-style (after divide-y-width)
-        assert!(divide_y_idx < divide_style_idx); // Before divide-style
-        assert!(divide_y_idx < place_self_idx); // Before place-self
-        assert!(divide_y_idx < overflow_idx); // Before overflow
+        assert_eq!(divide_y_idx, divide_style_idx - 1);
 
-        // divide-x-reverse comes after outline-color and after filters
-        let divide_x_idx = get_property_index("--tw-divide-x-reverse").unwrap();
-        let outline_color_idx = get_property_index("outline-color").unwrap();
-        let filter_idx = get_property_index("--tw-blur").unwrap();
-        assert!(divide_x_idx > outline_color_idx);
-        assert!(divide_x_idx > filter_idx);
-
-        // Test common properties (indices shifted by -4 after border-radius section due to removed synthetics)
-        assert_eq!(get_property_index("margin"), Some(26));
-        assert_eq!(get_property_index("padding"), Some(250)); // Was 254, now 250 (removed 4)
-        assert_eq!(get_property_index("display"), Some(36));
-        assert_eq!(get_property_index("background-color"), Some(178)); // Was 182, now 178 (removed 4)
+        // Test common properties
+        assert_eq!(get_property_index("margin"), Some(25));
+        assert_eq!(get_property_index("padding"), Some(252));
+        assert_eq!(get_property_index("display"), Some(35));
+        assert_eq!(get_property_index("background-color"), Some(180));
 
         // Test unknown property
         assert_eq!(get_property_index("unknown-property"), None);
