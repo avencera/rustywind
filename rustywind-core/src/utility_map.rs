@@ -908,7 +908,7 @@ impl UtilityMap {
             "bg" if value.starts_with('[') => Some(&["background-color"][..]), // arbitrary value
 
             // Border Width
-            "border" if value.is_empty() || value.parse::<u32>().is_ok() => {
+            "border" if value.is_empty() || value.parse::<u32>().is_ok() || value.starts_with('[') => {
                 Some(&["border-width"][..])
             }
             "border-x" => Some(&["border-inline-width"][..]), // Use border-inline-width for left+right
@@ -949,6 +949,7 @@ impl UtilityMap {
             // Text
             "text" if is_color_value(value) => Some(&["color"][..]),
             "text" if is_size_keyword(value) => Some(&["font-size"][..]),
+            "text" if value.starts_with('[') => Some(&["font-size"][..]), // arbitrary text size
 
             // Font
             "font" if is_weight_keyword(value) => Some(&["font-weight"][..]),
@@ -1321,9 +1322,13 @@ fn is_color_value(value: &str) -> bool {
         return false;
     }
 
-    // Check for arbitrary color value: [#fff], [rgb(255,0,0)]
+    // Check for arbitrary color value: [#fff], [rgb(255,0,0)], [hsl(...)]
+    // Only treat as color if it contains typical color indicators
     if value.starts_with('[') {
-        return true;
+        return value.contains('#')  // hex colors: [#fff], [#ff0000]
+            || value.contains("rgb")  // rgb/rgba: [rgb(255,0,0)]
+            || value.contains("hsl")  // hsl/hsla: [hsl(0,100%,50%)]
+            || value.contains("var("); // CSS variables: [var(--my-color)]
     }
 
     // Check for color with shade: red-500, blue-600

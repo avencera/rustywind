@@ -409,6 +409,24 @@ impl Ord for SortKey {
                 .len()
                 .cmp(&self.property_indices.len())
         })())
+            // Then by property count (MORE properties = earlier, matching Tailwind v4)
+            // Tailwind's: zSorting.properties.count - aSorting.properties.count
+            // means if z (other) has MORE properties, result is positive, so a (self) comes first
+            // Therefore: compare other.count vs self.count (reversed)
+            .then(other.property_count.cmp(&self.property_count))
+            // Then prioritize arbitrary values (text-[14px] before text-sm)
+            // Within the same property group, arbitrary values sort BEFORE regular values
+            // IMPORTANT: This must come BEFORE numeric comparison to ensure arbitrary
+            // values are prioritized even when they contain numbers (e.g., text-[40px] before text-4xl)
+            .then_with(|| {
+                let self_has_arbitrary = has_arbitrary_value(&self.class);
+                let other_has_arbitrary = has_arbitrary_value(&other.class);
+                match (self_has_arbitrary, other_has_arbitrary) {
+                    (true, false) => Ordering::Less,    // Arbitrary before regular
+                    (false, true) => Ordering::Greater, // Regular after arbitrary
+                    _ => Ordering::Equal,               // Both or neither, continue
+                }
+            })
             // Then by numeric value (if both present)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
@@ -425,22 +443,6 @@ impl Ord for SortKey {
                     }
                     // If only one has a numeric value, no preference (continue to next comparison)
                     _ => Ordering::Equal,
-                }
-            })
-            // Then by property count (MORE properties = earlier, matching Tailwind v4)
-            // Tailwind's: zSorting.properties.count - aSorting.properties.count
-            // means if z (other) has MORE properties, result is positive, so a (self) comes first
-            // Therefore: compare other.count vs self.count (reversed)
-            .then(other.property_count.cmp(&self.property_count))
-            // Then prioritize arbitrary values (text-[14px] before text-sm)
-            // Within the same property group, arbitrary values sort BEFORE regular values
-            .then_with(|| {
-                let self_has_arbitrary = has_arbitrary_value(&self.class);
-                let other_has_arbitrary = has_arbitrary_value(&other.class);
-                match (self_has_arbitrary, other_has_arbitrary) {
-                    (true, false) => Ordering::Less,    // Arbitrary before regular
-                    (false, true) => Ordering::Greater, // Regular after arbitrary
-                    _ => Ordering::Equal,               // Both or neither, continue
                 }
             })
             // Then by utility prefix priority (space-* before gap-* when properties match)
