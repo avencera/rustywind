@@ -4,7 +4,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { allClasses, variants, variantStackingPatterns, opacityClasses, arbitraryValueClasses } from './tailwind-classes.js';
+import { allClasses, variants, variantStackingPatterns, opacityClasses, arbitraryValueClasses, arbitraryVariantClasses } from './tailwind-classes.js';
 import { filterLegacyClasses, isLegacyClass } from './legacy-classes.js';
 import prettier from 'prettier';
 import seedrandom from 'seedrandom';
@@ -24,7 +24,7 @@ const rng = seedrandom(SEED);
 
 // Filter classes if needed and add real-world pattern classes
 const baseClasses = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
-const classPool = [...baseClasses, ...opacityClasses, ...arbitraryValueClasses];
+const classPool = [...baseClasses, ...opacityClasses, ...arbitraryValueClasses, ...arbitraryVariantClasses];
 
 /**
  * Generate a random integer between min and max (inclusive)

@@ -649,4 +649,49 @@ export const arbitraryValueClasses = [
   'pt-[120px]', 'border-[1.5px]',
 ];
 
+// Arbitrary variant classes (Issue #115)
+// These use CSS selectors inside brackets as variants
+export const arbitraryVariantClasses = [
+  // Element state selectors (& refers to current element)
+  '[&.htmx-request]:h-0',
+  '[&.htmx-request]:opacity-0',
+  '[&.htmx-request]:pointer-events-none',
+  '[&.active]:bg-red-500',
+  '[&.active]:text-white',
+  '[&.selected]:bg-blue-500',
+  '[&.disabled]:opacity-50',
+  '[&.disabled]:cursor-not-allowed',
+  '[&.loading]:animate-pulse',
+  '[&.open]:rotate-180',
+  '[&.expanded]:max-h-screen',
+  '[&.collapsed]:max-h-0',
+
+  // Attribute selectors
+  '[&[data-state=open]]:bg-gray-100',
+  '[&[data-active]]:ring-2',
+  '[&[aria-selected=true]]:bg-blue-100',
+  '[&[aria-expanded=true]]:rotate-180',
+
+  // Child/descendant selectors
+  '[&>*]:p-4',
+  '[&>*:first-child]:rounded-t-lg',
+  '[&>*:last-child]:rounded-b-lg',
+  '[&_p]:text-gray-700',
+  '[&_a]:text-blue-500',
+
+  // Pseudo-element extensions
+  '[&::before]:block',
+  '[&::after]:absolute',
+
+  // Sibling selectors
+  '[&+*]:mt-4',
+  '[&~*]:opacity-50',
+
+  // Complex selectors
+  '[&:not(:first-child)]:border-t',
+  '[&:not(:last-child)]:border-b',
+  '[&:nth-child(odd)]:bg-gray-50',
+  '[&:hover]:scale-105',
+];
+
 export default allClasses;
