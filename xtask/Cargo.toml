@@ -1,0 +1,43 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# error handling
+color-eyre = { workspace = true }
+
+# regex parsing
+regex = { workspace = true }
+
+# parallel execution
+rayon = "1.10"
+
+# command execution
+duct = "0.13"
+
+# progress bars
+indicatif = "0.17"
+
+# binary checking
+which = "6"
+
+# CPU count detection
+num_cpus = "1"
+
+# random seed generation
+rand = "0.8"
+
+# JSON serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# timestamp generation
+chrono = "0.4"

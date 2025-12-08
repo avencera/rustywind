@@ -1,0 +1,14 @@
+# Node modules
+node_modules
+
+# Generated test results
+multi-seed-results.json
+failure-analysis.json
+fuzz-test-results.txt
+common-patterns.json
+real-world-patterns.json
+failure-patterns.json
+baseline-results.txt
+
+# Analysis output directory
+tools/output/
