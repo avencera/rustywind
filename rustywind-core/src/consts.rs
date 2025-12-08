@@ -1,9 +1,9 @@
 //! Contains different constants used in the library.
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind, StartKind};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
 /// The default variants used in the variant searcher.
-pub static VARIANTS: Lazy<Vec<&'static str>> = Lazy::new(|| {
+pub static VARIANTS: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
     vec![
         "sm",
         "md",
@@ -34,7 +34,7 @@ pub static VARIANTS: Lazy<Vec<&'static str>> = Lazy::new(|| {
 });
 
 /// The variant searcher used to find variants in a class name.
-pub static VARIANT_SEARCHER: Lazy<AhoCorasick> = Lazy::new(|| {
+pub static VARIANT_SEARCHER: LazyLock<AhoCorasick> = LazyLock::new(|| {
     AhoCorasickBuilder::new()
         .start_kind(StartKind::Anchored)
         .match_kind(MatchKind::LeftmostLongest)

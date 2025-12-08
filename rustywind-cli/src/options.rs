@@ -125,8 +125,8 @@ fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
         return Ok(Sorter::CustomSorter(sorter));
     }
 
-    // if no other sorter is specified, use the default sorter
-    Ok(Sorter::DefaultSorter)
+    // if no other sorter is specified, use the pattern sorter
+    Ok(Sorter::PatternSorter)
 }
 
 fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {

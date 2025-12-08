@@ -1,15 +1,10 @@
 /// How individual classes are wrapped.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum ClassWrapping {
+    #[default]
     NoWrapping,
     CommaSingleQuotes,
     CommaDoubleQuotes,
-}
-
-impl Default for ClassWrapping {
-    fn default() -> Self {
-        Self::NoWrapping
-    }
 }
 
 impl ClassWrapping {

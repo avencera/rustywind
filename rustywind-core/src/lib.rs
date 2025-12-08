@@ -5,11 +5,19 @@
 //! The [`parser::parse_classes_from_file`] function will return a `HashMap<String, usize>` with the classes and their order.
 //!
 //! You can use this to create a custom sorter. Using this customer sorter you can call [`sorter::sort_file_contents`].
-pub(crate) mod app;
+pub mod app;
 pub mod class_wrapping;
 pub mod consts;
 pub mod defaults;
 pub mod parser;
 pub mod sorter;
+
+// Pattern-based sorting modules
+pub mod class_parser;
+pub mod hybrid_sorter;
+pub mod pattern_sorter;
+pub mod property_order;
+pub mod utility_map;
+pub mod variant_order;
 
 pub type RustyWind = app::RustyWind;
