@@ -1,2 +1,11 @@
 /target
 **/*.rs.bk
+tmp/
+rustywind
+node_modules
+
+# test fixture node modules
+rustywind-core/tests/fixtures/package-lock.json
+
+# Claude Code settings
+.claude/
