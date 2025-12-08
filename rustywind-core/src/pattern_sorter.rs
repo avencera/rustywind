@@ -55,9 +55,9 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
         let a_char = a_bytes[i];
         let z_char = z_bytes[i];
 
-        // If both are digits, compare them as numbers
+        // if both are digits, compare them as numbers
         if a_char.is_ascii_digit() && z_char.is_ascii_digit() {
-            // Find the end of the number in both strings
+            // find the end of the number in both strings
             let mut a_end = i + 1;
             while a_end < a.len() && a_bytes[a_end].is_ascii_digit() {
                 a_end += 1;
@@ -68,7 +68,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
                 z_end += 1;
             }
 
-            // Parse and compare numerically
+            // parse and compare numerically
             if let (Ok(a_num), Ok(z_num)) = (a[i..a_end].parse::<i64>(), z[i..z_end].parse::<i64>())
             {
                 match a_num.cmp(&z_num) {
@@ -80,7 +80,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
                 }
             }
 
-            // Fallback to string comparison if parsing fails
+            // fallback to string comparison if parsing fails
             match a[i..a_end].cmp(&z[i..z_end]) {
                 Ordering::Equal => {
                     i = a_end.max(z_end);
@@ -90,7 +90,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
             }
         }
 
-        // Compare characters
+        // compare characters
         match a_char.cmp(&z_char) {
             Ordering::Equal => {
                 i += 1;
@@ -100,7 +100,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
         }
     }
 
-    // Shorter string comes first
+    // shorter string comes first
     a.len().cmp(&z.len())
 }
 
@@ -110,18 +110,17 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
 /// - `rounded-t-lg` → `rounded-t`
 /// - `rounded-tl-none` → `rounded-tl`
 /// - `rounded-t` → `rounded-t`
-/// - `drop-shadow-xl` → `drop-shadow-xl` (no extraction, full name)
 ///
 /// This is used for proper alphabetical comparison when properties match.
 fn extract_base_name(utility: &str) -> &str {
-    // Strip variants first to get just the utility part
+    // strip variants first to get just the utility part
     let utility_base = utility.split(':').next_back().unwrap_or(utility);
 
-    // Extract base for rounded utilities
+    // extract base for rounded utilities
     if let Some(after_rounded) = utility_base.strip_prefix("rounded-") {
         let parts: Vec<&str> = after_rounded.split('-').collect();
         if parts.len() >= 2 {
-            // Check if first part is a side or corner indicator
+            // check if first part is a side or corner indicator
             match parts[0] {
                 "t" | "r" | "b" | "l" | "s" | "e" => {
                     return &utility[..("rounded-".len() + parts[0].len())];
@@ -132,22 +131,6 @@ fn extract_base_name(utility: &str) -> &str {
                 _ => {}
             }
         }
-    }
-
-    // PRAGMATIC WORKAROUND: Extract base for drop-shadow and transition utilities
-    // This ensures drop-shadow-xl and drop-shadow-none compare as equal at this stage
-    // so the special -none handling can kick in (see lines 300-323).
-    //
-    // NOTE: This is NOT how Tailwind CSS v4 actually works! Tailwind uses property
-    // count-based sorting (utilities with MORE CSS declarations sort first), which
-    // naturally makes -none variants sort last without special handling.
-    //
-    // See PROPERTY_COUNT_TODO.md for details on implementing the proper approach.
-    if utility_base.starts_with("drop-shadow") {
-        return "drop-shadow";
-    }
-    if utility_base.starts_with("transition") {
-        return "transition";
     }
 
     utility // Return full name if no modifier
@@ -162,19 +145,19 @@ fn extract_base_name(utility: &str) -> &str {
 ///
 /// Utilities with the same property are sorted by their numeric value when available.
 fn extract_numeric_value(utility: &str) -> Option<f64> {
-    // Remove variants to get just the utility part
+    // remove variants to get just the utility part
     let utility = utility.split(':').next_back()?;
 
-    // Handle arbitrary values first (e.g., h-[120px], bg-white/30, max-w-[485px])
-    // Check for brackets [...] or opacity /number
+    // handle arbitrary values first (e.g., h-[120px], bg-white/30, max-w-[485px])
+    // check for brackets [...] or opacity /number
     if let Some(bracket_start) = utility.find('[')
         && let Some(bracket_end) = utility.find(']')
     {
-        // Extract content within brackets: h-[120px] -> "120px"
+        // extract content within brackets: h-[120px] -> "120px"
         let value_str = &utility[bracket_start + 1..bracket_end];
 
-        // Try to extract number from the start of the string
-        // Handles: "120px", "2rem", "0.5", "50%", etc.
+        // try to extract number from the start of the string
+        // handles: "120px", "2rem", "0.5", "50%", etc.
         let mut num_str = String::new();
         let mut seen_dot = false;
 
@@ -185,7 +168,7 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
                 num_str.push(ch);
                 seen_dot = true;
             } else {
-                // Stop at first non-numeric, non-dot character
+                // stop at first non-numeric, non-dot character
                 break;
             }
         }
@@ -195,29 +178,29 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
         }
     }
 
-    // Handle opacity syntax: bg-white/30 -> extract 30
-    // Distinguish from fractions like w-1/2
+    // handle opacity syntax: bg-white/30 -> extract 30
+    // distinguish from fractions like w-1/2
     if let Some(slash_pos) = utility.rfind('/') {
         let after_slash = &utility[slash_pos + 1..];
         let before_slash = &utility[..slash_pos];
 
-        // Count dashes to distinguish opacity from fractions:
+        // count dashes to distinguish opacity from fractions:
         // - bg-blue-500/75 (2 dashes) = color-shade/opacity
         // - bg-white/30 (1 dash, non-numeric last part) = color/opacity
         // - w-1/2 (1 dash, numeric last part) = utility-fraction
         let dash_count = before_slash.matches('-').count();
 
         if dash_count >= 2 {
-            // Multiple dashes before slash = color-shade/opacity like bg-blue-500/75
+            // multiple dashes before slash = color-shade/opacity like bg-blue-500/75
             if let Ok(num) = after_slash.parse::<f64>() {
                 return Some(num);
             }
         } else if dash_count == 1 {
-            // Single dash: check if last part is a number
+            // single dash: check if last part is a number
             let parts: Vec<&str> = before_slash.split('-').collect();
             if let Some(last_part) = parts.last() {
-                // If last part is NOT a number, it's opacity like bg-white/30
-                // If last part IS a number, it's a fraction like w-1/2 - skip to fraction logic
+                // if last part is NOT a number, it's opacity like bg-white/30
+                // if last part IS a number, it's a fraction like w-1/2 - skip to fraction logic
                 if last_part.parse::<f64>().is_err()
                     && let Ok(num) = after_slash.parse::<f64>()
                 {
@@ -227,27 +210,27 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
         }
     }
 
-    // Split by dash to get potential numeric parts
+    // split by dash to get potential numeric parts
     let parts: Vec<&str> = utility.split('-').collect();
 
-    // Look for the last part which is usually the value
+    // look for the last part which is usually the value
     let value_part = parts.last()?;
 
-    // Handle negative values (e.g., -translate-x-4 → value is "4" with negative prefix)
+    // handle negative values (e.g., -translate-x-4 → value is "4" with negative prefix)
     let (_is_negative, value_str) = if parts.len() > 1 && parts[0].is_empty() {
-        // Negative utility like -translate-x-4
+        // negative utility like -translate-x-4
         (true, value_part)
     } else {
         (false, value_part)
     };
 
-    // Try to parse as integer
+    // try to parse as integer
     if let Ok(num) = value_str.parse::<i32>() {
         return Some(num as f64);
     }
 
-    // Try to parse as fraction (e.g., "1/2") - check this BEFORE extracting leading digits
-    // This ensures w-1/2 returns 0.5, not 1.0
+    // try to parse as fraction (e.g., "1/2") - check this BEFORE extracting leading digits
+    // this ensures w-1/2 returns 0.5, not 1.0
     if let Some((numerator_str, denominator_str)) = value_str.split_once('/')
         && let (Ok(numerator), Ok(denominator)) =
             (numerator_str.parse::<f64>(), denominator_str.parse::<f64>())
@@ -257,8 +240,8 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
         return Some(result);
     }
 
-    // Try to extract leading digits from values like "4xl", "2xl", etc.
-    // This allows numeric comparison between max-w-4xl and max-w-[485px]
+    // try to extract leading digits from values like "4xl", "2xl", etc.
+    // this allows numeric comparison between max-w-4xl and max-w-[485px]
     if !value_str.is_empty() {
         let mut num_str = String::new();
         for ch in value_str.chars() {
@@ -275,7 +258,7 @@ fn extract_numeric_value(utility: &str) -> Option<f64> {
         }
     }
 
-    // Try to parse as decimal (e.g., "0.5")
+    // try to parse as decimal (e.g., "0.5")
     if let Ok(num) = value_str.parse::<f64>() {
         return Some(num);
     }
@@ -296,6 +279,11 @@ pub struct SortKey {
     /// Structured variant information for recursive comparison
     /// This is used to properly sort compound variants like peer-hover vs peer-focus
     pub variant_chain: Vec<VariantInfo>,
+
+    /// Arbitrary variant selectors for tiebreaking when variant_order is equal
+    /// e.g., for `[&.x]:block` this would be `["[&.x]"]`
+    /// Used to sort different arbitrary variants lexicographically (with `_` decoded as space)
+    pub arbitrary_variants: Vec<compact_str::CompactString>,
 
     /// Property indices from PROPERTY_ORDER (lower = earlier)
     /// When utilities have multiple properties (e.g., rounded-t), ALL property indices
@@ -333,27 +321,27 @@ fn has_arbitrary_value(class: &str) -> bool {
 /// Returns true for classes like: bg-white/20, text-black/75, border-gray-500/50
 /// Returns false for fractions like: w-1/4, h-1/2 (these are not opacity)
 fn has_opacity_syntax(class: &str) -> bool {
-    // Strip variants to get the utility part
+    // strip variants to get the utility part
     let utility = class.split(':').next_back().unwrap_or(class);
 
     if let Some(slash_pos) = utility.rfind('/') {
         let before_slash = &utility[..slash_pos];
 
-        // Count dashes to distinguish opacity from fractions:
+        // count dashes to distinguish opacity from fractions:
         // - bg-blue-500/75 (2 dashes) = color-shade/opacity
         // - bg-white/30 (1 dash, non-numeric last part) = color/opacity
         // - w-1/4 (1 dash, numeric last part) = utility-fraction
         let dash_count = before_slash.matches('-').count();
 
         if dash_count >= 2 {
-            // Multiple dashes before slash = color-shade/opacity like bg-blue-500/75
+            // multiple dashes before slash = color-shade/opacity like bg-blue-500/75
             return true;
         } else if dash_count == 1 {
-            // Single dash: check if last part before slash is a number
+            // single dash: check if last part before slash is a number
             let parts: Vec<&str> = before_slash.split('-').collect();
             if let Some(last_part) = parts.last() {
-                // If last part is NOT a number, it's opacity like bg-white/30
-                // If last part IS a number, it's a fraction like w-1/4
+                // if last part is NOT a number, it's opacity like bg-white/30
+                // if last part IS a number, it's a fraction like w-1/4
                 return last_part.parse::<f64>().is_err();
             }
         }
@@ -405,15 +393,15 @@ fn extract_base_number(class: &str) -> Option<(i32, Option<i32>)> {
 /// Returns true for classes like: -rotate-1, -skew-y-3, -translate-x-4
 /// Returns false for positive values: rotate-0, skew-y-1, translate-x-2
 fn is_negative_value(class: &str) -> bool {
-    // Strip variants first to get just the utility part
+    // strip variants first to get just the utility part
     let utility = class.split(':').next_back().unwrap_or(class);
 
-    // Check if the utility starts with a dash followed by a letter
-    // This handles cases like: -rotate-1, -translate-x-4, -skew-y-3
-    // But not arbitrary values like: [--spacing-4] or bg-[#fff]
+    // check if the utility starts with a dash followed by a letter
+    // this handles cases like: -rotate-1, -translate-x-4, -skew-y-3
+    // but not arbitrary values like: [--spacing-4] or bg-[#fff]
     if let Some(rest) = utility.strip_prefix('-') {
-        // Make sure it's not an arbitrary value or a regular dash in a color name
-        // Negative utilities start with dash followed by a letter (e.g., -rotate, -translate)
+        // make sure it's not an arbitrary value or a regular dash in a color name
+        // negative utilities start with dash followed by a letter (e.g., -rotate, -translate)
         rest.chars().next().is_some_and(|c| c.is_alphabetic())
     } else {
         false
@@ -432,13 +420,13 @@ fn is_negative_value(class: &str) -> bool {
 /// This is used to ensure colors sort alphabetically by color name first,
 /// then by shade number when color names match (matching Prettier's behavior).
 fn extract_color_name(utility: &str) -> Option<&str> {
-    // Strip variants first to get just the utility part
+    // strip variants first to get just the utility part
     let utility_base = utility.split(':').next_back().unwrap_or(utility);
 
-    // Remove opacity suffix if present (e.g., bg-blue-500/50 → bg-blue-500)
+    // remove opacity suffix if present (e.g., bg-blue-500/50 → bg-blue-500)
     let utility_without_opacity = utility_base.split('/').next().unwrap_or(utility_base);
 
-    // Known Tailwind color names (in alphabetical order)
+    // known Tailwind color names (in alphabetical order)
     const COLOR_NAMES: &[&str] = &[
         "amber",
         "black",
@@ -469,19 +457,19 @@ fn extract_color_name(utility: &str) -> Option<&str> {
         "zinc",
     ];
 
-    // Color utilities follow patterns like:
+    // color utilities follow patterns like:
     // bg-{color}-{shade}, text-{color}-{shade}, border-{color}-{shade}, etc.
-    // Or: bg-{color} (for white, black, transparent, etc.)
+    // or: bg-{color} (for white, black, transparent, etc.)
 
-    // Split by dash to extract parts
+    // split by dash to extract parts
     let parts: Vec<&str> = utility_without_opacity.split('-').collect();
 
-    // Need at least 2 parts: prefix-color or prefix-color-shade
+    // need at least 2 parts: prefix-color or prefix-color-shade
     if parts.len() < 2 {
         return None;
     }
 
-    // Check common color property prefixes
+    // check common color property prefixes
     let color_prefixes = &[
         "bg",
         "text",
@@ -501,10 +489,10 @@ fn extract_color_name(utility: &str) -> Option<&str> {
     ];
 
     if color_prefixes.contains(&parts[0]) {
-        // Second part should be the color name
+        // second part should be the color name
         let potential_color = parts[1];
 
-        // Check if it's a known color name
+        // check if it's a known color name
         if COLOR_NAMES.contains(&potential_color) {
             return Some(potential_color);
         }
@@ -519,10 +507,10 @@ fn extract_color_name(utility: &str) -> Option<&str> {
 /// - max-*, w, h, size, rounded, leading: arbitrary BEFORE keyword (more specific first)
 /// - min-*, spacing, text, etc.: keyword BEFORE arbitrary (semantic first)
 fn should_arbitrary_come_first(class: &str) -> bool {
-    // Strip variants to get the base utility
+    // strip variants to get the base utility
     let utility = class.split(':').next_back().unwrap_or(class);
 
-    // Properties where arbitrary values come BEFORE regular values
+    // properties where arbitrary values come BEFORE regular values
     utility.starts_with("max-w-")
         || utility.starts_with("max-h-")
         || (utility.starts_with("w-") && !utility.starts_with("will-"))
@@ -531,7 +519,7 @@ fn should_arbitrary_come_first(class: &str) -> bool {
         || utility.starts_with("rounded-")
         || utility.starts_with("leading-")
         || utility.starts_with("z-")
-        // Spacing utilities: margin, padding, gap, space
+        // spacing utilities: margin, padding, gap, space
         || utility.starts_with("m-") || utility.starts_with("mx-") || utility.starts_with("my-")
         || utility.starts_with("mt-") || utility.starts_with("mr-") || utility.starts_with("mb-") || utility.starts_with("ml-")
         || utility.starts_with("ms-") || utility.starts_with("me-")
@@ -552,7 +540,7 @@ fn should_arbitrary_come_first(class: &str) -> bool {
 /// - gap-* utilities get priority 2 (sort after space-*)
 /// - all other utilities get priority 100 (default)
 fn get_utility_prefix_priority(utility: &str) -> u32 {
-    // Extract the base utility name without variants
+    // extract the base utility name without variants
     let utility_base = utility.split(':').next_back().unwrap_or(utility);
 
     if utility_base.starts_with("space-") {
@@ -561,7 +549,7 @@ fn get_utility_prefix_priority(utility: &str) -> u32 {
     if utility_base.starts_with("gap-") {
         return 2;
     }
-    100 // Default for other utilities
+    100 // default for other utilities
 }
 
 impl Ord for SortKey {
@@ -580,14 +568,14 @@ impl Ord for SortKey {
     /// 10. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
     /// 11. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
-        // 1. Unparseable classes sort FIRST (before everything else)
-        //    When BOTH are unparseable, continue with normal comparison but skip base class check
+        // 1. unparseable classes sort FIRST (before everything else)
+        //    when BOTH are unparseable, continue with normal comparison but skip base class check
         match (self.is_unparseable, other.is_unparseable) {
-            (true, false) => return Ordering::Less, // Unparseable before parseable
-            (false, true) => return Ordering::Greater, // Parseable after unparseable
+            (true, false) => return Ordering::Less, // unparseable before parseable
+            (false, true) => return Ordering::Greater, // parseable after unparseable
             (true, true) => {
-                // Both unparseable: use normal comparison (variant_order, then variant_chain, then properties)
-                // This replaces the previous alphabetical comparison
+                // both unparseable: use normal comparison (variant_order, then variant_chain, then properties)
+                // this replaces the previous alphabetical comparison
                 return self
                     .variant_order
                     .cmp(&other.variant_order)
@@ -610,30 +598,64 @@ impl Ord for SortKey {
                     })
                     .then_with(|| compare_alphanumeric(&self.class, &other.class));
             }
-            (false, false) => {} // Both parseable, continue with normal comparison
+            (false, false) => {} // both parseable, continue with normal comparison
         }
 
-        // 2. Base classes (variant_order=0) come first
+        // 2. base classes (variant_order=0) come first
         match (self.variant_order == 0, other.variant_order == 0) {
-            (true, false) => return Ordering::Less, // Base class before variant
-            (false, true) => return Ordering::Greater, // Variant after base class
-            (true, true) => {} // Both base classes, continue to property comparison
+            (true, false) => return Ordering::Less, // base class before variant
+            (false, true) => return Ordering::Greater, // variant after base class
+            (true, true) => {} // both base classes, continue to property comparison
             (false, false) => {
-                // Both have variants - compare by variant_order
+                // both have variants - continue with comparison below
             }
         }
 
-        // 2. Compare by variant order (bitwise OR of all variant indices)
-        // This matches Tailwind's algorithm exactly - variant_order comes FIRST
-        // When variant_order is equal, fall through to fine-grained variant chain comparison
-        self.variant_order
-            .cmp(&other.variant_order)
-            // 3. Fine-grained recursive variant chain comparison
-            // When coarse variant_order ties, compare the actual variant chains
-            // This handles multi-level variants like focus:dark: vs dark:focus:
-            .then_with(|| compare_variant_lists(&self.variant_chain, &other.variant_chain))
-            // Then compare by property indices - compare ALL properties in order
-            // This is crucial for utilities like rounded-t vs rounded-l that tie on first property
+        // bit 63 indicates presence of arbitrary variants
+        const ARBITRARY_BIT: u128 = 1u128 << 63;
+        let self_has_arbitrary = self.variant_order & ARBITRARY_BIT != 0;
+        let other_has_arbitrary = other.variant_order & ARBITRARY_BIT != 0;
+
+        // 2. compare by arbitrary variant presence and selectors
+        // classes without arbitrary variants sort BEFORE classes with arbitrary variants
+        // when both have arbitrary, compare selectors FIRST, then known variant bits
+        match (self_has_arbitrary, other_has_arbitrary) {
+            (false, true) => return Ordering::Less, // no arbitrary before arbitrary
+            (true, false) => return Ordering::Greater,
+            (true, true) => {
+                // both have arbitrary variants - compare selectors FIRST
+                let decode = |s: &str| s.replace('_', " ");
+                let a: Vec<_> = self.arbitrary_variants.iter().map(|s| decode(s)).collect();
+                let b: Vec<_> = other.arbitrary_variants.iter().map(|s| decode(s)).collect();
+                match a.cmp(&b) {
+                    Ordering::Equal => {
+                        // same arbitrary selectors - compare known variant bits
+                        // (mask out the arbitrary bit for comparison)
+                        let self_known = self.variant_order & !ARBITRARY_BIT;
+                        let other_known = other.variant_order & !ARBITRARY_BIT;
+                        if self_known != other_known {
+                            return self_known.cmp(&other_known);
+                        }
+                        // fall through to fine-grained comparison
+                    }
+                    other => return other,
+                }
+            }
+            (false, false) => {
+                // neither has arbitrary - compare by known variant bits
+                if self.variant_order != other.variant_order {
+                    return self.variant_order.cmp(&other.variant_order);
+                }
+                // fall through to fine-grained comparison
+            }
+        }
+
+        // 3. fine-grained recursive variant chain comparison
+        // when coarse variant_order ties, compare the actual variant chains
+        // this handles multi-level variants like focus:dark: vs dark:focus:
+        compare_variant_lists(&self.variant_chain, &other.variant_chain)
+            // then compare by property indices - compare ALL properties in order
+            // this is crucial for utilities like rounded-t vs rounded-l that tie on first property
             .then_with(|| {
                 (|| {
                     for (a_idx, b_idx) in self
@@ -642,35 +664,35 @@ impl Ord for SortKey {
                         .zip(other.property_indices.iter())
                     {
                         match a_idx.cmp(b_idx) {
-                            Ordering::Equal => continue, // Tie on this property, check next
-                            other => return other,       // Found difference
+                            Ordering::Equal => continue, // tie on this property, check next
+                            other => return other,       // found difference
                         }
                     }
-                    // All common properties are equal, compare by length (MORE properties = earlier)
+                    // all common properties are equal, compare by length (MORE properties = earlier)
                     other
                         .property_indices
                         .len()
                         .cmp(&self.property_indices.len())
                 })()
             })
-            // CRITICAL FIX: When property indices match, check utility prefix priority
-            // This fixes space-x vs gap-y ordering (both map to row-gap, but space-* has priority)
-            // Must happen BEFORE numeric value comparison to prevent gap-y-0 sorting before space-x-4
+            // CRITICAL FIX: when property indices match, check utility prefix priority
+            // this fixes space-x vs gap-y ordering (both map to row-gap, but space-* has priority)
+            // must happen BEFORE numeric value comparison to prevent gap-y-0 sorting before space-x-4
             .then_with(|| {
-                // Only apply prefix priority when property indices are identical
+                // only apply prefix priority when property indices are identical
                 if self.property_indices == other.property_indices {
                     return get_utility_prefix_priority(&self.class)
                         .cmp(&get_utility_prefix_priority(&other.class));
                 }
                 Ordering::Equal
             })
-            // Then by property count (MORE properties = earlier, matching Tailwind v4)
+            // then by property count (MORE properties = earlier, matching Tailwind v4)
             // Tailwind's: zSorting.properties.count - aSorting.properties.count
             // means if z (other) has MORE properties, result is positive, so a (self) comes first
-            // Therefore: compare other.count vs self.count (reversed)
+            // therefore: compare other.count vs self.count (reversed)
             .then(other.property_count.cmp(&self.property_count))
-            // Then by color name alphabetically (when both are color utilities)
-            // This ensures bg-blue-500 comes before bg-red-50 (blue < red alphabetically)
+            // then by color name alphabetically (when both are color utilities)
+            // this ensures bg-blue-500 comes before bg-red-50 (blue < red alphabetically)
             // rather than sorting by shade number (50 < 500)
             .then_with(|| {
                 match (
@@ -678,62 +700,62 @@ impl Ord for SortKey {
                     extract_color_name(&other.class),
                 ) {
                     (Some(self_color), Some(other_color)) => {
-                        // Both are color utilities - compare by color name first
+                        // both are color utilities - compare by color name first
                         self_color.cmp(other_color)
                     }
-                    _ => Ordering::Equal, // At least one is not a color utility, continue
+                    _ => Ordering::Equal, // at least one is not a color utility, continue
                 }
             })
-            // Then handle negative value priority
-            // Negative values (-rotate-1, -skew-y-3) should sort BEFORE positive values
+            // then handle negative value priority
+            // negative values (-rotate-1, -skew-y-3) should sort BEFORE positive values
             .then_with(|| {
                 match (self.is_negative, other.is_negative) {
-                    (true, false) => Ordering::Less,    // Negative before positive
-                    (false, true) => Ordering::Greater, // Positive after negative
-                    _ => Ordering::Equal, // Both negative or both positive, continue to numeric comparison
+                    (true, false) => Ordering::Less,    // negative before positive
+                    (false, true) => Ordering::Greater, // positive after negative
+                    _ => Ordering::Equal, // both negative or both positive, continue to numeric comparison
                 }
             })
-            // Then handle numeric and arbitrary value comparison
-            // CRITICAL FIX: Check arbitrary status FIRST, before numeric comparison!
-            // This fixes the fraction vs arbitrary ordering issue (Issue 2 from FAILURE_ANALYSIS.md)
+            // then handle numeric and arbitrary value comparison
+            // CRITICAL FIX: check arbitrary status FIRST, before numeric comparison!
+            // this fixes the fraction vs arbitrary ordering issue (Issue 2 from FAILURE_ANALYSIS.md)
             //
-            // Ordering rules:
-            // 1. Non-arbitrary numerics/fractions (w-1/2, w-4) come BEFORE arbitrary values (w-[50px])
-            // 2. Arbitrary values come before/after keywords based on property (should_arbitrary_come_first)
-            // 3. Within non-arbitrary numerics/fractions, sort by numeric value (w-0 < w-1/2 < w-4)
-            // 4. Within arbitrary values, sort by extracted numeric value (w-[10px] < w-[50px])
+            // ordering rules:
+            // 1. non-arbitrary numerics/fractions (w-1/2, w-4) come BEFORE arbitrary values (w-[50px])
+            // 2. arbitrary values come before/after keywords based on property (should_arbitrary_come_first)
+            // 3. within non-arbitrary numerics/fractions, sort by numeric value (w-0 < w-1/2 < w-4)
+            // 4. within arbitrary values, sort by extracted numeric value (w-[10px] < w-[50px])
             //
-            // Examples:
+            // examples:
             // - w-1/2 w-4 → w-1/2 w-4 (both non-arbitrary, compare numerically: 0.5 < 4)
             // - w-4 w-[50px] → w-4 w-[50px] (non-arbitrary before arbitrary, even though 4 < 50)
             // - w-2/3 w-[50px] → w-2/3 w-[50px] (fraction before arbitrary)
             // - z-40 z-[-1] → z-40 z-[-1] (non-arbitrary before arbitrary)
             // - w-full w-[50px] → w-[50px] w-full (for w-*, arbitrary before keyword)
             .then_with(|| {
-                // Check arbitrary and opacity status
+                // check arbitrary and opacity status
                 let self_has_arbitrary = has_arbitrary_value(&self.class);
                 let other_has_arbitrary = has_arbitrary_value(&other.class);
                 let self_has_opacity = has_opacity_syntax(&self.class);
                 let other_has_opacity = has_opacity_syntax(&other.class);
 
-                // FIRST: Check arbitrary vs non-arbitrary status
-                // Fractions (w-1/2) are NOT arbitrary (no brackets)
-                // Numerics (w-4) are NOT arbitrary
-                // Arbitrary values (w-[50px]) ARE arbitrary (have brackets)
+                // FIRST: check arbitrary vs non-arbitrary status
+                // fractions (w-1/2) are NOT arbitrary (no brackets)
+                // numerics (w-4) are NOT arbitrary
+                // arbitrary values (w-[50px]) ARE arbitrary (have brackets)
                 match (self_has_arbitrary, other_has_arbitrary) {
                     (true, false) => {
                         // self is arbitrary, other is not
                         if other.numeric_value.is_some() {
                             // other has numeric value (fraction or numeric like w-4, w-1/2)
-                            // Non-arbitrary numerics/fractions ALWAYS come before arbitrary
-                            return Ordering::Greater; // Arbitrary AFTER non-arbitrary numeric
+                            // non-arbitrary numerics/fractions ALWAYS come before arbitrary
+                            return Ordering::Greater; // arbitrary AFTER non-arbitrary numeric
                         } else {
                             // other is a keyword (w-full, w-auto, etc.)
-                            // Use property-specific rule for arbitrary vs keyword ordering
+                            // use property-specific rule for arbitrary vs keyword ordering
                             if should_arbitrary_come_first(&self.class) {
-                                return Ordering::Less; // Arbitrary BEFORE keyword (e.g., w-[50px] before w-full)
+                                return Ordering::Less; // arbitrary BEFORE keyword (e.g., w-[50px] before w-full)
                             } else {
-                                return Ordering::Greater; // Arbitrary AFTER keyword
+                                return Ordering::Greater; // arbitrary AFTER keyword
                             }
                         }
                     }
@@ -741,34 +763,34 @@ impl Ord for SortKey {
                         // other is arbitrary, self is not
                         if self.numeric_value.is_some() {
                             // self has numeric value (fraction or numeric)
-                            // Non-arbitrary numerics/fractions ALWAYS come before arbitrary
-                            return Ordering::Less; // Non-arbitrary numeric BEFORE arbitrary
+                            // non-arbitrary numerics/fractions ALWAYS come before arbitrary
+                            return Ordering::Less; // non-arbitrary numeric BEFORE arbitrary
                         } else {
                             // self is a keyword
-                            // Use property-specific rule for keyword vs arbitrary ordering
+                            // use property-specific rule for keyword vs arbitrary ordering
                             if should_arbitrary_come_first(&other.class) {
-                                return Ordering::Greater; // Keyword AFTER arbitrary
+                                return Ordering::Greater; // keyword AFTER arbitrary
                             } else {
-                                return Ordering::Less; // Keyword BEFORE arbitrary
+                                return Ordering::Less; // keyword BEFORE arbitrary
                             }
                         }
                     }
                     _ => {
-                        // Both arbitrary OR both non-arbitrary - continue to numeric comparison
+                        // both arbitrary OR both non-arbitrary - continue to numeric comparison
                     }
                 }
 
-                // SECOND: Compare numeric values (for same arbitrary status)
-                // This applies to:
-                // 1. Both non-arbitrary: fractions and numerics compared together (w-1/2 vs w-4)
-                // 2. Both arbitrary: compare extracted numeric values (w-[50px] vs w-[100px])
+                // SECOND: compare numeric values (for same arbitrary status)
+                // this applies to:
+                // 1. both non-arbitrary: fractions and numerics compared together (w-1/2 vs w-4)
+                // 2. both arbitrary: compare extracted numeric values (w-[50px] vs w-[100px])
                 // DON'T compare numerically if one has opacity syntax and the other doesn't
                 match (self.numeric_value, other.numeric_value) {
                     (Some(a), Some(b)) => {
-                        // Only compare numerically if both have same opacity status
-                        // This prevents comparing shade values (gray-500) with opacity values (white/20)
+                        // only compare numerically if both have same opacity status
+                        // this prevents comparing shade values (gray-500) with opacity values (white/20)
                         if self_has_opacity == other_has_opacity {
-                            // Check if both are width/height utilities with base numbers
+                            // check if both are width/height utilities with base numbers
                             let self_base = extract_base_number(&self.class);
                             let other_base = extract_base_number(&other.class);
 
@@ -777,81 +799,81 @@ impl Ord for SortKey {
                                     Some((self_base_num, self_denom)),
                                     Some((other_base_num, other_denom)),
                                 ) => {
-                                    // Both have base numbers (w-1, w-1/2, w-2, etc.)
-                                    // Rule 1: Compare by base number first (ascending)
-                                    // Example: w-1/3 (base 1) before w-2 (base 2)
+                                    // both have base numbers (w-1, w-1/2, w-2, etc.)
+                                    // rule 1: compare by base number first (ascending)
+                                    // example: w-1/3 (base 1) before w-2 (base 2)
                                     if self_base_num != other_base_num {
                                         return self_base_num.cmp(&other_base_num);
                                     }
 
-                                    // Rule 2: Within same base number, whole numbers before fractions
-                                    // Example: w-1 before w-1/2
+                                    // rule 2: within same base number, whole numbers before fractions
+                                    // example: w-1 before w-1/2
                                     match (self_denom, other_denom) {
                                         (None, Some(_)) => return Ordering::Less, // whole before fraction
                                         (Some(_), None) => return Ordering::Greater, // fraction after whole
                                         (Some(self_d), Some(other_d)) => {
-                                            // Rule 3: Both fractions with same numerator, sort by denominator ascending
-                                            // Example: w-1/2 (denom 2) before w-1/3 (denom 3)
-                                            // Smaller denominator = larger fraction value = comes first
+                                            // rule 3: both fractions with same numerator, sort by denominator ascending
+                                            // example: w-1/2 (denom 2) before w-1/3 (denom 3)
+                                            // smaller denominator = larger fraction value = comes first
                                             if self_d != other_d {
                                                 return self_d.cmp(&other_d);
                                             }
                                         }
                                         (None, None) => {
-                                            // Both whole numbers with same base, equal
+                                            // both whole numbers with same base, equal
                                         }
                                     }
                                 }
                                 _ => {
-                                    // At least one doesn't have a base number, fall back to standard numeric comparison
+                                    // at least one doesn't have a base number, fall back to standard numeric comparison
                                     match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
                                         Ordering::Equal => {
-                                            // Numeric values are equal, continue to next tier
+                                            // numeric values are equal, continue to next tier
                                         }
-                                        ordering => return ordering, // Different numeric values
+                                        ordering => return ordering, // different numeric values
                                     }
                                 }
                             }
                         }
-                        // Different opacity status, continue to next tier
+                        // different opacity status, continue to next tier
                     }
                     _ => {
-                        // At least one doesn't have a numeric value, continue
+                        // at least one doesn't have a numeric value, continue
                     }
                 }
 
-                Ordering::Equal // Fall through to next comparison tier
+                Ordering::Equal // fall through to next comparison tier
             })
-            // Then by alphanumeric comparison for utilities with numeric values
+            // then by alphanumeric comparison for utilities with numeric values
             // (space-* prefix priority is handled here)
             .then_with(|| {
                 match (self.numeric_value, other.numeric_value) {
                     (Some(_), Some(_)) => {
-                        // First check prefix priority (space-* before gap-*)
+                        // first check prefix priority (space-* before gap-*)
                         let prefix_cmp = get_utility_prefix_priority(&self.class)
                             .cmp(&get_utility_prefix_priority(&other.class));
                         if prefix_cmp != Ordering::Equal {
                             return prefix_cmp;
                         }
-                        // Then use alphanumeric comparison of full class names
+                        // then use alphanumeric comparison of full class names
                         compare_alphanumeric(&self.class, &other.class)
                     }
-                    // If only one has a numeric value, no preference (continue to next comparison)
+                    // if only one has a numeric value, no preference (continue to next comparison)
                     _ => Ordering::Equal,
                 }
             })
-            // Then by utility prefix priority (space-* before gap-* when properties match)
+            // then by utility prefix priority (space-* before gap-* when properties match)
             .then_with(|| {
                 get_utility_prefix_priority(&self.class)
                     .cmp(&get_utility_prefix_priority(&other.class))
             })
-            // Compare base names (extracts modifiers)
+            // compare base names (extracts modifiers)
             .then_with(|| {
                 let base_self = extract_base_name(&self.class);
                 let base_other = extract_base_name(&other.class);
                 base_self.cmp(base_other)
             })
-            // Finally alphabetically on full name
+            // finally alphabetically on full name
             .then(self.class.cmp(&other.class))
     }
 }
@@ -894,20 +916,29 @@ impl PatternSorter {
     /// assert!(key.variant_order > 0);
     /// ```
     pub fn get_sort_key(&self, class: &str) -> Option<SortKey> {
-        // Parse the class
+        // parse the class
         let parsed = parse_class(class)?;
 
-        // Calculate variant order using bitwise flags
+        // calculate variant order using bitwise flags
         let variant_order = calculate_variant_order(&parsed.variants);
 
-        // Parse variants into structured form for recursive comparison
+        // parse variants into structured form for recursive comparison
         let variant_chain = parse_variants(&parsed.variants);
 
-        // Get the CSS properties this utility generates
+        // extract arbitrary variants for lexicographic tiebreaking
+        // these are variants that start with '[' (e.g., [&.htmx-request], [&>*])
+        let arbitrary_variants: Vec<compact_str::CompactString> = parsed
+            .variants
+            .iter()
+            .filter(|v| v.starts_with('['))
+            .map(|v| compact_str::CompactString::new(*v))
+            .collect();
+
+        // get the CSS properties this utility generates
         let properties = parsed.get_properties()?;
 
-        // Get ALL property indices (not just minimum) for proper multi-property tiebreaking
-        // This is crucial for utilities like rounded-t vs rounded-l that share the first property
+        // get ALL property indices (not just minimum) for proper multi-property tiebreaking
+        // this is crucial for utilities like rounded-t vs rounded-l that share the first property
         // but differ on the second property (e.g., border-top-left-radius ties, but
         // border-top-right-radius (190) < border-bottom-left-radius (192))
         let property_indices: Vec<usize> = properties
@@ -915,31 +946,32 @@ impl PatternSorter {
             .filter_map(|&prop| get_property_index(prop))
             .collect();
 
-        // Ensure we have at least one valid property index
+        // ensure we have at least one valid property index
         if property_indices.is_empty() {
             return None;
         }
 
-        // Count how many CSS declarations this utility generates
-        // Use the real declaration count from Tailwind (not just property count)
+        // count how many CSS declarations this utility generates
+        // use the real declaration count from Tailwind (not just property count)
         let property_count = crate::utility_map::get_declaration_count(class);
 
-        // Extract numeric value for value-based sub-sorting
+        // extract numeric value for value-based sub-sorting
         let numeric_value = extract_numeric_value(class);
 
-        // Check if this is a negative value utility
+        // check if this is a negative value utility
         let is_negative = is_negative_value(class);
 
-        // Use CompactString for memory efficiency (24 bytes inline storage)
-        // Most Tailwind classes fit within 24 bytes avoiding heap allocation entirely
+        // use CompactString for memory efficiency (24 bytes inline storage)
+        // most Tailwind classes fit within 24 bytes avoiding heap allocation entirely
         let class_compact = compact_str::CompactString::new(class);
 
-        // Check if this class contains bare group/peer variants (invalid in Tailwind)
+        // check if this class contains bare group/peer variants (invalid in Tailwind)
         let is_unparseable = has_bare_group_or_peer(&variant_chain);
 
         Some(SortKey {
             variant_order,
             variant_chain,
+            arbitrary_variants,
             property_indices,
             numeric_value,
             is_negative,
@@ -992,13 +1024,13 @@ impl Default for PatternSorter {
 pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
     let sorter = PatternSorter::new();
 
-    // Generate sort keys for all classes
-    // For unknown classes, we still need variant order for proper sorting
+    // generate sort keys for all classes
+    // for unknown classes, we still need variant order for proper sorting
     let mut with_keys: Vec<(Option<SortKey>, u128, &str)> = classes
         .iter()
         .map(|&class| {
             let key = sorter.get_sort_key(class);
-            // For unknown classes, calculate variant order manually
+            // for unknown classes, calculate variant order manually
             let variant_order = if key.is_none() {
                 if let Some(parsed) = parse_class(class) {
                     calculate_variant_order(&parsed.variants)
@@ -1006,26 +1038,26 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
                     0
                 }
             } else {
-                0 // Not needed for known classes
+                0 // not needed for known classes
             };
             (key, variant_order, class)
         })
         .collect();
 
-    // Sort by keys
-    // Classes without valid keys (unknown/custom) come first, sorted by variant order then alphabetically
-    // Classes with valid keys (known Tailwind utilities) come after, sorted by key
-    // This matches prettier-plugin-tailwindcss behavior where getClassOrder() returns
+    // sort by keys
+    // classes without valid keys (unknown/custom) come first, sorted by variant order then alphabetically
+    // classes with valid keys (known Tailwind utilities) come after, sorted by key
+    // this matches prettier-plugin-tailwindcss behavior where getClassOrder() returns
     // null for unknown classes, which are sorted to the front.
     with_keys.sort_by(
         |(a_key, a_variant_order, a_class), (z_key, z_variant_order, z_class)| {
             match (a_key, z_key) {
                 (Some(a), Some(z)) => a.cmp(z),
-                (Some(_), None) => Ordering::Greater, // Known classes after unknown
-                (None, Some(_)) => Ordering::Less,    // Unknown classes before known
+                (Some(_), None) => Ordering::Greater, // known classes after unknown
+                (None, Some(_)) => Ordering::Less,    // unknown classes before known
                 (None, None) => {
-                    // Unknown classes: sort by variant order first, then alphabetically
-                    // Lower variant order values come first (0 for no variants, then increasing)
+                    // unknown classes: sort by variant order first, then alphabetically
+                    // lower variant order values come first (0 for no variants, then increasing)
                     a_variant_order
                         .cmp(z_variant_order)
                         .then_with(|| a_class.cmp(z_class))
@@ -1034,7 +1066,7 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
         },
     );
 
-    // Extract the sorted classes
+    // extract the sorted classes
     with_keys.iter().map(|(_, _, class)| *class).collect()
 }
 
@@ -1047,10 +1079,10 @@ mod tests {
         let classes = vec!["md:flex", "flex", "sm:grid", "grid"];
         let sorted = sort_classes(&classes);
 
-        // Base classes should come first
+        // base classes should come first
         assert_eq!(sorted[0], "flex");
         assert_eq!(sorted[1], "grid");
-        // Then variant classes
+        // then variant classes
         assert!(sorted[2] == "sm:grid" || sorted[2] == "md:flex");
         assert!(sorted[3] == "sm:grid" || sorted[3] == "md:flex");
     }
@@ -1070,7 +1102,7 @@ mod tests {
         let sorted = sort_classes(&classes);
 
         // background-color (180) < padding-left (258) < padding-top (257)
-        // So bg should be first
+        // so bg should be first
         assert_eq!(sorted[0], "bg-red-500");
     }
 
@@ -1079,22 +1111,22 @@ mod tests {
         let classes = vec!["focus:p-1", "hover:p-1"];
         let sorted = sort_classes(&classes);
 
-        // Tailwind v4: focus-within (34) < hover (35) < focus (36) < focus-visible (37)
+        // tailwind v4: focus-within (34) < hover (35) < focus (36) < focus-visible (37)
         assert_eq!(sorted, vec!["hover:p-1", "focus:p-1"]);
     }
 
     #[test]
     fn test_matches_tailwind_example() {
-        // From Tailwind's sort.test.ts:22
+        // from Tailwind's sort.test.ts:22
         let classes = vec!["px-3", "focus:hover:p-3", "hover:p-1", "py-3"];
         let sorted = sort_classes(&classes);
 
-        // Debug output
+        // debug output
         eprintln!("Sorted: {:?}", sorted);
 
-        // Expected: base classes first, then variants
-        // Note: px and py might be in either order depending on property indices
-        // Let's just check they're both in the first two positions
+        // expected: base classes first, then variants
+        // note: px and py might be in either order depending on property indices
+        // let's just check they're both in the first two positions
         assert!(sorted[0] == "px-3" || sorted[0] == "py-3");
         assert!(sorted[1] == "px-3" || sorted[1] == "py-3");
         assert_eq!(sorted[2], "hover:p-1");
@@ -1117,20 +1149,21 @@ mod tests {
         let classes = vec!["flex", "unknown-class", "grid", "fake-utility"];
         let sorted = sort_classes(&classes);
 
-        // Unknown classes first, alphabetically
+        // unknown classes first, alphabetically
         assert_eq!(sorted[0], "fake-utility");
         assert_eq!(sorted[1], "unknown-class");
-        // Known classes after
+        // known classes after
         assert_eq!(sorted[2], "flex");
         assert_eq!(sorted[3], "grid");
     }
 
     #[test]
     fn test_sort_key_ordering() {
-        // Create sort keys manually to test comparison
+        // create sort keys manually to test comparison
         let key1 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1142,6 +1175,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 1,
             variant_chain: parse_variants(&["md"]),
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1150,7 +1184,7 @@ mod tests {
             is_unparseable: false,
         };
 
-        // Base class (variant_order=0) should come before variant class
+        // base class (variant_order=0) should come before variant class
         assert!(key1 < key2);
     }
 
@@ -1159,6 +1193,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![50],
             numeric_value: None,
             is_negative: false,
@@ -1170,6 +1205,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1178,7 +1214,7 @@ mod tests {
             is_unparseable: false,
         };
 
-        // Lower property index comes first
+        // lower property index comes first
         assert!(key1 < key2);
     }
 
@@ -1187,6 +1223,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1198,6 +1235,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1206,7 +1244,7 @@ mod tests {
             is_unparseable: false,
         };
 
-        // More properties come first (key2 has 2, key1 has 1, so key2 < key1)
+        // more properties come first (key2 has 2, key1 has 1, so key2 < key1)
         assert!(key2 < key1);
     }
 
@@ -1215,6 +1253,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1226,6 +1265,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,
@@ -1234,7 +1274,7 @@ mod tests {
             is_unparseable: false,
         };
 
-        // Alphabetical tiebreaker
+        // alphabetical tiebreaker
         assert!(key1 < key2);
     }
 
@@ -1273,7 +1313,7 @@ mod tests {
         let classes = vec!["p-4!", "p-4", "m-4!"];
         let sorted = sort_classes(&classes);
 
-        // Important modifier is part of the class string, affects alphabetical sort
+        // important modifier is part of the class string, affects alphabetical sort
         assert_eq!(sorted[0], "m-4!");
         assert_eq!(sorted[1], "p-4");
         assert_eq!(sorted[2], "p-4!");
@@ -1358,6 +1398,7 @@ mod tests {
         let key1 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: Some(4.0),
             is_negative: false,
@@ -1368,6 +1409,7 @@ mod tests {
         let key2 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: Some(8.0),
             is_negative: false,
@@ -1381,6 +1423,7 @@ mod tests {
         let key3 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: Some(50.0),
             is_negative: false,
@@ -1391,6 +1434,7 @@ mod tests {
         let key4 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: Some(110.0),
             is_negative: false,
@@ -1404,6 +1448,7 @@ mod tests {
         let key5 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: Some(4.0),
             is_negative: false,
@@ -1414,6 +1459,7 @@ mod tests {
         let key6 = SortKey {
             variant_order: 0,
             variant_chain: vec![],
+            arbitrary_variants: vec![],
             property_indices: vec![100],
             numeric_value: None,
             is_negative: false,

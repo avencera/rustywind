@@ -40,10 +40,10 @@ impl UtilityMap {
     pub fn new() -> Self {
         let mut exact = HashMap::new();
 
-        // Container (maps to --tw-container-component for proper sorting after grid utilities)
+        // container (maps to --tw-container-component for proper sorting after grid utilities)
         exact.insert("container", &["--tw-container-component"][..]);
 
-        // Display utilities
+        // display utilities
         exact.insert("block", &["display"][..]);
         exact.insert("inline-block", &["display"][..]);
         exact.insert("inline", &["display"][..]);
@@ -66,26 +66,26 @@ impl UtilityMap {
         exact.insert("list-item", &["display"][..]);
         exact.insert("hidden", &["display"][..]);
 
-        // Position
+        // position
         exact.insert("static", &["position"][..]);
         exact.insert("fixed", &["position"][..]);
         exact.insert("absolute", &["position"][..]);
         exact.insert("relative", &["position"][..]);
         exact.insert("sticky", &["position"][..]);
 
-        // Visibility
+        // visibility
         exact.insert("visible", &["visibility"][..]);
         exact.insert("invisible", &["visibility"][..]);
         exact.insert("collapse", &["visibility"][..]);
 
-        // Float
+        // float
         exact.insert("float-start", &["float"][..]);
         exact.insert("float-end", &["float"][..]);
         exact.insert("float-right", &["float"][..]);
         exact.insert("float-left", &["float"][..]);
         exact.insert("float-none", &["float"][..]);
 
-        // Clear
+        // clear
         exact.insert("clear-start", &["clear"][..]);
         exact.insert("clear-end", &["clear"][..]);
         exact.insert("clear-left", &["clear"][..]);
@@ -93,18 +93,18 @@ impl UtilityMap {
         exact.insert("clear-both", &["clear"][..]);
         exact.insert("clear-none", &["clear"][..]);
 
-        // Isolation
+        // isolation
         exact.insert("isolate", &["isolation"][..]);
         exact.insert("isolation-auto", &["isolation"][..]);
 
-        // Object Fit
+        // object fit
         exact.insert("object-contain", &["object-fit"][..]);
         exact.insert("object-cover", &["object-fit"][..]);
         exact.insert("object-fill", &["object-fit"][..]);
         exact.insert("object-none", &["object-fit"][..]);
         exact.insert("object-scale-down", &["object-fit"][..]);
 
-        // Overflow
+        // overflow
         exact.insert("overflow-auto", &["overflow"][..]);
         exact.insert("overflow-hidden", &["overflow"][..]);
         exact.insert("overflow-clip", &["overflow"][..]);
@@ -121,11 +121,11 @@ impl UtilityMap {
         exact.insert("overflow-y-visible", &["overflow-y"][..]);
         exact.insert("overflow-y-scroll", &["overflow-y"][..]);
 
-        // Box Sizing
+        // box sizing
         exact.insert("box-border", &["box-sizing"][..]);
         exact.insert("box-content", &["box-sizing"][..]);
 
-        // Flexbox & Grid Alignment (common utilities without values)
+        // flexbox & grid alignment (common utilities without values)
         exact.insert("items-start", &["align-items"][..]);
         exact.insert("items-end", &["align-items"][..]);
         exact.insert("items-center", &["align-items"][..]);
@@ -148,7 +148,7 @@ impl UtilityMap {
         exact.insert("content-around", &["align-content"][..]);
         exact.insert("content-evenly", &["align-content"][..]);
 
-        // Cursor
+        // cursor
         exact.insert("cursor-auto", &["cursor"][..]);
         exact.insert("cursor-default", &["cursor"][..]);
         exact.insert("cursor-pointer", &["cursor"][..]);
@@ -186,35 +186,35 @@ impl UtilityMap {
         exact.insert("cursor-zoom-in", &["cursor"][..]);
         exact.insert("cursor-zoom-out", &["cursor"][..]);
 
-        // User Select
+        // user select
         exact.insert("select-none", &["user-select"][..]);
         exact.insert("select-text", &["user-select"][..]);
         exact.insert("select-all", &["user-select"][..]);
         exact.insert("select-auto", &["user-select"][..]);
 
-        // Appearance
+        // appearance
         exact.insert("appearance-none", &["appearance"][..]);
         exact.insert("appearance-auto", &["appearance"][..]);
 
-        // Resize
+        // resize
         exact.insert("resize-none", &["resize"][..]);
         exact.insert("resize-y", &["resize"][..]);
         exact.insert("resize-x", &["resize"][..]);
         exact.insert("resize", &["resize"][..]);
 
-        // Scroll Snap
+        // scroll snap
         exact.insert("snap-start", &["scroll-snap-align"][..]);
         exact.insert("snap-end", &["scroll-snap-align"][..]);
         exact.insert("snap-center", &["scroll-snap-align"][..]);
         exact.insert("snap-align-none", &["scroll-snap-align"][..]);
 
-        // Word Break
+        // word break
         exact.insert("break-normal", &["overflow-wrap", "word-break"][..]);
         exact.insert("break-words", &["overflow-wrap"][..]);
         exact.insert("break-all", &["word-break"][..]);
         exact.insert("break-keep", &["word-break"][..]);
 
-        // Break Before/After/Inside
+        // break before/after/inside
         exact.insert("break-before-auto", &["break-before"][..]);
         exact.insert("break-before-avoid", &["break-before"][..]);
         exact.insert("break-before-all", &["break-before"][..]);
@@ -236,11 +236,11 @@ impl UtilityMap {
         exact.insert("break-inside-avoid-page", &["break-inside"][..]);
         exact.insert("break-inside-avoid-column", &["break-inside"][..]);
 
-        // Box Decoration Break
+        // box decoration break
         exact.insert("box-decoration-clone", &["box-decoration-break"][..]);
         exact.insert("box-decoration-slice", &["box-decoration-break"][..]);
 
-        // Overscroll
+        // overscroll
         exact.insert("overscroll-auto", &["overscroll-behavior"][..]);
         exact.insert("overscroll-contain", &["overscroll-behavior"][..]);
         exact.insert("overscroll-none", &["overscroll-behavior"][..]);
@@ -251,11 +251,11 @@ impl UtilityMap {
         exact.insert("overscroll-y-contain", &["overscroll-behavior-y"][..]);
         exact.insert("overscroll-y-none", &["overscroll-behavior-y"][..]);
 
-        // Scroll Behavior
+        // scroll behavior
         exact.insert("scroll-auto", &["scroll-behavior"][..]);
         exact.insert("scroll-smooth", &["scroll-behavior"][..]);
 
-        // Scroll Snap Type
+        // scroll snap type
         exact.insert("snap-none", &["scroll-snap-type"][..]);
         exact.insert("snap-x", &["scroll-snap-type"][..]);
         exact.insert("snap-y", &["scroll-snap-type"][..]);
@@ -263,11 +263,11 @@ impl UtilityMap {
         exact.insert("snap-mandatory", &["--tw-scroll-snap-strictness"][..]);
         exact.insert("snap-proximity", &["--tw-scroll-snap-strictness"][..]);
 
-        // Scroll Snap Stop
+        // scroll snap stop
         exact.insert("snap-normal", &["scroll-snap-stop"][..]);
         exact.insert("snap-always", &["scroll-snap-stop"][..]);
 
-        // Touch Action
+        // touch action
         // touch-auto/none/manipulation map to touch-action (index 95)
         exact.insert("touch-auto", &["touch-action"][..]);
         exact.insert("touch-none", &["touch-action"][..]);
@@ -286,16 +286,16 @@ impl UtilityMap {
         // touch-pinch-zoom maps to --tw-pinch-zoom (index 98)
         exact.insert("touch-pinch-zoom", &["--tw-pinch-zoom"][..]);
 
-        // Pointer Events
+        // pointer events
         exact.insert("pointer-events-none", &["pointer-events"][..]);
         exact.insert("pointer-events-auto", &["pointer-events"][..]);
 
-        // Content (align-content additions)
+        // content (align-content additions)
         exact.insert("content-normal", &["align-content"][..]);
         exact.insert("content-baseline", &["align-content"][..]);
         exact.insert("content-stretch", &["align-content"][..]);
 
-        // Place Content
+        // place content
         exact.insert("place-content-center", &["place-content"][..]);
         exact.insert("place-content-start", &["place-content"][..]);
         exact.insert("place-content-end", &["place-content"][..]);
@@ -305,34 +305,34 @@ impl UtilityMap {
         exact.insert("place-content-baseline", &["place-content"][..]);
         exact.insert("place-content-stretch", &["place-content"][..]);
 
-        // Place Items
+        // place items
         exact.insert("place-items-start", &["place-items"][..]);
         exact.insert("place-items-end", &["place-items"][..]);
         exact.insert("place-items-center", &["place-items"][..]);
         exact.insert("place-items-baseline", &["place-items"][..]);
         exact.insert("place-items-stretch", &["place-items"][..]);
 
-        // Place Self
+        // place self
         exact.insert("place-self-auto", &["place-self"][..]);
         exact.insert("place-self-start", &["place-self"][..]);
         exact.insert("place-self-end", &["place-self"][..]);
         exact.insert("place-self-center", &["place-self"][..]);
         exact.insert("place-self-stretch", &["place-self"][..]);
 
-        // Justify Items
+        // justify items
         exact.insert("justify-items-start", &["justify-items"][..]);
         exact.insert("justify-items-end", &["justify-items"][..]);
         exact.insert("justify-items-center", &["justify-items"][..]);
         exact.insert("justify-items-stretch", &["justify-items"][..]);
 
-        // Justify Self
+        // justify self
         exact.insert("justify-self-auto", &["justify-self"][..]);
         exact.insert("justify-self-start", &["justify-self"][..]);
         exact.insert("justify-self-end", &["justify-self"][..]);
         exact.insert("justify-self-center", &["justify-self"][..]);
         exact.insert("justify-self-stretch", &["justify-self"][..]);
 
-        // Align Self
+        // align self
         exact.insert("self-auto", &["align-self"][..]);
         exact.insert("self-start", &["align-self"][..]);
         exact.insert("self-end", &["align-self"][..]);
@@ -340,32 +340,32 @@ impl UtilityMap {
         exact.insert("self-stretch", &["align-self"][..]);
         exact.insert("self-baseline", &["align-self"][..]);
 
-        // Flex Direction
+        // flex direction
         exact.insert("flex-row", &["flex-direction"][..]);
         exact.insert("flex-row-reverse", &["flex-direction"][..]);
         exact.insert("flex-col", &["flex-direction"][..]);
         exact.insert("flex-col-reverse", &["flex-direction"][..]);
 
-        // Flex Wrap
+        // flex wrap
         exact.insert("flex-wrap", &["flex-wrap"][..]);
         exact.insert("flex-wrap-reverse", &["flex-wrap"][..]);
         exact.insert("flex-nowrap", &["flex-wrap"][..]);
 
-        // Flex
+        // flex
         exact.insert("flex-1", &["flex"][..]);
         exact.insert("flex-auto", &["flex"][..]);
         exact.insert("flex-initial", &["flex"][..]);
         exact.insert("flex-none", &["flex"][..]);
 
-        // Flex Grow
+        // flex grow
         exact.insert("grow", &["flex-grow"][..]);
         exact.insert("grow-0", &["flex-grow"][..]);
 
-        // Flex Shrink
+        // flex shrink
         exact.insert("shrink", &["flex-shrink"][..]);
         exact.insert("shrink-0", &["flex-shrink"][..]);
 
-        // Order
+        // order
         exact.insert("order-1", &["order"][..]);
         exact.insert("order-2", &["order"][..]);
         exact.insert("order-3", &["order"][..]);
@@ -382,7 +382,7 @@ impl UtilityMap {
         exact.insert("order-last", &["order"][..]);
         exact.insert("order-none", &["order"][..]);
 
-        // Grid Template Columns
+        // grid template columns
         exact.insert("grid-cols-1", &["grid-template-columns"][..]);
         exact.insert("grid-cols-2", &["grid-template-columns"][..]);
         exact.insert("grid-cols-3", &["grid-template-columns"][..]);
@@ -397,7 +397,7 @@ impl UtilityMap {
         exact.insert("grid-cols-12", &["grid-template-columns"][..]);
         exact.insert("grid-cols-none", &["grid-template-columns"][..]);
 
-        // Grid Template Rows
+        // grid template rows
         exact.insert("grid-rows-1", &["grid-template-rows"][..]);
         exact.insert("grid-rows-2", &["grid-template-rows"][..]);
         exact.insert("grid-rows-3", &["grid-template-rows"][..]);
@@ -406,26 +406,26 @@ impl UtilityMap {
         exact.insert("grid-rows-6", &["grid-template-rows"][..]);
         exact.insert("grid-rows-none", &["grid-template-rows"][..]);
 
-        // Grid Auto Flow
+        // grid auto flow
         exact.insert("grid-flow-row", &["grid-auto-flow"][..]);
         exact.insert("grid-flow-col", &["grid-auto-flow"][..]);
         exact.insert("grid-flow-dense", &["grid-auto-flow"][..]);
         exact.insert("grid-flow-row-dense", &["grid-auto-flow"][..]);
         exact.insert("grid-flow-col-dense", &["grid-auto-flow"][..]);
 
-        // Grid Auto Columns
+        // grid auto columns
         exact.insert("auto-cols-auto", &["grid-auto-columns"][..]);
         exact.insert("auto-cols-min", &["grid-auto-columns"][..]);
         exact.insert("auto-cols-max", &["grid-auto-columns"][..]);
         exact.insert("auto-cols-fr", &["grid-auto-columns"][..]);
 
-        // Grid Auto Rows
+        // grid auto rows
         exact.insert("auto-rows-auto", &["grid-auto-rows"][..]);
         exact.insert("auto-rows-min", &["grid-auto-rows"][..]);
         exact.insert("auto-rows-max", &["grid-auto-rows"][..]);
         exact.insert("auto-rows-fr", &["grid-auto-rows"][..]);
 
-        // Column Span
+        // column span
         exact.insert("col-auto", &["grid-column"][..]);
         exact.insert("col-span-1", &["grid-column"][..]);
         exact.insert("col-span-2", &["grid-column"][..]);
@@ -469,7 +469,7 @@ impl UtilityMap {
         exact.insert("col-end-13", &["grid-column-end"][..]);
         exact.insert("col-end-auto", &["grid-column-end"][..]);
 
-        // Row Span
+        // row span
         exact.insert("row-auto", &["grid-row"][..]);
         exact.insert("row-span-1", &["grid-row"][..]);
         exact.insert("row-span-2", &["grid-row"][..]);
@@ -495,7 +495,7 @@ impl UtilityMap {
         exact.insert("row-end-7", &["grid-row-end"][..]);
         exact.insert("row-end-auto", &["grid-row-end"][..]);
 
-        // Transform Origin
+        // transform origin
         exact.insert("origin-center", &["transform-origin"][..]);
         exact.insert("origin-top", &["transform-origin"][..]);
         exact.insert("origin-top-right", &["transform-origin"][..]);
@@ -506,7 +506,7 @@ impl UtilityMap {
         exact.insert("origin-left", &["transform-origin"][..]);
         exact.insert("origin-top-left", &["transform-origin"][..]);
 
-        // Typography
+        // typography
         exact.insert(
             "truncate",
             &["overflow", "text-overflow", "white-space"][..],
@@ -541,7 +541,7 @@ impl UtilityMap {
         exact.insert("list-inside", &["list-style-position"][..]);
         exact.insert("list-outside", &["list-style-position"][..]);
 
-        // Vertical Align
+        // vertical align
         exact.insert("align-baseline", &["vertical-align"][..]);
         exact.insert("align-top", &["vertical-align"][..]);
         exact.insert("align-middle", &["vertical-align"][..]);
@@ -551,7 +551,7 @@ impl UtilityMap {
         exact.insert("align-sub", &["vertical-align"][..]);
         exact.insert("align-super", &["vertical-align"][..]);
 
-        // Mix Blend Mode
+        // mix blend mode
         exact.insert("mix-blend-normal", &["mix-blend-mode"][..]);
         exact.insert("mix-blend-multiply", &["mix-blend-mode"][..]);
         exact.insert("mix-blend-screen", &["mix-blend-mode"][..]);
@@ -570,7 +570,7 @@ impl UtilityMap {
         exact.insert("mix-blend-luminosity", &["mix-blend-mode"][..]);
         exact.insert("mix-blend-plus-lighter", &["mix-blend-mode"][..]);
 
-        // Background Blend Mode
+        // background blend mode
         exact.insert("bg-blend-normal", &["background-blend-mode"][..]);
         exact.insert("bg-blend-multiply", &["background-blend-mode"][..]);
         exact.insert("bg-blend-screen", &["background-blend-mode"][..]);
@@ -588,7 +588,7 @@ impl UtilityMap {
         exact.insert("bg-blend-color", &["background-blend-mode"][..]);
         exact.insert("bg-blend-luminosity", &["background-blend-mode"][..]);
 
-        // Border Style
+        // border style
         exact.insert("border-solid", &["border-style"][..]);
         exact.insert("border-dashed", &["border-style"][..]);
         exact.insert("border-dotted", &["border-style"][..]);
@@ -596,35 +596,35 @@ impl UtilityMap {
         exact.insert("border-hidden", &["border-style"][..]);
         exact.insert("border-none", &["border-style"][..]);
 
-        // Divide Style
+        // divide style
         exact.insert("divide-solid", &["divide-style"][..]);
         exact.insert("divide-dashed", &["divide-style"][..]);
         exact.insert("divide-dotted", &["divide-style"][..]);
         exact.insert("divide-double", &["divide-style"][..]);
         exact.insert("divide-none", &["divide-style"][..]);
 
-        // Divide Reverse
+        // divide reverse
         // divide-x-reverse maps to --tw-divide-x-reverse (added to end of property list)
         // divide-y-reverse maps to --tw-divide-y-reverse
         exact.insert("divide-x-reverse", &["--tw-divide-x-reverse"][..]);
         exact.insert("divide-y-reverse", &["--tw-divide-y-reverse"][..]);
 
-        // Space Reverse (static utilities, not covered by space-x/space-y patterns)
-        // Like their base utilities, use column-gap/row-gap for correct cross-axis sorting
+        // space reverse (static utilities, not covered by space-x/space-y patterns)
+        // like their base utilities, use column-gap/row-gap for correct cross-axis sorting
         exact.insert("space-x-reverse", &["row-gap"][..]);
         exact.insert("space-y-reverse", &["column-gap"][..]);
 
-        // Outline Style (maps to outline-style property)
+        // outline style (maps to outline-style property)
         exact.insert("outline-none", &["outline-style"][..]);
         exact.insert("outline-solid", &["outline-style"][..]);
         exact.insert("outline-dashed", &["outline-style"][..]);
         exact.insert("outline-dotted", &["outline-style"][..]);
         exact.insert("outline-double", &["outline-style"][..]);
 
-        // Ring (ring-inset sets --tw-ring-inset property)
+        // ring (ring-inset sets --tw-ring-inset property)
         exact.insert("ring-inset", &["--tw-ring-inset"][..]);
 
-        // Text Alignment
+        // text alignment
         exact.insert("text-left", &["text-align"][..]);
         exact.insert("text-center", &["text-align"][..]);
         exact.insert("text-right", &["text-align"][..]);
@@ -632,12 +632,12 @@ impl UtilityMap {
         exact.insert("text-start", &["text-align"][..]);
         exact.insert("text-end", &["text-align"][..]);
 
-        // Background Size
+        // background size
         exact.insert("bg-auto", &["background-size"][..]);
         exact.insert("bg-cover", &["background-size"][..]);
         exact.insert("bg-contain", &["background-size"][..]);
 
-        // Background Position
+        // background position
         exact.insert("bg-bottom", &["background-position"][..]);
         exact.insert("bg-center", &["background-position"][..]);
         exact.insert("bg-left", &["background-position"][..]);
@@ -648,7 +648,7 @@ impl UtilityMap {
         exact.insert("bg-right-top", &["background-position"][..]);
         exact.insert("bg-top", &["background-position"][..]);
 
-        // Background Repeat
+        // background repeat
         exact.insert("bg-repeat", &["background-repeat"][..]);
         exact.insert("bg-no-repeat", &["background-repeat"][..]);
         exact.insert("bg-repeat-x", &["background-repeat"][..]);
@@ -656,21 +656,21 @@ impl UtilityMap {
         exact.insert("bg-repeat-round", &["background-repeat"][..]);
         exact.insert("bg-repeat-space", &["background-repeat"][..]);
 
-        // Background Image
+        // background image
         exact.insert("bg-none", &["background-image"][..]);
 
-        // Background Clip
+        // background clip
         exact.insert("bg-clip-border", &["background-clip"][..]);
         exact.insert("bg-clip-padding", &["background-clip"][..]);
         exact.insert("bg-clip-content", &["background-clip"][..]);
         exact.insert("bg-clip-text", &["background-clip"][..]);
 
-        // Background Origin
+        // background origin
         exact.insert("bg-origin-border", &["background-origin"][..]);
         exact.insert("bg-origin-padding", &["background-origin"][..]);
         exact.insert("bg-origin-content", &["background-origin"][..]);
 
-        // Gradient Direction
+        // gradient direction
         exact.insert("bg-gradient-to-t", &["background-image"][..]);
         exact.insert("bg-gradient-to-tr", &["background-image"][..]);
         exact.insert("bg-gradient-to-r", &["background-image"][..]);
@@ -680,7 +680,7 @@ impl UtilityMap {
         exact.insert("bg-gradient-to-l", &["background-image"][..]);
         exact.insert("bg-gradient-to-tl", &["background-image"][..]);
 
-        // Drop Shadow
+        // drop shadow
         exact.insert("drop-shadow", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-sm", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-md", &["--tw-drop-shadow"][..]);
@@ -689,12 +689,12 @@ impl UtilityMap {
         exact.insert("drop-shadow-2xl", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-none", &["--tw-drop-shadow"][..]);
 
-        // Filter utilities -0 variants (exact mappings to avoid pattern match exclusion)
+        // filter utilities -0 variants (exact mappings to avoid pattern match exclusion)
         exact.insert("grayscale-0", &["--tw-grayscale"][..]);
         exact.insert("invert-0", &["--tw-invert"][..]);
         exact.insert("sepia-0", &["--tw-sepia"][..]);
 
-        // Object Position
+        // object position
         exact.insert("object-bottom", &["object-position"][..]);
         exact.insert("object-center", &["object-position"][..]);
         exact.insert("object-left", &["object-position"][..]);
@@ -705,25 +705,25 @@ impl UtilityMap {
         exact.insert("object-right-top", &["object-position"][..]);
         exact.insert("object-top", &["object-position"][..]);
 
-        // Aspect Ratio
+        // aspect ratio
         exact.insert("aspect-auto", &["aspect-ratio"][..]);
         exact.insert("aspect-square", &["aspect-ratio"][..]);
         exact.insert("aspect-video", &["aspect-ratio"][..]);
 
-        // Text Decoration Style
+        // text decoration style
         exact.insert("decoration-solid", &["text-decoration-style"][..]);
         exact.insert("decoration-double", &["text-decoration-style"][..]);
         exact.insert("decoration-dotted", &["text-decoration-style"][..]);
         exact.insert("decoration-dashed", &["text-decoration-style"][..]);
         exact.insert("decoration-wavy", &["text-decoration-style"][..]);
 
-        // Text Decoration Thickness
+        // text decoration thickness
         exact.insert("decoration-auto", &["text-decoration-thickness"][..]);
         exact.insert("decoration-from-font", &["text-decoration-thickness"][..]);
 
-        // Transition Property
+        // transition property
         // transition-none only sets transition-property to 'none' (matches Tailwind v4)
-        // This ensures it sorts alphabetically with other transition utilities
+        // this ensures it sorts alphabetically with other transition utilities
         exact.insert("transition-none", &["transition-property"][..]);
         exact.insert("transition-all", &["transition-property"][..]);
         exact.insert("transition-colors", &["transition-property"][..]);
@@ -731,13 +731,13 @@ impl UtilityMap {
         exact.insert("transition-shadow", &["transition-property"][..]);
         exact.insert("transition-transform", &["transition-property"][..]);
 
-        // Font Family
+        // font family
         exact.insert("font-sans", &["font-family"][..]);
         exact.insert("font-serif", &["font-family"][..]);
         exact.insert("font-mono", &["font-family"][..]);
 
-        // Typography plugin (prose)
-        // These are from @tailwindcss/typography plugin but we treat them as known utilities
+        // typography plugin (prose)
+        // these are from @tailwindcss/typography plugin but we treat them as known utilities
         // so they sort with other text/typography utilities, not as custom classes
         exact.insert("prose", &["--tw-prose-component"][..]);
         exact.insert("prose-sm", &["--tw-prose-component"][..]);
@@ -747,8 +747,8 @@ impl UtilityMap {
         exact.insert("prose-2xl", &["--tw-prose-component"][..]);
         exact.insert("prose-invert", &["--tw-prose-invert"][..]);
 
-        // Scroll Snap Align (already exists but consolidating here)
-        // Snap utilities are already defined above at lines 206-209
+        // scroll snap align (already exists but consolidating here)
+        // snap utilities are already defined above at lines 206-209
 
         Self { exact }
     }
@@ -777,23 +777,23 @@ impl UtilityMap {
     /// assert!(px_props.contains(&"padding-inline"));
     /// ```
     pub fn get_properties(&self, utility: &str) -> Option<&'static [&'static str]> {
-        // Try exact match first (fast path)
+        // try exact match first (fast path)
         if let Some(props) = self.exact.get(utility) {
             return Some(props);
         }
 
-        // Fall back to pattern matching
+        // fall back to pattern matching
         self.match_pattern(utility)
     }
 
     /// Match a utility against known patterns to determine its properties.
     fn match_pattern(&self, utility: &str) -> Option<&'static [&'static str]> {
-        // Parse utility into base and value
+        // parse utility into base and value
         let (base, value) = parse_utility_parts(utility)?;
 
-        // Match against known patterns
+        // match against known patterns
         match base {
-            // Inset positioning
+            // inset positioning
             "inset" => Some(&["inset"][..]),
             "inset-x" => Some(&["inset-inline"][..]),
             "inset-y" => Some(&["inset-block"][..]),
@@ -804,13 +804,13 @@ impl UtilityMap {
             "bottom" => Some(&["bottom"][..]),
             "left" => Some(&["left"][..]),
 
-            // Z-index (including negative values)
+            // z-index (including negative values)
             "z" | "-z" => Some(&["z-index"][..]),
 
-            // Order
+            // order
             "order" => Some(&["order"][..]),
 
-            // Grid column/row
+            // grid column/row
             "col" if value.starts_with("span") => Some(&["grid-column"][..]),
             "col" if value.starts_with("start") => Some(&["grid-column-start"][..]),
             "col" if value.starts_with("end") => Some(&["grid-column-end"][..]),
@@ -818,7 +818,7 @@ impl UtilityMap {
             "row" if value.starts_with("start") => Some(&["grid-row-start"][..]),
             "row" if value.starts_with("end") => Some(&["grid-row-end"][..]),
 
-            // Margins
+            // margins
             "m" => Some(&["margin"][..]),
             "mx" => Some(&["margin-inline"][..]),
             "my" => Some(&["margin-block"][..]),
@@ -829,7 +829,7 @@ impl UtilityMap {
             "mb" => Some(&["margin-bottom"][..]),
             "ml" => Some(&["margin-left"][..]),
 
-            // Sizing
+            // sizing
             "w" => Some(&["width"][..]),
             "h" => Some(&["height"][..]),
             "size" => Some(&["aspect-ratio"][..]), // aspect-ratio comes before height/width
@@ -838,7 +838,7 @@ impl UtilityMap {
             "max-w" => Some(&["max-width"][..]),
             "max-h" => Some(&["max-height"][..]),
 
-            // Flex
+            // flex
             "flex" if !value.is_empty() => Some(&["flex"][..]), // flex-1, flex-auto, etc.
             "flex-row" => Some(&["flex-direction"][..]),
             "flex-row-reverse" => Some(&["flex-direction"][..]),
@@ -853,7 +853,7 @@ impl UtilityMap {
             "shrink-0" => Some(&["flex-shrink"][..]),
             "basis" => Some(&["flex-basis"][..]),
 
-            // Grid
+            // grid
             "grid-cols" => Some(&["grid-template-columns"][..]),
             "grid-rows" => Some(&["grid-template-rows"][..]),
             "auto-cols" => Some(&["grid-auto-columns"][..]),
@@ -864,12 +864,12 @@ impl UtilityMap {
             "grid-flow-row-dense" => Some(&["grid-auto-flow"][..]),
             "grid-flow-col-dense" => Some(&["grid-auto-flow"][..]),
 
-            // Gap
+            // gap
             "gap" if !value.is_empty() => Some(&["gap"][..]),
             "gap-x" => Some(&["column-gap"][..]),
             "gap-y" => Some(&["row-gap"][..]),
 
-            // Padding
+            // padding
             "p" => Some(&["padding"][..]),
             "px" => Some(&["padding-inline"][..]), // Use padding-inline for left+right
             "py" => Some(&["padding-block"][..]),  // Use padding-block for top+bottom
@@ -880,7 +880,7 @@ impl UtilityMap {
             "pb" => Some(&["padding-bottom"][..]),
             "pl" => Some(&["padding-left"][..]),
 
-            // Alignment
+            // alignment
             "justify-normal" | "justify-start" | "justify-end" | "justify-center"
             | "justify-between" | "justify-around" | "justify-evenly" | "justify-stretch" => {
                 Some(&["justify-content"][..])
@@ -903,11 +903,11 @@ impl UtilityMap {
             | "content-between" | "content-around" | "content-evenly" | "content-baseline"
             | "content-stretch" => Some(&["align-content"][..]),
 
-            // Background
+            // background
             "bg" if is_color_value(value) => Some(&["background-color"][..]),
             "bg" if value.starts_with('[') => Some(&["background-color"][..]), // arbitrary value
 
-            // Border Width
+            // border width
             "border"
                 if value.is_empty() || value.parse::<u32>().is_ok() || value.starts_with('[') =>
             {
@@ -922,23 +922,23 @@ impl UtilityMap {
             "border-b" => Some(&["border-bottom-width"][..]),
             "border-l" => Some(&["border-left-width"][..]),
 
-            // Border Color
+            // border color
             "border" if is_color_value(value) => Some(&["border-color"][..]),
 
-            // Border Radius
+            // border radius
             "rounded" if value.is_empty() || value.starts_with('[') || is_size_keyword(value) => {
                 Some(&["border-radius"][..])
             }
-            // Side-specific rounded utilities
+            // side-specific rounded utilities
             "rounded-s" => Some(&["border-start-radius"][..]),
             "rounded-e" => Some(&["border-end-radius"][..]),
-            // Side rounded utilities map to BOTH corners they affect (matching Tailwind v4)
-            // When first properties tie, Tailwind uses the second property as tiebreaker
+            // side rounded utilities map to BOTH corners they affect (matching Tailwind v4)
+            // when first properties tie, Tailwind uses the second property as tiebreaker
             "rounded-t" => Some(&["border-top-left-radius", "border-top-right-radius"][..]), // (189, 190)
             "rounded-r" => Some(&["border-top-right-radius", "border-bottom-right-radius"][..]), // (190, 191)
             "rounded-b" => Some(&["border-bottom-right-radius", "border-bottom-left-radius"][..]), // (191, 192)
             "rounded-l" => Some(&["border-top-left-radius", "border-bottom-left-radius"][..]), // (189, 192)
-            // Corner-specific rounded utilities map to individual corner properties
+            // corner-specific rounded utilities map to individual corner properties
             "rounded-ss" => Some(&["border-start-start-radius"][..]),
             "rounded-se" => Some(&["border-start-end-radius"][..]),
             "rounded-ee" => Some(&["border-end-end-radius"][..]),
@@ -948,19 +948,19 @@ impl UtilityMap {
             "rounded-br" => Some(&["border-bottom-right-radius"][..]),
             "rounded-bl" => Some(&["border-bottom-left-radius"][..]),
 
-            // Text
+            // text
             "text" if is_color_value(value) => Some(&["color"][..]),
             "text" if is_size_keyword(value) => Some(&["font-size"][..]),
             "text" if value.starts_with('[') => Some(&["font-size"][..]), // arbitrary text size
 
-            // Font
+            // font
             "font" if is_weight_keyword(value) => Some(&["font-weight"][..]),
             "font" => Some(&["font-family"][..]),
 
-            // Opacity
+            // opacity
             "opacity" => Some(&["opacity"][..]),
 
-            // Shadow
+            // shadow
             "shadow" if is_color_value(value) => Some(&["--tw-shadow-color"][..]),
             "shadow"
                 if value.is_empty()
@@ -971,7 +971,7 @@ impl UtilityMap {
                 Some(&["--tw-shadow", "box-shadow"][..])
             }
 
-            // Ring (uses multiple properties)
+            // ring (uses multiple properties)
             "ring" if value.is_empty() || value.parse::<u32>().is_ok() => Some(
                 &[
                     "--tw-ring-offset-shadow",
@@ -984,16 +984,16 @@ impl UtilityMap {
             "ring-offset" if value.parse::<u32>().is_ok() => Some(&["--tw-ring-offset-width"][..]),
             "ring-offset" if is_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
 
-            // Transitions
+            // transitions
             "transition" => Some(&["transition-property"][..]),
             "duration" => Some(&["transition-duration"][..]),
             "delay" => Some(&["transition-delay"][..]),
             "ease" => Some(&["transition-timing-function"][..]),
 
-            // Animations
+            // animations
             "animate" => Some(&["animation"][..]),
 
-            // Transforms
+            // transforms
             "rotate" => Some(&["rotate"][..]),
             "-rotate" => Some(&["rotate"][..]),
             "scale" if !value.is_empty() => Some(&["scale"][..]),
@@ -1011,7 +1011,7 @@ impl UtilityMap {
             "skew-y" => Some(&["--tw-skew-y"][..]),
             "-skew-y" => Some(&["--tw-skew-y"][..]),
 
-            // Filters - map to specific custom properties for correct sorting
+            // filters - map to specific custom properties for correct sorting
             "blur" => Some(&["--tw-blur"][..]),
             "brightness" => Some(&["--tw-brightness"][..]),
             "contrast" => Some(&["--tw-contrast"][..]),
@@ -1024,7 +1024,7 @@ impl UtilityMap {
             "sepia" if value.is_empty() || value.starts_with('[') => Some(&["--tw-sepia"][..]),
             "drop-shadow" => Some(&["--tw-drop-shadow"][..]),
 
-            // Backdrop Filters - map to specific custom properties for correct sorting
+            // backdrop filters - map to specific custom properties for correct sorting
             "backdrop-blur" => Some(&["--tw-backdrop-blur"][..]),
             "backdrop-brightness" => Some(&["--tw-backdrop-brightness"][..]),
             "backdrop-contrast" => Some(&["--tw-backdrop-contrast"][..]),
@@ -1035,71 +1035,71 @@ impl UtilityMap {
             "backdrop-saturate" => Some(&["--tw-backdrop-saturate"][..]),
             "backdrop-sepia" => Some(&["--tw-backdrop-sepia"][..]),
 
-            // Will Change
+            // will change
             "will-change" => Some(&["will-change"][..]),
 
-            // Outline
+            // outline
             "outline" if value.is_empty() || value == "none" || value.parse::<u32>().is_ok() => {
                 Some(&["outline-width"][..])
             }
             "outline" if is_color_value(value) => Some(&["outline-color"][..]),
             "outline-offset" => Some(&["outline-offset"][..]),
 
-            // Accent Color
+            // accent color
             "accent" if is_color_value(value) || value == "auto" || value == "current" => {
                 Some(&["accent-color"][..])
             }
 
-            // Caret Color
+            // caret color
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
-            // Space Between
-            // Per Tailwind v4, space-x and space-y use different --tw-sort properties:
+            // space between
+            // per Tailwind v4, space-x and space-y use different --tw-sort properties:
             // space-x uses row-gap (index 153), space-y uses column-gap (index 152)
-            // Since 152 < 153, space-y correctly sorts BEFORE space-x
+            // since 152 < 153, space-y correctly sorts BEFORE space-x
             "space-x" => Some(&["row-gap"][..]),
             "space-y" => Some(&["column-gap"][..]),
 
-            // Divide
+            // divide
             "divide-x" => Some(&["divide-x-width"][..]),
             "divide-y" => Some(&["divide-y-width"][..]),
             "divide" if is_color_value(value) => Some(&["divide-color"][..]),
             "divide-opacity" => Some(&["border-opacity"][..]),
 
-            // Leading (line-height)
+            // leading (line-height)
             "leading" => Some(&["line-height"][..]),
 
-            // Tracking (letter-spacing)
+            // tracking (letter-spacing)
             "tracking" => Some(&["letter-spacing"][..]),
 
-            // Columns
+            // columns
             "columns" => Some(&["columns"][..]),
 
-            // Background utilities
+            // background utilities
             "bg-opacity" => Some(&["background-opacity"][..]),
             "from" if is_color_value(value) => Some(&["--tw-gradient-from"][..]),
             "via" if is_color_value(value) => Some(&["--tw-gradient-via"][..]),
             "to" if is_color_value(value) => Some(&["--tw-gradient-to"][..]),
 
-            // Aspect Ratio (arbitrary values)
+            // aspect ratio (arbitrary values)
             "aspect" => Some(&["aspect-ratio"][..]),
 
-            // Text Decoration
+            // text decoration
             "decoration" if is_color_value(value) => Some(&["text-decoration-color"][..]),
             "decoration" if value.parse::<u32>().is_ok() => {
                 Some(&["text-decoration-thickness"][..])
             }
             "decoration" => Some(&["text-decoration-color"][..]), // Fallback: custom colors
 
-            // Underline Offset
+            // underline offset
             "underline-offset" => Some(&["text-underline-offset"][..]),
 
-            // Text Indent
+            // text indent
             "indent" => Some(&["text-indent"][..]),
 
-            // Fallbacks for color utilities with custom/unknown color names
-            // These catch utilities that didn't match is_color_value() checks above
-            // In real projects with Tailwind config, these custom colors would be recognized
+            // fallbacks for color utilities with custom/unknown color names
+            // these catch utilities that didn't match is_color_value() checks above
+            // in real projects with Tailwind config, these custom colors would be recognized
             "from" => Some(&["--tw-gradient-from"][..]),
             "to" => Some(&["--tw-gradient-to"][..]),
             "via" => Some(&["--tw-gradient-via"][..]),
@@ -1113,7 +1113,7 @@ impl UtilityMap {
                 Some(&["outline-color"][..]) // outline-customcolor (not outline-2)
             }
 
-            // Unknown utility
+            // unknown utility
             _ => None,
         }
     }
@@ -1135,8 +1135,8 @@ impl Default for UtilityMap {
 /// - `"bg-[#fff]"` → `("bg", "[#fff]")`
 /// - `"min-w-0"` → `("min-w", "0")`
 fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
-    // Handle opacity modifiers: text-white/60, bg-primary/20, dark:text-white/90
-    // Strip the opacity part (everything after and including '/') for property lookup
+    // handle opacity modifiers: text-white/60, bg-primary/20, dark:text-white/90
+    // strip the opacity part (everything after and including '/') for property lookup
     // but keep the original class name for sorting purposes
     let utility_without_opacity = if let Some(slash_pos) = utility.find('/') {
         &utility[..slash_pos]
@@ -1144,14 +1144,14 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         utility
     };
 
-    // Handle arbitrary values: bg-[#fff], w-[100px]
+    // handle arbitrary values: bg-[#fff], w-[100px]
     if let Some(bracket_start) = utility_without_opacity.find('[') {
         let base = &utility_without_opacity[..bracket_start.saturating_sub(1)]; // Remove the '-' before '['
         let value = &utility_without_opacity[bracket_start..];
         return Some((base, value));
     }
 
-    // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
+    // handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
     let (is_negative, utility_without_neg) =
         if let Some(stripped) = utility_without_opacity.strip_prefix('-') {
             (true, stripped)
@@ -1159,8 +1159,8 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
             (false, utility_without_opacity)
         };
 
-    // Try to match multi-part bases first
-    // These need to be checked before simple dash splitting
+    // try to match multi-part bases first
+    // these need to be checked before simple dash splitting
     for prefix in &[
         "min-w",
         "min-h",
@@ -1236,10 +1236,10 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
     ] {
         if let Some(stripped) = utility_without_neg.strip_prefix(prefix) {
             if stripped.is_empty() {
-                // Exact match, no value
+                // exact match, no value
                 return Some((utility_without_opacity, ""));
             } else if stripped.as_bytes().first() == Some(&b'-') {
-                // Has a dash after the prefix
+                // has a dash after the prefix
                 let value = &stripped[1..];
                 let base = if is_negative {
                     &utility_without_opacity[..prefix.len() + 1] // +1 for initial '-'
@@ -1248,7 +1248,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
                 };
                 return Some((base, value));
             } else if prefix.ends_with('-') {
-                // Prefix ends with dash (shouldn't happen with our list, but safe)
+                // prefix ends with dash (shouldn't happen with our list, but safe)
                 let value = stripped;
                 let base = if is_negative {
                     &utility_without_opacity[..prefix.len() + 1] // +1 for initial '-'
@@ -1260,7 +1260,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         }
     }
 
-    // Simple single-dash split (skip the negative sign if present)
+    // simple single-dash split (skip the negative sign if present)
     if let Some(dash_pos) = utility_without_neg.find('-') {
         let base_without_neg = &utility_without_neg[..dash_pos];
         let value = &utility_without_neg[dash_pos + 1..];
@@ -1272,7 +1272,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         return Some((base, value));
     }
 
-    // No dash found - utility with no value (keep negative sign if present)
+    // no dash found - utility with no value (keep negative sign if present)
     Some((utility_without_opacity, ""))
 }
 
@@ -1282,8 +1282,8 @@ fn is_color_value(value: &str) -> bool {
         return false;
     }
 
-    // Check for arbitrary color value: [#fff], [rgb(255,0,0)], [hsl(...)]
-    // Only treat as color if it contains typical color indicators
+    // check for arbitrary color value: [#fff], [rgb(255,0,0)], [hsl(...)]
+    // only treat as color if it contains typical color indicators
     if value.starts_with('[') {
         return value.contains('#')  // hex colors: [#fff], [#ff0000]
             || value.contains("rgb")  // rgb/rgba: [rgb(255,0,0)]
@@ -1291,18 +1291,18 @@ fn is_color_value(value: &str) -> bool {
             || value.contains("var("); // CSS variables: [var(--my-color)]
     }
 
-    // Check for color with shade: red-500, blue-600
+    // check for color with shade: red-500, blue-600
     if value.contains('-') {
         let parts: Vec<&str> = value.split('-').collect();
         if parts.len() == 2 {
-            // Check if second part is a number (shade)
+            // check if second part is a number (shade)
             if parts[1].parse::<u32>().is_ok() {
                 return true;
             }
         }
     }
 
-    // Check for named colors: red, blue, transparent, current, inherit
+    // check for named colors: red, blue, transparent, current, inherit
     matches!(
         value,
         "transparent"
@@ -1394,12 +1394,12 @@ pub static UTILITY_MAP: LazyLock<UtilityMap> = LazyLock::new(UtilityMap::new);
 static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::new(|| {
     let mut map = HashMap::new();
 
-    // Ring utilities: 3 declarations
+    // ring utilities: 3 declarations
     // Tailwind generates --tw-ring-offset-shadow, --tw-ring-shadow, and box-shadow
     map.insert("ring", 3);
     map.insert("ring-inset", 3);
 
-    // Transition utilities: 3 declarations (except transition-none which is 1)
+    // transition utilities: 3 declarations (except transition-none which is 1)
     map.insert("transition", 3);
     map.insert("transition-all", 3);
     map.insert("transition-colors", 3);
@@ -1408,9 +1408,9 @@ static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
     map.insert("transition-transform", 3);
     map.insert("transition-none", 1); // Override: only 1 declaration
 
-    // Drop-shadow utilities: 2 declarations (except drop-shadow-none which is 1)
+    // drop-shadow utilities: 2 declarations (except drop-shadow-none which is 1)
     // Tailwind generates --tw-drop-shadow and filter composite
-    // Note: Must list all variants explicitly since "drop-shadow" contains a dash
+    // NOTE: must list all variants explicitly since "drop-shadow" contains a dash
     map.insert("drop-shadow", 2);
     map.insert("drop-shadow-sm", 2);
     map.insert("drop-shadow-md", 2);
@@ -1419,9 +1419,9 @@ static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
     map.insert("drop-shadow-2xl", 2);
     map.insert("drop-shadow-none", 1); // Override: only 1 declaration
 
-    // Base border-radius utility: 4 declarations (affects all 4 corners)
-    // This ensures `rounded` sorts before `rounded-[14px]` (arbitrary)
-    // Sized variants explicitly set to 1 to allow arbitrary to sort before them
+    // base border-radius utility: 4 declarations (affects all 4 corners)
+    // this ensures `rounded` sorts before `rounded-[14px]` (arbitrary)
+    // sized variants explicitly set to 1 to allow arbitrary to sort before them
     map.insert("rounded", 4);
     map.insert("rounded-none", 1);
     map.insert("rounded-sm", 1);
@@ -1432,9 +1432,9 @@ static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
     map.insert("rounded-3xl", 1);
     map.insert("rounded-full", 1);
 
-    // Text size utilities: 2 declarations (font-size + line-height)
-    // Arbitrary text utilities only generate font-size (1 declaration)
-    // This ensures text-sm < text-[42px] via property count
+    // text size utilities: 2 declarations (font-size + line-height)
+    // arbitrary text utilities only generate font-size (1 declaration)
+    // this ensures text-sm < text-[42px] via property count
     map.insert("text-xs", 2);
     map.insert("text-sm", 2);
     map.insert("text-base", 2);
@@ -1479,27 +1479,27 @@ static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
 /// assert_eq!(get_declaration_count("p-4"), 1); // Default
 /// ```
 pub fn get_declaration_count(utility: &str) -> usize {
-    // Strip variants to get the base utility
+    // strip variants to get the base utility
     let base_utility = utility.split(':').next_back().unwrap_or(utility);
 
-    // First try exact match
+    // first try exact match
     if let Some(&count) = DECLARATION_COUNTS.get(base_utility) {
         return count;
     }
 
-    // Try pattern matching for parameterized utilities
-    // Extract the utility prefix (e.g., "ring" from "ring-2", "transition" from "transition-colors")
+    // try pattern matching for parameterized utilities
+    // extract the utility prefix (e.g., "ring" from "ring-2", "transition" from "transition-colors")
     // BUT skip arbitrary values (e.g., "rounded-[14px]" should NOT match prefix "rounded")
     if let Some(dash_pos) = base_utility.find('-') {
         let value_part = &base_utility[dash_pos + 1..];
 
-        // Skip prefix matching for arbitrary values (contain brackets)
+        // skip prefix matching for arbitrary values (contain brackets)
         if !value_part.contains('[') && !value_part.contains(']') {
             let prefix = &base_utility[..dash_pos];
 
-            // Check if the prefix has a declaration count
+            // check if the prefix has a declaration count
             if let Some(&count) = DECLARATION_COUNTS.get(prefix) {
-                // Special case: check if it's explicitly overridden
+                // special case: check if it's explicitly overridden
                 // (e.g., "transition-none" should return 1, not 3)
                 if DECLARATION_COUNTS.contains_key(base_utility) {
                     return *DECLARATION_COUNTS.get(base_utility).unwrap();
@@ -1509,7 +1509,7 @@ pub fn get_declaration_count(utility: &str) -> usize {
         }
     }
 
-    // Default: 1 declaration per utility
+    // default: 1 declaration per utility
     1
 }
 
@@ -1521,13 +1521,13 @@ mod tests {
     fn test_exact_matches() {
         let map = UtilityMap::new();
 
-        // Display utilities
+        // display utilities
         assert_eq!(map.get_properties("flex"), Some(&["display"][..]));
         assert_eq!(map.get_properties("block"), Some(&["display"][..]));
         assert_eq!(map.get_properties("hidden"), Some(&["display"][..]));
         assert_eq!(map.get_properties("grid"), Some(&["display"][..]));
 
-        // Position utilities
+        // position utilities
         assert_eq!(map.get_properties("relative"), Some(&["position"][..]));
         assert_eq!(map.get_properties("absolute"), Some(&["position"][..]));
         assert_eq!(map.get_properties("fixed"), Some(&["position"][..]));
@@ -1610,7 +1610,7 @@ mod tests {
     fn test_color_utilities() {
         let map = UtilityMap::new();
 
-        // Background colors
+        // background colors
         assert_eq!(
             map.get_properties("bg-red-500"),
             Some(&["background-color"][..])
@@ -1620,11 +1620,11 @@ mod tests {
             Some(&["background-color"][..])
         );
 
-        // Text colors
+        // text colors
         assert_eq!(map.get_properties("text-white"), Some(&["color"][..]));
         assert_eq!(map.get_properties("text-gray-900"), Some(&["color"][..]));
 
-        // Border colors
+        // border colors
         assert_eq!(
             map.get_properties("border-black"),
             Some(&["border-color"][..])
@@ -1635,7 +1635,7 @@ mod tests {
     fn test_arbitrary_values() {
         let map = UtilityMap::new();
 
-        // Arbitrary color values
+        // arbitrary color values
         assert_eq!(
             map.get_properties("bg-[#fff]"),
             Some(&["background-color"][..])
@@ -1645,7 +1645,7 @@ mod tests {
             Some(&["color"][..])
         );
 
-        // Arbitrary size values
+        // arbitrary size values
         assert_eq!(map.get_properties("w-[100px]"), Some(&["width"][..]));
         assert_eq!(map.get_properties("m-[10rem]"), Some(&["margin"][..]));
     }
@@ -1698,7 +1698,7 @@ mod tests {
     fn test_border_utilities() {
         let map = UtilityMap::new();
 
-        // Border width
+        // border width
         assert_eq!(map.get_properties("border"), Some(&["border-width"][..]));
         assert_eq!(map.get_properties("border-2"), Some(&["border-width"][..]));
         assert_eq!(
@@ -1706,7 +1706,7 @@ mod tests {
             Some(&["border-top-width"][..])
         );
 
-        // Border radius
+        // border radius
         assert_eq!(map.get_properties("rounded"), Some(&["border-radius"][..]));
         assert_eq!(
             map.get_properties("rounded-lg"),
@@ -1761,7 +1761,7 @@ mod tests {
         let space_y_props = map.get_properties("space-y-2").unwrap();
         assert_eq!(space_y_props, &["column-gap"]);
 
-        // Verify correct ordering: space-y before space-x
+        // verify correct ordering: space-y before space-x
         let column_gap_idx = get_property_index("column-gap").unwrap();
         let row_gap_idx = get_property_index("row-gap").unwrap();
 
@@ -1778,7 +1778,7 @@ mod tests {
     fn test_transform_mappings() {
         let map = UtilityMap::new();
 
-        // Test transform utility mappings
+        // test transform utility mappings
         assert_eq!(map.get_properties("scale-100"), Some(&["scale"][..]));
         assert_eq!(
             map.get_properties("scale-x-100"),
@@ -1812,7 +1812,7 @@ mod tests {
             Some(&["background-image"][..])
         );
 
-        // Verify bg-none sorts before bg-clip-* (background-image < background-clip)
+        // verify bg-none sorts before bg-clip-* (background-image < background-clip)
         let bg_none_idx = get_property_index("background-image").unwrap();
         let bg_clip_idx = get_property_index("background-clip").unwrap();
         assert!(
@@ -1822,7 +1822,7 @@ mod tests {
             bg_clip_idx
         );
 
-        // Verify bg-none sorts after bg-color (background-color < background-image)
+        // verify bg-none sorts after bg-color (background-color < background-image)
         let bg_color_idx = get_property_index("background-color").unwrap();
         assert!(
             bg_color_idx < bg_none_idx,

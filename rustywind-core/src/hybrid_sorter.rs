@@ -94,16 +94,16 @@ impl HybridSorter {
     /// let key = sorter.get_sort_key("m-[10px]").unwrap();
     /// ```
     pub fn get_sort_key(&self, class: &str) -> Option<SortKey> {
-        // Tier 1: Check LRU cache for previously computed classes (fast)
+        // tier 1: check LRU cache for previously computed classes (fast)
         // CompactString has efficient conversion from &str
         let class_compact = compact_str::CompactString::new(class);
         if let Some(cached_key) = self.cache.get(&class_compact) {
             return Some(cached_key);
         }
 
-        // Tier 2: Compute using pattern sorter and cache the result
+        // tier 2: compute using pattern sorter and cache the result
         if let Some(sort_key) = self.pattern_sorter.get_sort_key(class) {
-            // Cache the computed result for future lookups
+            // cache the computed result for future lookups
             // CompactString stores most classes inline (24 bytes) avoiding heap allocations
             self.cache.insert(sort_key.class.clone(), sort_key.clone());
             return Some(sort_key);
@@ -138,18 +138,18 @@ impl HybridSorter {
     pub fn sort_classes<'a>(&self, classes: &[&'a str]) -> Vec<&'a str> {
         use std::cmp::Ordering;
 
-        // Pre-allocate with exact capacity to avoid reallocations
+        // pre-allocate with exact capacity to avoid reallocations
         let mut with_keys: Vec<(Option<SortKey>, &str)> = Vec::with_capacity(classes.len());
 
-        // Generate sort keys for all classes
+        // generate sort keys for all classes
         for &class in classes {
             with_keys.push((self.get_sort_key(class), class));
         }
 
-        // Sort by keys
-        // Classes without keys (unknown/custom) come first (maintaining relative order)
-        // Classes with valid keys come after (sorted by key)
-        // This matches prettier-plugin-tailwindcss behavior where unknown classes sort first
+        // sort by keys
+        // classes without keys (unknown/custom) come first (maintaining relative order)
+        // classes with valid keys come after (sorted by key)
+        // this matches prettier-plugin-tailwindcss behavior where unknown classes sort first
         with_keys.sort_by(
             |(a_key, _a_class), (z_key, _z_class)| match (a_key, z_key) {
                 (Some(a), Some(z)) => a.cmp(z),
@@ -159,7 +159,7 @@ impl HybridSorter {
             },
         );
 
-        // Extract the sorted classes (pre-allocated for efficiency)
+        // extract the sorted classes (pre-allocated for efficiency)
         let mut result = Vec::with_capacity(with_keys.len());
         for (_, class) in with_keys {
             result.push(class);
@@ -200,7 +200,7 @@ mod tests {
     fn test_common_classes() {
         let sorter = HybridSorter::new();
 
-        // These should be computed via pattern matching and cached
+        // these should be computed via pattern matching and cached
         let key = sorter.get_sort_key("flex").unwrap();
         assert_eq!(key.variant_order, 0);
         assert_eq!(key.class.as_str(), "flex");
@@ -214,12 +214,12 @@ mod tests {
     fn test_pattern_matching_and_caching() {
         let sorter = HybridSorter::new();
 
-        // First lookup - pattern matching, result gets cached
+        // first lookup - pattern matching, result gets cached
         let key = sorter.get_sort_key("m-4").unwrap();
         assert_eq!(key.variant_order, 0);
         assert_eq!(key.class.as_str(), "m-4");
 
-        // Should be cached now
+        // should be cached now
         let (entries, _) = sorter.cache_stats();
         assert_eq!(entries, 1);
     }
@@ -228,10 +228,10 @@ mod tests {
     fn test_lru_cache() {
         let sorter = HybridSorter::new();
 
-        // First lookup - cache miss, will compute and cache
+        // first lookup - cache miss, will compute and cache
         let key1 = sorter.get_sort_key("m-4").unwrap();
 
-        // Second lookup - cache hit
+        // second lookup - cache hit
         let key2 = sorter.get_sort_key("m-4").unwrap();
 
         assert_eq!(key1, key2);
@@ -244,11 +244,11 @@ mod tests {
         let classes = vec!["flex", "p-4", "m-4", "grid"];
         let sorted = sorter.sort_classes(&classes);
 
-        // All should be recognized
+        // all should be recognized
         assert_eq!(sorted.len(), 4);
 
-        // All classes will be pattern matched on first pass
-        // Should maintain proper order
+        // all classes will be pattern matched on first pass
+        // should maintain proper order
         assert!(sorted.contains(&"flex"));
         assert!(sorted.contains(&"grid"));
         assert!(sorted.contains(&"m-4"));
@@ -262,10 +262,10 @@ mod tests {
         let classes = vec!["md:flex", "flex", "sm:grid", "grid"];
         let sorted = sorter.sort_classes(&classes);
 
-        // Base classes should come first
+        // base classes should come first
         assert_eq!(sorted[0], "flex");
         assert_eq!(sorted[1], "grid");
-        // Then variant classes
+        // then variant classes
         assert!(sorted[2] == "sm:grid" || sorted[2] == "md:flex");
         assert!(sorted[3] == "sm:grid" || sorted[3] == "md:flex");
     }
@@ -299,7 +299,7 @@ mod tests {
         let classes = vec!["m-[10px]", "p-4", "bg-[#abc]"];
         let sorted = sorter.sort_classes(&classes);
 
-        // All should be recognized and sorted
+        // all should be recognized and sorted
         assert_eq!(sorted.len(), 3);
         assert_eq!(sorted[0], "m-[10px]");
         assert_eq!(sorted[1], "bg-[#abc]");
@@ -313,36 +313,36 @@ mod tests {
         let classes = vec!["flex", "unknown-class", "grid", "fake-utility"];
         let sorted = sorter.sort_classes(&classes);
 
-        // Unknown classes first, maintaining relative order
+        // unknown classes first, maintaining relative order
         assert_eq!(sorted[0], "unknown-class");
         assert_eq!(sorted[1], "fake-utility");
-        // Known classes after
+        // known classes after
         assert_eq!(sorted[2], "flex");
         assert_eq!(sorted[3], "grid");
     }
 
     #[test]
     fn test_relative_order_preserved_for_unknown_classes() {
-        // Test that unknown classes maintain their relative order
+        // test that unknown classes maintain their relative order
         // instead of being alphabetized
         let sorter = HybridSorter::new();
 
-        // Test multiple unknown classes in various orders
+        // test multiple unknown classes in various orders
         let classes = vec![
-            "flex",           // Known: should be 5th
-            "zebra-class",    // Unknown: should be 1st (original position)
-            "grid",           // Known: should be 6th
-            "apple-class",    // Unknown: should be 2nd (original position)
-            "m-4",            // Known: should be 4th (by property order)
-            "[custom:value]", // Unknown: should be 3rd (original position)
-            "banana-class",   // Unknown: should be 7th (original position)
+            "flex",           // known: should be 5th
+            "zebra-class",    // unknown: should be 1st (original position)
+            "grid",           // known: should be 6th
+            "apple-class",    // unknown: should be 2nd (original position)
+            "m-4",            // known: should be 4th (by property order)
+            "[custom:value]", // unknown: should be 3rd (original position)
+            "banana-class",   // unknown: should be 7th (original position)
         ];
         let sorted = sorter.sort_classes(&classes);
 
-        // Verify unknown classes come first and maintain relative order (not alphabetized)
-        // Original order: zebra-class, apple-class, [custom:value], banana-class
-        // If alphabetized it would be: [custom:value], apple-class, banana-class, zebra-class
-        // But we want to preserve original order
+        // verify unknown classes come first and maintain relative order (not alphabetized)
+        // original order: zebra-class, apple-class, [custom:value], banana-class
+        // if alphabetized it would be: [custom:value], apple-class, banana-class, zebra-class
+        // but we want to preserve original order
         assert_eq!(
             sorted[0], "zebra-class",
             "First unknown class should maintain position"
@@ -360,7 +360,7 @@ mod tests {
             "Fourth unknown class should maintain position"
         );
 
-        // Verify known classes are sorted last by their sort keys
+        // verify known classes are sorted last by their sort keys
         assert!(sorted[4] == "flex" || sorted[4] == "grid" || sorted[4] == "m-4");
         assert!(sorted[5] == "flex" || sorted[5] == "grid" || sorted[5] == "m-4");
         assert!(sorted[6] == "flex" || sorted[6] == "grid" || sorted[6] == "m-4");
@@ -370,14 +370,14 @@ mod tests {
     fn test_clear_cache() {
         let sorter = HybridSorter::new();
 
-        // Add some entries to cache
+        // add some entries to cache
         sorter.get_sort_key("m-4");
         sorter.get_sort_key("p-4");
 
         let (entries_before, _) = sorter.cache_stats();
         assert_eq!(entries_before, 2);
 
-        // Clear cache
+        // clear cache
         sorter.clear_cache();
 
         let (entries_after, _) = sorter.cache_stats();
@@ -401,15 +401,15 @@ mod tests {
 
         let sorted = sorter.sort_classes(&classes);
 
-        // All base classes (no :) should come before variant classes (with :)
+        // all base classes (no :) should come before variant classes (with :)
         let base_classes: Vec<_> = sorted.iter().filter(|c| !c.contains(':')).collect();
         let variant_classes: Vec<_> = sorted.iter().filter(|c| c.contains(':')).collect();
 
-        // Should have 7 base classes and 1 variant class
+        // should have 7 base classes and 1 variant class
         assert_eq!(base_classes.len(), 7);
         assert_eq!(variant_classes.len(), 1);
 
-        // Last class should be the variant class
+        // last class should be the variant class
         assert_eq!(sorted[sorted.len() - 1], "hover:bg-gray-100");
     }
 
@@ -417,19 +417,19 @@ mod tests {
     fn test_custom_cache_size() {
         let sorter = HybridSorter::with_cache_size(10);
 
-        // Add entries
+        // add entries
         for i in 0..15 {
             sorter.get_sort_key(&format!("m-{}", i));
         }
 
         let (entries, capacity) = sorter.cache_stats();
-        // Should not exceed capacity (though exact behavior depends on LRU)
+        // should not exceed capacity (though exact behavior depends on LRU)
         assert!(entries <= capacity);
     }
 
     #[test]
     fn test_opacity_slash_standard_colors_sort_by_property() {
-        // Standard colors with opacity (like text-white/60, bg-black/25) should be
+        // standard colors with opacity (like text-white/60, bg-black/25) should be
         // treated as known and sort according to property order
         let sorter = HybridSorter::new();
 

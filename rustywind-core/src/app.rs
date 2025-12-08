@@ -110,13 +110,13 @@ impl RustyWind {
     }
 
     fn sort_classes_vec<'a>(&self, classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
-        // Use pattern-based sorting if PatternSorter is selected
+        // use pattern-based sorting if PatternSorter is selected
         if matches!(self.sorter, Sorter::PatternSorter) {
             let classes_vec: Vec<&str> = classes.collect();
             return PATTERN_SORTER.sort_classes(&classes_vec);
         }
 
-        // Otherwise, use the old HashMap-based approach
+        // otherwise, use the old HashMap-based approach
         let enumerated_classes = classes.map(|class| ((class), self.sorter.get(class)));
 
         let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
@@ -225,7 +225,7 @@ mod tests {
     // Tailwind v4's canonical property order, tested in integration_tests.rs
 
     // SORT_FILE_CONTENTS -------------------------------------------------------------------------
-    // Test behavioral properties, not exact ordering (which is tested in integration_tests.rs)
+    // test behavioral properties, not exact ordering (which is tested in integration_tests.rs)
 
     #[test]
     fn test_deduplicates_classes() {
@@ -233,7 +233,7 @@ mod tests {
             r#"<p className="py-2 py-2 random-class underline underline underline">text</p>"#;
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
 
-        // Should have only one py-2 and one underline
+        // should have only one py-2 and one underline
         assert_eq!(result.matches("py-2").count(), 1);
         assert_eq!(result.matches("underline").count(), 1);
     }
@@ -248,26 +248,26 @@ mod tests {
             r#"<section className="inline py-2 py-2 random-class italic italic italic"></section>"#;
         let result = app.sort_file_contents(input);
 
-        // Should have two py-2 and three italic
+        // should have two py-2 and three italic
         assert_eq!(result.matches("py-2").count(), 2);
         assert_eq!(result.matches("italic").count(), 3);
     }
 
     #[test]
     fn test_pattern_sorter_removes_duplicates_by_default() {
-        // Test that PatternSorter (default) removes duplicates when allow_duplicates=false
-        // This ensures the fast path doesn't bypass deduplication logic
+        // test that PatternSorter (default) removes duplicates when allow_duplicates=false
+        // this ensures the fast path doesn't bypass deduplication logic
         let app = RustyWind {
             sorter: Sorter::PatternSorter,
             allow_duplicates: false,
             ..RUSTYWIND_DEFAULT
         };
 
-        // Test case from the issue description
+        // test case from the issue description
         let input = r#"<div class="flex flex"></div>"#;
         let result = app.sort_file_contents(input);
 
-        // Should collapse to single flex
+        // should collapse to single flex
         assert_eq!(
             result.matches("flex").count(),
             1,
@@ -275,7 +275,7 @@ mod tests {
         );
         assert_eq!(result, r#"<div class="flex"></div>"#);
 
-        // Test with more duplicates
+        // test with more duplicates
         let input2 = r#"<div class="m-4 p-4 m-4 flex p-4 flex m-4"></div>"#;
         let result2 = app.sort_file_contents(input2);
         assert_eq!(
@@ -297,7 +297,7 @@ mod tests {
 
     #[test]
     fn test_pattern_sorter_keeps_duplicates_when_configured() {
-        // Test that allow_duplicates=true works with PatternSorter
+        // test that allow_duplicates=true works with PatternSorter
         let app = RustyWind {
             sorter: Sorter::PatternSorter,
             allow_duplicates: true,
@@ -308,7 +308,7 @@ mod tests {
         let input = r#"<div class="flex flex m-4 m-4"></div>"#;
         let result = app.sort_file_contents(input);
 
-        // Should keep all duplicates
+        // should keep all duplicates
         assert_eq!(
             result.matches("flex").count(),
             2,
@@ -326,7 +326,7 @@ mod tests {
         let input = r#"<div class='hover:flex focus:flex flex'></div>"#;
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
 
-        // Extract the class content
+        // extract the class content
         let class_content = result
             .split("class='")
             .nth(1)
@@ -365,7 +365,7 @@ mod tests {
         "#;
         let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
 
-        // Should be on one line
+        // should be on one line
         let class_content = result
             .split("class=\"")
             .nth(1)
@@ -448,7 +448,7 @@ mod tests {
 
     #[test]
     fn test_pattern_sorter_integration() {
-        // Test that PatternSorter can be used in RustyWind
+        // test that PatternSorter can be used in RustyWind
         let app = RustyWind {
             sorter: Sorter::PatternSorter,
             ..RUSTYWIND_DEFAULT
@@ -457,7 +457,7 @@ mod tests {
         let classes = "p-4 m-4 flex hover:p-1";
         let sorted = app.sort_classes(classes);
 
-        // Pattern-based sorting: margin(25) < display(35) < padding(252) < variants
+        // pattern-based sorting: margin(25) < display(35) < padding(252) < variants
         assert_eq!(sorted, "m-4 flex p-4 hover:p-1");
     }
 
@@ -471,8 +471,43 @@ mod tests {
         let input = r#"<div class="p-4 m-4 flex"></div>"#;
         let output = app.sort_file_contents(input);
 
-        // Pattern-based sorting: margin(25) < display(35) < padding(252)
+        // pattern-based sorting: margin(25) < display(35) < padding(252)
         assert_eq!(output, r#"<div class="m-4 flex p-4"></div>"#);
+    }
+
+    /// Test that arbitrary variant classes are matched by the regex (Issue #115)
+    #[test]
+    fn test_regex_matches_arbitrary_variants() {
+        let app = RUSTYWIND_DEFAULT;
+
+        // test element state selectors
+        let input = r#"<div class="[&.htmx-request]:h-0 flex p-4"></div>"#;
+        assert!(app.has_classes(input), "Should match [&.class] syntax");
+
+        let sorted = app.sort_file_contents(input);
+        assert!(
+            sorted.contains("[&.htmx-request]:h-0"),
+            "Arbitrary variant should be preserved in output"
+        );
+
+        // test child/sibling selectors
+        let input2 = r#"<div class="[&>*]:p-4 [&+*]:mt-4 block"></div>"#;
+        assert!(app.has_classes(input2), "Should match combinator syntax");
+
+        // test attribute selectors
+        let input3 = r#"<div class="[&[data-state=open]]:bg-gray-100 flex"></div>"#;
+        assert!(
+            app.has_classes(input3),
+            "Should match attribute selector syntax"
+        );
+
+        // test at-rule variants
+        let input4 = r#"<div class="[@supports(display:grid)]:grid flex"></div>"#;
+        assert!(app.has_classes(input4), "Should match @-rule syntax");
+
+        // test calc with percentage
+        let input5 = r#"<div class="w-[calc(100%+20px)] flex"></div>"#;
+        assert!(app.has_classes(input5), "Should match calc with percentage");
     }
 
     #[test_case(

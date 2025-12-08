@@ -166,25 +166,26 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
 
     let mut working = class;
 
-    // Handle important modifier (!)
+    // handle important modifier (!)
     let important = working.ends_with('!');
     if important {
         working = &working[..working.len() - 1];
     }
 
-    // Split by ':' to separate variants from utility
-    let parts: Vec<&str> = working.split(':').collect();
+    // split by ':' but respect brackets - ':' inside [] should not be a separator
+    // e.g., "[&>*:last-child]:rounded-b-lg" -> ["[&>*:last-child]", "rounded-b-lg"]
+    let parts = split_respecting_brackets(working);
 
     if parts.is_empty() {
         return None;
     }
 
-    // Last part is the utility (with value)
+    // last part is the utility (with value)
     let utility_part = parts[parts.len() - 1];
 
-    // Everything before is variants
+    // everything before is variants
     // Tailwind parses variants RIGHT-TO-LEFT, so we need to reverse them
-    // For dark:hover:utility, Tailwind stores [hover, dark], not [dark, hover]
+    // for dark:hover:utility, Tailwind stores [hover, dark], not [dark, hover]
     let mut variants = if parts.len() > 1 {
         parts[..parts.len() - 1].to_vec()
     } else {
@@ -192,7 +193,7 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
     };
     variants.reverse(); // Match Tailwind's right-to-left parsing order
 
-    // Parse utility into base + value
+    // parse utility into base + value
     let (utility, value) = parse_utility_value(utility_part)?;
 
     Some(ParsedClass {
@@ -202,6 +203,38 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
         value,
         important,
     })
+}
+
+/// Split a class string by ':' while respecting bracket nesting.
+/// Colons inside square brackets `[]` are NOT treated as separators.
+///
+/// # Examples
+/// - `"hover:p-4"` -> `["hover", "p-4"]`
+/// - `"[&>*:last-child]:rounded-b-lg"` -> `["[&>*:last-child]", "rounded-b-lg"]`
+/// - `"dark:[&.active]:bg-red-500"` -> `["dark", "[&.active]", "bg-red-500"]`
+fn split_respecting_brackets(s: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut start = 0;
+    let mut bracket_depth: u32 = 0;
+
+    for (i, c) in s.char_indices() {
+        match c {
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            ':' if bracket_depth == 0 => {
+                parts.push(&s[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+
+    // don't forget the last part
+    if start < s.len() {
+        parts.push(&s[start..]);
+    }
+
+    parts
 }
 
 /// Parse a utility string into base and value parts.
@@ -219,21 +252,21 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         return None;
     }
 
-    // Handle arbitrary values: bg-[#fff], w-[100px]
+    // handle arbitrary values: bg-[#fff], w-[100px]
     if let Some(bracket_start) = utility.find('[') {
         let base = &utility[..bracket_start.saturating_sub(1)];
         let value = &utility[bracket_start..];
         return Some((base, value));
     }
 
-    // Handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
+    // handle negative values: -translate-x-4, -skew-y-3, -rotate-90, etc.
     let (is_negative, utility_without_neg) = if let Some(stripped) = utility.strip_prefix('-') {
         (true, stripped)
     } else {
         (false, utility)
     };
 
-    // Try to match multi-part bases first (with or without negative sign)
+    // try to match multi-part bases first (with or without negative sign)
     for prefix in &[
         "min-w",
         "min-h",
@@ -299,12 +332,12 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
     ] {
         if utility_without_neg.starts_with(prefix) {
             if utility_without_neg.len() == prefix.len() {
-                // Exact match, no value
+                // exact match, no value
                 return Some((utility, ""));
             } else if utility_without_neg.as_bytes().get(prefix.len()) == Some(&b'-') {
-                // Has a dash after the prefix
+                // has a dash after the prefix
                 let value = &utility_without_neg[prefix.len() + 1..];
-                // Return the full utility (including negative sign) as the base
+                // return the full utility (including negative sign) as the base
                 let base = if is_negative {
                     // prefix.len() is relative to utility_without_neg, add 1 for initial '-'
                     &utility[..prefix.len() + 1] // +1 for initial '-'
@@ -316,12 +349,12 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         }
     }
 
-    // Simple single-dash split (skip the negative sign if present)
+    // simple single-dash split (skip the negative sign if present)
     if let Some(dash_pos) = utility_without_neg.find('-') {
         let base_without_neg = &utility_without_neg[..dash_pos];
         let value = &utility_without_neg[dash_pos + 1..];
         let base = if is_negative {
-            // Include the negative sign in the base
+            // include the negative sign in the base
             // dash_pos is relative to utility_without_neg, add 1 to offset for the '-' prefix
             &utility[..1 + dash_pos] // 1 for initial '-', then dash_pos characters
         } else {
@@ -330,7 +363,7 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         return Some((base, value));
     }
 
-    // No dash found - utility with no value (keep negative sign if present)
+    // no dash found - utility with no value (keep negative sign if present)
     Some((utility, ""))
 }
 
@@ -369,7 +402,7 @@ mod tests {
     #[test]
     fn test_parse_multiple_variants() {
         let parsed = parse_class("hover:focus:p-4").unwrap();
-        // Variants are stored right-to-left to match Tailwind's parsing order
+        // variants are stored right-to-left to match Tailwind's parsing order
         assert_eq!(parsed.variants, vec!["focus", "hover"]);
         assert_eq!(parsed.utility, "p");
         assert_eq!(parsed.value, "4");
@@ -387,7 +420,7 @@ mod tests {
     #[test]
     fn test_parse_variant_with_important() {
         let parsed = parse_class("md:hover:mx-4!").unwrap();
-        // Variants are stored right-to-left to match Tailwind's parsing order
+        // variants are stored right-to-left to match Tailwind's parsing order
         assert_eq!(parsed.variants, vec!["hover", "md"]);
         assert_eq!(parsed.utility, "mx");
         assert_eq!(parsed.value, "4");
@@ -487,8 +520,8 @@ mod tests {
 
     #[test]
     fn test_complex_class_strings() {
-        // Realistic Tailwind class strings
-        // Variants are stored right-to-left to match Tailwind's parsing order
+        // realistic Tailwind class strings
+        // variants are stored right-to-left to match Tailwind's parsing order
         let parsed = parse_class("sm:hover:bg-blue-500").unwrap();
         assert_eq!(parsed.variants, vec!["hover", "sm"]);
         assert_eq!(parsed.utility, "bg");
@@ -522,7 +555,7 @@ mod tests {
         assert_eq!(parse_utility_value("min-w-0"), Some(("min-w", "0")));
         assert_eq!(parse_utility_value(""), None);
 
-        // Test negative values
+        // test negative values
         assert_eq!(
             parse_utility_value("-translate-x-4"),
             Some(("-translate-x", "4"))
@@ -540,40 +573,40 @@ mod tests {
 
     #[test]
     fn test_opacity_slash_syntax() {
-        // Test standard color with opacity
+        // test standard color with opacity
         let parsed = parse_class("text-white/60").unwrap();
         assert_eq!(parsed.utility, "text");
         assert_eq!(parsed.value, "white/60");
         assert_eq!(parsed.get_properties(), Some(&["color"][..]));
 
-        // Test background color with opacity
+        // test background color with opacity
         let parsed = parse_class("bg-red-500/50").unwrap();
         assert_eq!(parsed.utility, "bg");
         assert_eq!(parsed.value, "red-500/50");
         assert_eq!(parsed.get_properties(), Some(&["background-color"][..]));
 
-        // Test custom color with opacity (should be unknown)
+        // test custom color with opacity (should be unknown)
         let parsed = parse_class("bg-primary/20").unwrap();
         assert_eq!(parsed.utility, "bg");
         assert_eq!(parsed.value, "primary/20");
         assert_eq!(parsed.get_properties(), None); // Custom color = unknown
 
-        // Test variant + opacity
+        // test variant + opacity
         let parsed = parse_class("dark:text-white/90").unwrap();
         assert_eq!(parsed.variants, vec!["dark"]);
         assert_eq!(parsed.utility, "text");
         assert_eq!(parsed.value, "white/90");
         assert_eq!(parsed.get_properties(), Some(&["color"][..]));
 
-        // Test multiple variants + opacity
-        // Variants are stored right-to-left to match Tailwind's parsing order
+        // test multiple variants + opacity
+        // variants are stored right-to-left to match Tailwind's parsing order
         let parsed = parse_class("hover:dark:bg-blue-500/75").unwrap();
         assert_eq!(parsed.variants, vec!["dark", "hover"]);
         assert_eq!(parsed.utility, "bg");
         assert_eq!(parsed.value, "blue-500/75");
         assert_eq!(parsed.get_properties(), Some(&["background-color"][..]));
 
-        // Test border color with opacity
+        // test border color with opacity
         let parsed = parse_class("border-gray-300/50").unwrap();
         assert_eq!(parsed.utility, "border");
         assert_eq!(parsed.value, "gray-300/50");

@@ -107,8 +107,8 @@ mod tests {
         let css_file = std::fs::File::open("tests/fixtures/tailwind.css").unwrap();
         let classes = Sorter::new_from_file(css_file).unwrap();
 
-        // Verify that classes with escaped characters are properly extracted
-        // These classes exist in the tailwind.css fixture file
+        // verify that classes with escaped characters are properly extracted
+        // these classes exist in the tailwind.css fixture file
         assert!(
             classes.contains_key("mr-0.5"),
             "Should extract mr-0.5 (from .mr-0\\.5)"
@@ -118,14 +118,14 @@ mod tests {
             "Should extract -ml-0.5 (from .-ml-0\\.5)"
         );
 
-        // Verify order is preserved (container should be first)
+        // verify order is preserved (container should be first)
         assert_eq!(
             classes.get("container"),
             Some(&0),
             "container should be at index 0"
         );
 
-        // Verify mr-0.5 comes after container
+        // verify mr-0.5 comes after container
         let mr_index = classes.get("mr-0.5").expect("mr-0.5 should exist");
         assert!(*mr_index > 0, "mr-0.5 should have index > 0");
     }
@@ -298,7 +298,7 @@ mod tests {
         let css_file = std::fs::File::open("tests/fixtures/tailwind-v4.css").unwrap();
         let classes = Sorter::new_from_file(css_file).unwrap();
 
-        // Debug: print all classes containing "2xl" or "32xl"
+        // debug: print all classes containing "2xl" or "32xl"
         println!("\nClasses containing '2xl' or '32xl':");
         for key in classes.keys() {
             if key.contains("2xl") || key.contains("32xl") {
@@ -306,8 +306,8 @@ mod tests {
             }
         }
 
-        // Verify that all classes are extracted from Tailwind v4 CSS
-        // Test core utility classes
+        // verify that all classes are extracted from Tailwind v4 CSS
+        // test core utility classes
         assert!(
             classes.contains_key("container"),
             "Should extract container"
@@ -316,7 +316,7 @@ mod tests {
         assert!(classes.contains_key("grid"), "Should extract grid");
         assert!(classes.contains_key("hidden"), "Should extract hidden");
 
-        // Test responsive variants
+        // test responsive variants
         assert!(classes.contains_key("sm:block"), "Should extract sm:block");
         assert!(
             classes.contains_key("md:grid-cols-2"),
@@ -331,13 +331,13 @@ mod tests {
             "Should extract xl:hidden"
         );
 
-        // Note: CSS escape \32 for digit '2' becomes '32' when backslash is removed
+        // note: CSS escape \32 for digit '2' becomes '32' when backslash is removed
         assert!(
             classes.contains_key("32xl:block"),
             "Should extract 32xl:block (CSS escape \\32xl becomes 32xl)"
         );
 
-        // Test state variants
+        // test state variants
         assert!(
             classes.contains_key("hover:bg-blue-700"),
             "Should extract hover:bg-blue-700"
@@ -359,7 +359,7 @@ mod tests {
             "Should extract checked:bg-blue-600"
         );
 
-        // Test group variants
+        // test group variants
         assert!(
             classes.contains_key("group-hover:bg-gray-100"),
             "Should extract group-hover:bg-gray-100"
@@ -369,7 +369,7 @@ mod tests {
             "Should extract group-hover:text-gray-900"
         );
 
-        // Test dark mode
+        // test dark mode
         assert!(
             classes.contains_key("dark:text-white"),
             "Should extract dark:text-white"
@@ -379,13 +379,13 @@ mod tests {
             "Should extract dark:bg-gray-800"
         );
 
-        // Test complex responsive + state variants
+        // test complex responsive + state variants
         assert!(
             classes.contains_key("md:hover:text-white"),
             "Should extract md:hover:text-white"
         );
 
-        // Test arbitrary values (Tailwind v4 feature)
+        // test arbitrary values (Tailwind v4 feature)
         assert!(
             classes.contains_key("w-[500px]"),
             "Should extract w-[500px]"
@@ -412,24 +412,24 @@ mod tests {
             "Should extract leading-[1.5]"
         );
 
-        // Test fractional widths
+        // test fractional widths
         assert!(classes.contains_key("w-1/2"), "Should extract w-1/2");
         assert!(classes.contains_key("w-1/3"), "Should extract w-1/3");
         assert!(classes.contains_key("w-1/4"), "Should extract w-1/4");
 
-        // Test negative values
+        // test negative values
         assert!(classes.contains_key("-mt-4"), "Should extract -mt-4");
         assert!(classes.contains_key("-ml-2"), "Should extract -ml-2");
 
-        // Verify order preservation (container should be first)
+        // verify order preservation (container should be first)
         assert_eq!(
             classes.get("container"),
             Some(&0),
             "container should be at index 0"
         );
 
-        // Verify exact number of classes extracted from our comprehensive v4 fixture
-        // This fixture contains 759 lines with 152 unique utility classes covering:
+        // verify exact number of classes extracted from our comprehensive v4 fixture
+        // this fixture contains 759 lines with 152 unique utility classes covering:
         // - Responsive breakpoints (sm, md, lg, xl, 2xl)
         // - State variants (hover, focus, active, disabled, checked)
         // - Dark mode, group variants, and arbitrary values

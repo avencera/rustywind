@@ -24,12 +24,12 @@ use std::sync::LazyLock;
 /// assert!(get_property_index("margin").unwrap() < get_property_index("padding").unwrap());
 /// ```
 pub const PROPERTY_ORDER: &[&str] = &[
-    // EXACT original 341-property order that achieved 96% pass rate
-    // This order was empirically tuned through extensive fuzz testing
-    // Source: Pre-Tailwind v4 sync (commit before 3758006)
+    // exact original 341-property order that achieved 96% pass rate
+    // this order was empirically tuned through extensive fuzz testing
+    // source: Pre-Tailwind v4 sync (commit before 3758006)
     //
     // WARNING: Do NOT modify property positions without thorough testing!
-    // Index shifts of even a few positions can cause 10%+ pass rate drops
+    // index shifts of even a few positions can cause 10%+ pass rate drops
     "background-opacity",
     "container-type",
     "pointer-events",
@@ -83,6 +83,10 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "caption-side",
     "border-collapse",
     "border-spacing",
+    // NOTE: Tailwind has --tw-border-spacing-x/y commented out in property-order.ts
+    // Do NOT add them here - they are not used for sorting. Tailwind uses the actual
+    // `border-spacing` property for sorting border-spacing-x/y utilities.
+    // See: https://github.com/tailwindlabs/tailwindcss/blob/next/packages/tailwindcss/src/property-order.ts#L68-71
     "transform-origin",
     "translate",
     "--tw-translate-x",
@@ -172,6 +176,16 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "border-radius",
     "border-start-radius",
     "border-end-radius",
+    // NOTE: Tailwind has synthetic border-{top,right,bottom,left}-radius properties
+    // in property-order.ts, but do NOT add them here. They exist in Tailwind only for
+    // utilities that emit `--tw-sort: border-top-radius` (which rounded-t doesn't do).
+    //
+    // Rustywind achieves the same sorting by mapping rounded-t/r/b/l directly to the
+    // actual CSS corner properties (e.g., rounded-t → [border-top-left-radius, border-top-right-radius]).
+    // this approach works correctly and adding the synthetic properties would have no effect
+    // since no utility maps to them in utility_map.rs.
+    //
+    // See: https://github.com/tailwindlabs/tailwindcss/blob/next/packages/tailwindcss/src/property-order.ts#L181-184
     "border-start-start-radius",
     "border-start-end-radius",
     "border-end-end-radius",
@@ -414,18 +428,18 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // EXACT original 341-property order that achieved 96% pass rate
-        // This was empirically tuned before the Tailwind v4 sync (commit 3758006)
-        // Updated to 342 properties after Phase 1-3 improvements (99.92% pass rate)
+        // exact original 341-property order that achieved 96% pass rate
+        // this was empirically tuned before the Tailwind v4 sync (commit 3758006)
+        // updated to 342 properties after Phase 1-3 improvements (99.92% pass rate)
         assert_eq!(PROPERTY_ORDER.len(), 342);
     }
 
     #[test]
     fn test_property_relative_ordering() {
-        // Tests relative relationships instead of absolute positions
-        // This won't break when Tailwind updates property order
+        // tests relative relationships instead of absolute positions
+        // this won't break when Tailwind updates property order
 
-        // Core layout properties come early
+        // core layout properties come early
         let container = get_property_index("container-type").unwrap();
         let pointer_events = get_property_index("pointer-events").unwrap();
         let margin = get_property_index("margin").unwrap();
@@ -438,24 +452,24 @@ mod tests {
         assert!(pointer_events < margin, "pointer-events before margin");
         assert!(margin < display, "margin before display");
 
-        // Spacing hierarchy: margin before padding
+        // spacing hierarchy: margin before padding
         let padding = get_property_index("padding").unwrap();
         assert!(margin < padding, "margin before padding");
 
-        // Specific properties after general ones
+        // specific properties after general ones
         let margin_inline = get_property_index("margin-inline").unwrap();
         let margin_top = get_property_index("margin-top").unwrap();
         assert!(margin < margin_inline, "margin before margin-inline");
         assert!(margin < margin_top, "margin before margin-top");
 
-        // Divide properties should be ordered correctly
+        // divide properties should be ordered correctly
         let divide_y = get_property_index("--tw-divide-y-reverse").unwrap();
         let divide_style = get_property_index("divide-style").unwrap();
         let divide_x = get_property_index("--tw-divide-x-reverse").unwrap();
         assert!(divide_y < divide_style, "divide-y before divide-style");
         assert!(divide_style < divide_x, "divide-style before divide-x");
 
-        // Border properties
+        // border properties
         let border_width = get_property_index("border-width").unwrap();
         let border_top_width = get_property_index("border-top-width").unwrap();
         let border_opacity = get_property_index("border-opacity").unwrap();
@@ -469,7 +483,7 @@ mod tests {
             "border-opacity before background-color"
         );
 
-        // Shadow and ring properties (critical for sorting)
+        // shadow and ring properties (critical for sorting)
         let box_shadow = get_property_index("box-shadow").unwrap();
         let tw_shadow = get_property_index("--tw-shadow").unwrap();
         let tw_shadow_color = get_property_index("--tw-shadow-color").unwrap();
@@ -483,7 +497,7 @@ mod tests {
             "ring-shadow before ring-color"
         );
 
-        // Outline properties
+        // outline properties
         let outline = get_property_index("outline").unwrap();
         let outline_style = get_property_index("outline-style").unwrap();
         let tw_ring_inset = get_property_index("--tw-ring-inset").unwrap();
@@ -493,79 +507,79 @@ mod tests {
             "outline-style before ring-inset"
         );
 
-        // Filter properties
+        // filter properties
         let tw_blur = get_property_index("--tw-blur").unwrap();
         let filter = get_property_index("filter").unwrap();
         assert!(tw_blur < filter, "blur before filter");
 
-        // User select near end
+        // user select near end
         let user_select = get_property_index("user-select").unwrap();
         let will_change = get_property_index("will-change").unwrap();
         assert!(will_change < user_select, "will-change before user-select");
 
-        // Test unknown property returns None
+        // test unknown property returns None
         assert_eq!(get_property_index("unknown-property"), None);
     }
 
     #[test]
     fn test_critical_properties_exist() {
-        // Verifies critical properties exist (prevents accidental deletions)
+        // verifies critical properties exist (prevents accidental deletions)
         let critical = vec![
-            // Layout fundamentals
+            // layout fundamentals
             "display",
             "position",
             "container-type",
             "pointer-events",
-            // Spacing
+            // spacing
             "margin",
             "margin-top",
             "margin-inline",
             "padding",
-            // Sizing
+            // sizing
             "width",
             "height",
             "min-width",
             "max-width",
-            // Flexbox & Grid
+            // flexbox & grid
             "flex",
             "flex-direction",
             "grid-template-columns",
             "grid-column",
-            // Colors
+            // colors
             "background-color",
             "color",
             "border-color",
-            // Borders
+            // borders
             "border-width",
             "border-style",
             "border-opacity",
-            // Shadows & Rings (critical for Phase 2 fixes)
+            // shadows & rings (critical for Phase 2 fixes)
             "box-shadow",
             "--tw-shadow",
             "--tw-shadow-color",
             "--tw-ring-shadow",
             "--tw-ring-color",
             "--tw-ring-inset",
-            // Divide
+            // divide
             "--tw-divide-x-reverse",
             "--tw-divide-y-reverse",
             "divide-style",
-            // Filters
+            // filters
             "filter",
             "--tw-blur",
             "backdrop-filter",
-            // Outline
+            // outline
             "outline",
             "outline-style",
-            // Typography
+            // typography
             "font-size",
             "font-weight",
             "line-height",
             "text-align",
-            // Prose (typography plugin)
+            // prose (typography plugin)
             "--tw-prose-component",
             "--tw-prose-invert",
-            // Other
+            // other
             "user-select",
             "will-change",
         ];
@@ -581,7 +595,7 @@ mod tests {
 
     #[test]
     fn test_margin_before_padding() {
-        // Margin should come before padding
+        // margin should come before padding
         let margin_idx = get_property_index("margin").unwrap();
         let padding_idx = get_property_index("padding").unwrap();
         assert!(margin_idx < padding_idx);
@@ -589,7 +603,7 @@ mod tests {
 
     #[test]
     fn test_specific_margin_properties() {
-        // All specific margin properties should come after margin
+        // all specific margin properties should come after margin
         let margin_idx = get_property_index("margin").unwrap();
         assert!(get_property_index("margin-inline").unwrap() > margin_idx);
         assert!(get_property_index("margin-top").unwrap() > margin_idx);

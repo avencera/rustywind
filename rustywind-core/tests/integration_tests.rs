@@ -624,8 +624,8 @@ fn test_enabled_disabled_variant_ordering() {
 #[test]
 fn test_landscape_variant_ordering() {
     // Regression test for landscape variant positioning
-    // landscape (index 72) should come after all responsive breakpoints
-    // and after container queries (@3xl, @4xl, etc.)
+    // landscape should come after responsive breakpoints (sm, md, lg, xl, 2xl)
+    // Container queries (@3xl) are unknown variants and sort LAST
     let sorter = HybridSorter::new();
 
     let classes = vec![
@@ -656,31 +656,18 @@ fn test_landscape_variant_ordering() {
         .position(|&c| c == "landscape:flex-row")
         .unwrap();
 
-    // Verify landscape (72) comes after all responsive breakpoints
-    // sm (54) < md (55) < lg (56) < xl (57) < 2xl (58) < @3xl (64) < landscape (72)
+    // Verify responsive breakpoints come in order
+    assert!(sm_pos < md_pos, "sm should come before md");
+    assert!(md_pos < lg_pos, "md should come before lg");
+    assert!(lg_pos < xl_pos, "lg should come before xl");
+    assert!(xl_pos < xxl_pos, "xl should come before 2xl");
+    assert!(xxl_pos < landscape_pos, "2xl should come before landscape");
+
+    // Container queries (@3xl) are unknown variants and sort LAST (after landscape)
+    // This matches Prettier's behavior where unknown/arbitrary variants sort at the end
     assert!(
-        sm_pos < landscape_pos,
-        "sm (54) should come before landscape (72)"
-    );
-    assert!(
-        md_pos < landscape_pos,
-        "md (55) should come before landscape (72)"
-    );
-    assert!(
-        lg_pos < landscape_pos,
-        "lg (56) should come before landscape (72)"
-    );
-    assert!(
-        xl_pos < landscape_pos,
-        "xl (57) should come before landscape (72)"
-    );
-    assert!(
-        xxl_pos < landscape_pos,
-        "2xl (58) should come before landscape (72)"
-    );
-    assert!(
-        container_pos < landscape_pos,
-        "@3xl (64) should come before landscape (72)"
+        landscape_pos < container_pos,
+        "landscape should come before @3xl (container queries sort last)"
     );
 }
 
@@ -740,4 +727,103 @@ fn test_user_select_utilities_ordering() {
     assert_eq!(select_classes[1], "select-auto");
     assert_eq!(select_classes[2], "select-none");
     assert_eq!(select_classes[3], "select-text");
+}
+
+/// Test arbitrary variant classes (Issue #115)
+/// These use CSS selectors inside brackets as variants like [&.class]:utility
+#[test]
+fn test_arbitrary_variant_classes() {
+    let sorter = HybridSorter::new();
+
+    // Test various arbitrary variant patterns
+    let classes = vec![
+        "[&.htmx-request]:h-0",
+        "flex",
+        "[&.active]:bg-red-500",
+        "p-4",
+        "[&>*]:p-4",
+        "m-2",
+        "[&[data-state=open]]:bg-gray-100",
+        "[&_p]:text-gray-700",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // All classes should be present
+    assert_eq!(sorted.len(), 8);
+
+    // Base utilities (no variants) should come before variant utilities
+    let flex_pos = sorted.iter().position(|&c| c == "flex").unwrap();
+    let arbitrary_pos = sorted
+        .iter()
+        .position(|&c| c == "[&.htmx-request]:h-0")
+        .unwrap();
+
+    assert!(
+        flex_pos < arbitrary_pos,
+        "Base utilities should come before arbitrary variant utilities"
+    );
+}
+
+/// Test arbitrary variant classes with child/sibling selectors
+#[test]
+fn test_arbitrary_variant_combinators() {
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "[&>*]:p-4",           // child combinator
+        "[&+*]:mt-4",          // adjacent sibling
+        "[&~*]:opacity-50",    // general sibling
+        "[&_p]:text-gray-700", // descendant
+        "block",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // All classes should be recognized and sorted
+    assert_eq!(sorted.len(), 5);
+
+    // block (base utility) should come first
+    assert_eq!(sorted[0], "block");
+}
+
+/// Test arbitrary variant classes with attribute selectors
+#[test]
+fn test_arbitrary_variant_attributes() {
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "[&[data-state=open]]:bg-gray-100",
+        "[&[aria-selected=true]]:bg-blue-100",
+        "[&[data-active]]:ring-2",
+        "flex",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // All classes should be present
+    assert_eq!(sorted.len(), 4);
+
+    // flex should come first (no variants)
+    assert_eq!(sorted[0], "flex");
+}
+
+/// Test at-rule arbitrary variants
+#[test]
+fn test_arbitrary_variant_at_rules() {
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "[@supports(display:grid)]:grid",
+        "flex",
+        "[@media(min-width:400px)]:block",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    // All classes should be present
+    assert_eq!(sorted.len(), 3);
+
+    // flex should come first (no variants)
+    assert_eq!(sorted[0], "flex");
 }
