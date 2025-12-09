@@ -1,6 +1,6 @@
 {
   "name": "rustywind",
-  "version": "0.24.3",
+  "version": "0.25.0-alpha.1",
   "description": "CLI for organizing Tailwind CSS classes",
   "repository": {
     "type": "git",
