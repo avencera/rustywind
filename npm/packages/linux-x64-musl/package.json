@@ -1,0 +1,14 @@
+{
+  "name": "rustywind-linux-x64-musl",
+  "version": "0.24.3",
+  "description": "The Linux x64 (musl) binary for rustywind",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
+  "license": "MIT",
+  "preferUnplugged": true,
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["rustywind"]
+}

@@ -1,2 +1,5 @@
 node_modules
 release.json
+/bin/
+packages/*/rustywind
+packages/*/rustywind.exe

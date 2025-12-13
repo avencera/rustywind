@@ -1,0 +1,14 @@
+{
+  "name": "rustywind-linux-arm-gnueabihf",
+  "version": "0.24.3",
+  "description": "The Linux ARM (gnueabihf) binary for rustywind",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
+  "license": "MIT",
+  "preferUnplugged": true,
+  "os": ["linux"],
+  "cpu": ["arm"],
+  "files": ["rustywind"]
+}

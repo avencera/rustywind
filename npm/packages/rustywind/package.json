@@ -1,0 +1,45 @@
+{
+  "name": "rustywind",
+  "version": "0.24.3",
+  "description": "CLI for organizing Tailwind CSS classes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
+  "keywords": [
+    "tailwind",
+    "tailwind css",
+    "headwind",
+    "headwind cli"
+  ],
+  "author": "Praveen Perera",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/avencera/rustywind/issues"
+  },
+  "homepage": "https://github.com/avencera/rustywind#readme",
+  "bin": {
+    "rustywind": "bin/rustywind"
+  },
+  "files": [
+    "bin/",
+    "postinstall.js",
+    "get-exe.js"
+  ],
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "optionalDependencies": {
+    "rustywind-darwin-arm64": "0.24.3",
+    "rustywind-darwin-x64": "0.24.3",
+    "rustywind-linux-arm64-gnu": "0.24.3",
+    "rustywind-linux-arm64-musl": "0.24.3",
+    "rustywind-linux-x64-musl": "0.24.3",
+    "rustywind-linux-arm-gnueabihf": "0.24.3",
+    "rustywind-win32-x64-msvc": "0.24.3",
+    "rustywind-win32-ia32-msvc": "0.24.3"
+  },
+  "dependencies": {
+    "detect-libc": "^2.0.3"
+  }
+}

@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+// @ts-check
+"use strict";
+
+const { spawnSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
+// Check for native binary first (placed by postinstall via hard-link)
+const binDir = __dirname;
+const nativeBinary = path.join(binDir, process.platform === "win32" ? "rustywind.exe" : "rustywind");
+
+// If this script is being run, check if native binary exists
+// (On successful postinstall, this wrapper gets replaced by the native binary)
+let exePath;
+
+if (fs.existsSync(nativeBinary) && fs.statSync(nativeBinary).isFile()) {
+  // Check if it's actually a binary (not this script)
+  const firstBytes = Buffer.alloc(4);
+  const fd = fs.openSync(nativeBinary, "r");
+  fs.readSync(fd, firstBytes, 0, 4, 0);
+  fs.closeSync(fd);
+
+  // Check for ELF, Mach-O, or PE magic bytes
+  const isElf = firstBytes[0] === 0x7f && firstBytes[1] === 0x45; // ELF
+  const isMachO = (firstBytes[0] === 0xcf || firstBytes[0] === 0xca) && firstBytes[1] === 0xfe; // Mach-O
+  const isPE = firstBytes[0] === 0x4d && firstBytes[1] === 0x5a; // PE (MZ)
+
+  if (isElf || isMachO || isPE) {
+    exePath = nativeBinary;
+  }
+}
+
+// Fall back to finding the platform package
+if (!exePath) {
+  try {
+    const { getExePath } = require("../get-exe");
+    exePath = getExePath();
+  } catch (err) {
+    console.error(`[rustywind] Failed to find binary: ${err.message}`);
+    console.error();
+    console.error("This usually means:");
+    console.error("  1. Optional dependencies were not installed (--no-optional flag)");
+    console.error("  2. Your platform is not supported");
+    console.error();
+    console.error(`Platform: ${process.platform} ${process.arch}`);
+    process.exit(1);
+  }
+}
+
+// Run the binary
+const result = spawnSync(exePath, process.argv.slice(2), {
+  stdio: "inherit",
+  shell: false,
+});
+
+if (result.error) {
+  console.error(`[rustywind] Failed to execute: ${result.error.message}`);
+  process.exit(1);
+}
+
+process.exit(result.status ?? 0);
