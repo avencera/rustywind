@@ -3,6 +3,7 @@ use color_eyre::{Result, eyre::Context};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -380,7 +381,7 @@ fn save_detailed_failures(results: &[TestResult], seed: &str) -> Result<()> {
 
     // convert to sorted vector
     let mut failures_vec: Vec<DetailedFailure> = deduped.into_values().collect();
-    failures_vec.sort_by(|a, b| b.count.cmp(&a.count));
+    failures_vec.sort_by_key(|failure| Reverse(failure.count));
 
     // create output structure
     #[derive(Serialize)]
@@ -479,7 +480,7 @@ fn analyze_failures(results: &[TestResult], seed: &str) -> Result<()> {
 
     // sort and print category pairs
     let mut category_pairs_vec: Vec<_> = category_pairs.into_iter().collect();
-    category_pairs_vec.sort_by(|a, b| b.1.cmp(&a.1));
+    category_pairs_vec.sort_by_key(|pair| Reverse(pair.1));
 
     println!("TOP CATEGORY MISMATCHES");
     println!("{}", "-".repeat(80));
@@ -490,7 +491,7 @@ fn analyze_failures(results: &[TestResult], seed: &str) -> Result<()> {
 
     // sort and print specific pairs
     let mut specific_pairs_vec: Vec<_> = specific_pairs.into_iter().collect();
-    specific_pairs_vec.sort_by(|a, b| b.1.cmp(&a.1));
+    specific_pairs_vec.sort_by_key(|pair| Reverse(pair.1));
 
     println!("\nTOP SPECIFIC CLASS PAIRS (appearing 3+ times)");
     println!("{}", "-".repeat(80));

@@ -786,55 +786,53 @@ impl Ord for SortKey {
                 // 2. both arbitrary: compare extracted numeric values (w-[50px] vs w-[100px])
                 // DON'T compare numerically if one has opacity syntax and the other doesn't
                 match (self.numeric_value, other.numeric_value) {
-                    (Some(a), Some(b)) => {
-                        // only compare numerically if both have same opacity status
-                        // this prevents comparing shade values (gray-500) with opacity values (white/20)
-                        if self_has_opacity == other_has_opacity {
-                            // check if both are width/height utilities with base numbers
-                            let self_base = extract_base_number(&self.class);
-                            let other_base = extract_base_number(&other.class);
+                    (Some(a), Some(b)) if self_has_opacity == other_has_opacity => {
+                        // check if both are width/height utilities with base numbers
+                        let self_base = extract_base_number(&self.class);
+                        let other_base = extract_base_number(&other.class);
 
-                            match (self_base, other_base) {
-                                (
-                                    Some((self_base_num, self_denom)),
-                                    Some((other_base_num, other_denom)),
-                                ) => {
-                                    // both have base numbers (w-1, w-1/2, w-2, etc.)
-                                    // rule 1: compare by base number first (ascending)
-                                    // example: w-1/3 (base 1) before w-2 (base 2)
-                                    if self_base_num != other_base_num {
-                                        return self_base_num.cmp(&other_base_num);
-                                    }
-
-                                    // rule 2: within same base number, whole numbers before fractions
-                                    // example: w-1 before w-1/2
-                                    match (self_denom, other_denom) {
-                                        (None, Some(_)) => return Ordering::Less, // whole before fraction
-                                        (Some(_), None) => return Ordering::Greater, // fraction after whole
-                                        (Some(self_d), Some(other_d)) => {
-                                            // rule 3: both fractions with same numerator, sort by denominator ascending
-                                            // example: w-1/2 (denom 2) before w-1/3 (denom 3)
-                                            // smaller denominator = larger fraction value = comes first
-                                            if self_d != other_d {
-                                                return self_d.cmp(&other_d);
-                                            }
-                                        }
-                                        (None, None) => {
-                                            // both whole numbers with same base, equal
-                                        }
-                                    }
+                        match (self_base, other_base) {
+                            (
+                                Some((self_base_num, self_denom)),
+                                Some((other_base_num, other_denom)),
+                            ) => {
+                                // both have base numbers (w-1, w-1/2, w-2, etc.)
+                                // rule 1: compare by base number first (ascending)
+                                // example: w-1/3 (base 1) before w-2 (base 2)
+                                if self_base_num != other_base_num {
+                                    return self_base_num.cmp(&other_base_num);
                                 }
-                                _ => {
-                                    // at least one doesn't have a base number, fall back to standard numeric comparison
-                                    match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
-                                        Ordering::Equal => {
-                                            // numeric values are equal, continue to next tier
+
+                                // rule 2: within same base number, whole numbers before fractions
+                                // example: w-1 before w-1/2
+                                match (self_denom, other_denom) {
+                                    (None, Some(_)) => return Ordering::Less, // whole before fraction
+                                    (Some(_), None) => return Ordering::Greater, // fraction after whole
+                                    (Some(self_d), Some(other_d)) => {
+                                        // rule 3: both fractions with same numerator, sort by denominator ascending
+                                        // example: w-1/2 (denom 2) before w-1/3 (denom 3)
+                                        // smaller denominator = larger fraction value = comes first
+                                        if self_d != other_d {
+                                            return self_d.cmp(&other_d);
                                         }
-                                        ordering => return ordering, // different numeric values
+                                    }
+                                    (None, None) => {
+                                        // both whole numbers with same base, equal
                                     }
                                 }
                             }
+                            _ => {
+                                // at least one doesn't have a base number, fall back to standard numeric comparison
+                                match a.partial_cmp(&b).unwrap_or(Ordering::Equal) {
+                                    Ordering::Equal => {
+                                        // numeric values are equal, continue to next tier
+                                    }
+                                    ordering => return ordering, // different numeric values
+                                }
+                            }
                         }
+                    }
+                    (Some(_), Some(_)) => {
                         // different opacity status, continue to next tier
                     }
                     _ => {
