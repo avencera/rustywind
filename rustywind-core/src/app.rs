@@ -484,7 +484,7 @@ mod tests {
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "comma double quotes"
     )]
-    fn test_unwrap_wrapped_classes<'a>(input: &str, wrapping: ClassWrapping, output: Vec<&str>) {
+    fn test_unwrap_wrapped_classes(input: &str, wrapping: ClassWrapping, output: Vec<&str>) {
         let app = RustyWind {
             class_wrapping: wrapping,
             ..RUSTYWIND_DEFAULT
@@ -511,7 +511,7 @@ mod tests {
         r#""flex-col", "inline", "flex""#
         ; "comma double quotes"
     )]
-    fn test_rewrap_wrapped_classes<'a>(input: Vec<&'a str>, wrapping: ClassWrapping, output: &str) {
+    fn test_rewrap_wrapped_classes(input: Vec<&str>, wrapping: ClassWrapping, output: &str) {
         let app = RustyWind {
             class_wrapping: wrapping,
             ..RUSTYWIND_DEFAULT
