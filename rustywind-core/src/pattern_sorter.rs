@@ -43,6 +43,10 @@ fn has_bare_group_or_peer(variant_chain: &[VariantInfo]) -> bool {
         .any(|v| (v.base == "group" || v.base == "peer") && v.modifier.is_none())
 }
 
+fn all_variants_simple(variant_chain: &[VariantInfo]) -> bool {
+    variant_chain.iter().all(|v| v.modifier.is_none())
+}
+
 /// Compare two strings alphanumerically (like Tailwind CSS does).
 /// Numbers within strings are compared numerically rather than lexicographically.
 fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
@@ -624,7 +628,11 @@ impl Ord for SortKey {
             (true, false) => return Ordering::Greater,
             (true, true) => {
                 // both have arbitrary variants - compare selectors FIRST
-                let decode = |s: &str| s.replace('_', " ");
+                let decode = |s: &str| {
+                    let s = s.strip_prefix('[').unwrap_or(s);
+                    let s = s.strip_suffix(']').unwrap_or(s);
+                    s.replace('_', " ")
+                };
                 let a: Vec<_> = self.arbitrary_variants.iter().map(|s| decode(s)).collect();
                 let b: Vec<_> = other.arbitrary_variants.iter().map(|s| decode(s)).collect();
                 match a.cmp(&b) {
@@ -650,31 +658,44 @@ impl Ord for SortKey {
             }
         }
 
-        // 3. fine-grained recursive variant chain comparison
-        // when coarse variant_order ties, compare the actual variant chains
-        // this handles multi-level variants like focus:dark: vs dark:focus:
-        compare_variant_lists(&self.variant_chain, &other.variant_chain)
-            // then compare by property indices - compare ALL properties in order
-            // this is crucial for utilities like rounded-t vs rounded-l that tie on first property
-            .then_with(|| {
-                (|| {
-                    for (a_idx, b_idx) in self
-                        .property_indices
-                        .iter()
-                        .zip(other.property_indices.iter())
-                    {
-                        match a_idx.cmp(b_idx) {
-                            Ordering::Equal => continue, // tie on this property, check next
-                            other => return other,       // found difference
-                        }
-                    }
-                    // all common properties are equal, compare by length (MORE properties = earlier)
-                    other
-                        .property_indices
-                        .len()
-                        .cmp(&self.property_indices.len())
-                })()
-            })
+        let property_cmp = || {
+            for (a_idx, b_idx) in self
+                .property_indices
+                .iter()
+                .zip(other.property_indices.iter())
+            {
+                match a_idx.cmp(b_idx) {
+                    Ordering::Equal => continue, // tie on this property, check next
+                    other => return other,       // found difference
+                }
+            }
+
+            // if one has more properties, the one with MORE properties comes first
+            // this matches Tailwind's behavior where utilities with more generated CSS
+            // declarations sort before simpler utilities
+            other
+                .property_indices
+                .len()
+                .cmp(&self.property_indices.len())
+        };
+
+        let variant_cmp = || compare_variant_lists(&self.variant_chain, &other.variant_chain);
+
+        // 3. compare property and fine-grained variant stack order
+        // for simple variant stacks with the same coarse bitset, Prettier lets
+        // utility order decide before breaking ties between equivalent stacks
+        let simple_variant_tie = !self_has_arbitrary
+            && !other_has_arbitrary
+            && all_variants_simple(&self.variant_chain)
+            && all_variants_simple(&other.variant_chain);
+
+        let ordering = if simple_variant_tie {
+            property_cmp().then_with(variant_cmp)
+        } else {
+            variant_cmp().then_with(property_cmp)
+        };
+
+        ordering
             // CRITICAL FIX: when property indices match, check utility prefix priority
             // this fixes space-x vs gap-y ordering (both map to row-gap, but space-* has priority)
             // must happen BEFORE numeric value comparison to prevent gap-y-0 sorting before space-x-4
@@ -1713,13 +1734,12 @@ mod tests {
 
     #[test]
     fn test_pseudo_element_duplicate_ordering() {
-        // Prettier/Tailwind puts single pseudo-elements BEFORE duplicates (shorter chains first)
         let classes = vec!["after:after:break-inside-avoid-page", "after:outline-0"];
         let sorted = sort_classes(&classes);
         assert_eq!(
             sorted,
-            vec!["after:outline-0", "after:after:break-inside-avoid-page"],
-            "single pseudo-element should sort before duplicate pseudo-elements (shorter chains first)",
+            vec!["after:after:break-inside-avoid-page", "after:outline-0"],
+            "duplicate pseudo-elements should still respect utility property order",
         );
     }
 

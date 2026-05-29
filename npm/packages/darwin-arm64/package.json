@@ -1,20 +1,20 @@
 {
   "name": "rustywind-darwin-arm64",
-  "version": "0.24.4",
-  "os": [
-    "darwin"
-  ],
+  "version": "0.25.0-alpha.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"
   },
+  "description": "The macOS ARM64 binary for rustywind",
   "cpu": [
     "arm64"
   ],
-  "description": "The macOS ARM64 binary for rustywind",
+  "license": "MIT",
   "preferUnplugged": true,
+  "os": [
+    "darwin"
+  ],
   "files": [
     "rustywind"
-  ],
-  "license": "MIT"
+  ]
 }

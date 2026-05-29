@@ -9,14 +9,11 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { allClasses, variants, variantStackingPatterns, opacityClasses, arbitraryValueClasses } from './tailwind-classes.js';
 import { filterLegacyClasses } from './legacy-classes.js';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import prettier from 'prettier';
 import seedrandom from 'seedrandom';
 
 const execAsync = promisify(exec);
-
-// Load failure patterns
-const failurePatterns = JSON.parse(readFileSync('./failure-patterns.json', 'utf8'));
 
 // Configuration
 const NUM_TESTS = 100; // Number of test cases
@@ -24,11 +21,86 @@ const FILTER_LEGACY = process.env.FILTER_LEGACY !== 'false';
 const SEED = process.env.FUZZ_SEED || Math.random().toString(36).substring(2, 15);
 const rng = seedrandom(SEED);
 
-// Use classes that appear in FAILURES (70% of the time)
-// And general class pool (30% of the time) for variety
-const failingClasses = failurePatterns.failingClasses;
 const baseClasses = FILTER_LEGACY ? filterLegacyClasses(allClasses) : allClasses;
 const classPool = [...baseClasses, ...opacityClasses, ...arbitraryValueClasses];
+
+function loadFailurePatterns() {
+  if (existsSync('./failure-patterns.json')) {
+    return JSON.parse(readFileSync('./failure-patterns.json', 'utf8'));
+  }
+
+  console.log('failure-patterns.json not found; using built-in representative patterns');
+
+  return {
+    failingClasses: [
+      'absolute',
+      'flex',
+      'grid',
+      'hidden',
+      'items-center',
+      'justify-between',
+      'gap-4',
+      'space-x-4',
+      'space-y-reverse',
+      'rounded',
+      'rounded-t',
+      'rounded-[2px]',
+      'border',
+      'border-t-0',
+      'border-[1.5px]',
+      'bg-blue-500',
+      'bg-white/20',
+      'text-sm',
+      'text-blue-500',
+      'shadow',
+      'shadow-lg',
+      'shadow-blue-500',
+      'ring',
+      'ring-2',
+      'ring-blue-500',
+      'outline',
+      'outline-dotted',
+      'drop-shadow',
+      'filter',
+      'backdrop-blur',
+      'divide-x',
+      'divide-x-reverse',
+      'transition',
+      'transition-none',
+    ],
+    failingModifiers: [
+      'hover',
+      'focus',
+      'focus-visible',
+      'active',
+      'dark',
+      'group-hover',
+      'peer-focus',
+      'before',
+      'after',
+      'sm',
+      'md',
+      'lg',
+    ],
+    failingPairs: [
+      ['shadow', 'ring'],
+      ['shadow-blue-500', 'ring-blue-500'],
+      ['rounded-[2px]', 'rounded-t'],
+      ['border-[1.5px]', 'border-t-0'],
+      ['space-x-4', 'gap-4'],
+      ['filter', 'ring'],
+      ['drop-shadow', 'shadow'],
+      ['outline', 'transition'],
+      ['divide-x', 'divide-x-reverse'],
+    ],
+    avgFailureClassCount: 8,
+    failureRate: 'unknown',
+  };
+}
+
+// load generated real-world failure patterns when present, with a clean-checkout fallback
+const failurePatterns = loadFailurePatterns();
+const failingClasses = failurePatterns.failingClasses.length > 0 ? failurePatterns.failingClasses : classPool;
 
 // Extract modifiers that appear in failures
 const failingModifiers = failurePatterns.failingModifiers;

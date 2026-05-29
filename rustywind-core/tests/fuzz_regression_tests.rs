@@ -4,26 +4,11 @@
 //! to prevent regressions. Each test documents the expected behavior from
 //! Tailwind's Prettier plugin.
 //!
-//! ## Status: 91% Pass Rate (91/100 fuzz tests passing)
+//! ## Status
 //!
-//! ### Original Failure Categories (Tests marked #[ignore]):
-//! 1. **Color ordering** (3 tests) - bg colors sorting alphabetically instead of by specificity
-//! 2. **Divide-x-reverse positioning** (2 tests) - sorting before divide/rounded utilities
-//! 3. **Outline vs duration** (3 tests) - outline utilities should come before duration
-//! 4. **Rounded utilities** (1 test - FIXED) - rounded-l vs rounded-tl ordering
-//! 5. **Width fractions** (1 test) - w-2 vs w-2/3 ordering
-//!
-//! ### Real-world Failure Patterns (Tests marked #[test]):
-//! Based on categorized failures from fuzz testing of real-world templates.
-//! These tests are NOT ignored - they demonstrate what needs to be fixed:
-//!
-//! 1. **Custom Classes** (6 tests) - Non-standard Tailwind classes should sort first
-//! 2. **Prose Class Positioning** (3 tests) - prose should come before standard utilities
-//! 3. **Color Utility Positioning** (3 tests) - Custom colors like text-primary-500 should sort first
-//! 4. **Focus/Hover/Active State Modifiers** (3 tests) - State variants should come first
-//! 5. **Opacity Slash Syntax** (3 tests) - text-white/60, bg-primary/20 should sort first
-//! 6. **Variant Stacking** (2 tests) - lg:hover:, group:hover: should come first
-//! 7. **Dark Mode Variant Ordering** (1 complex test) - Complete ordering pattern demonstration
+//! The active tests below cover historical fuzz failures that have been verified
+//! against `prettier-plugin-tailwindcss`. They should remain active unless an
+//! upstream Prettier or Tailwind change invalidates the expected order.
 
 use rustywind_core::pattern_sorter::sort_classes;
 
@@ -537,15 +522,7 @@ mod class_pair_ordering {
 
 /// Fuzz regression test #1: Multi-level variant ordering (focus:dark vs dark:focus)
 ///
-/// NOTE: This test expectation was based on old fuzz data and does not match
-/// current Prettier behavior. After implementing right-to-left variant parsing
-/// to match Tailwind's algorithm, this specific ordering no longer appears in
-/// actual fuzz test failures. The test is marked as ignored pending verification
-/// of the correct expected output.
-///
-/// Current fuzz test pass rate: 99.88% without this specific case failing.
 #[test]
-#[ignore = "Test expectation does not match current Prettier behavior - needs verification"]
 fn test_fuzz_multi_level_variant_ordering_focus_dark() {
     let input = "print:font-mono -translate-y-1 outline-dashed bg-center place-items-end absolute shadow-inner dark:focus:text-xs transition backdrop-sepia focus:dark:cursor-grab dark:md:fixed brightness-125 resize sm:h-auto xl:opacity-100 sm:focus:backdrop-saturate-150 hover:peer-focus:grid-cols-6 leading-tight visited:cursor-grabbing group:last:transition-all lg:hover:h-[70px] skew-x-1 first:grid-flow-col border-black/20 col-span-2 align-bottom break-before-all rotate-3 order-none";
     let expected = "group:last:transition-all absolute order-none col-span-2 -translate-y-1 rotate-3 skew-x-1 resize break-before-all place-items-end border-black/20 bg-center align-bottom leading-tight shadow-inner brightness-125 backdrop-sepia transition outline-dashed first:grid-flow-col visited:cursor-grabbing hover:peer-focus:grid-cols-6 sm:h-auto sm:focus:backdrop-saturate-150 lg:hover:h-[70px] xl:opacity-100 focus:dark:cursor-grab dark:focus:text-xs dark:md:fixed print:font-mono";

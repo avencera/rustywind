@@ -3,6 +3,7 @@ mod utils;
 
 use clap::{Parser, Subcommand};
 use color_eyre::Result;
+use semver::Version;
 use std::str::FromStr;
 
 #[derive(Parser)]
@@ -66,15 +67,12 @@ impl FromStr for BumpSpec {
             "minor" => Ok(BumpSpec::Minor),
             "patch" => Ok(BumpSpec::Patch),
             _ => {
-                // Validate version format: optional 'v' prefix + semver (x.y.z)
                 let version = s.strip_prefix('v').unwrap_or(s);
-                let parts: Vec<&str> = version.split('.').collect();
-                if parts.len() != 3 || !parts.iter().all(|p| p.parse::<u32>().is_ok()) {
-                    return Err(format!(
-                        "invalid value '{}': expected major, minor, patch, or version (e.g., v0.25.0)",
-                        s
-                    ));
-                }
+                Version::parse(version).map_err(|_| {
+                    format!(
+                        "invalid value '{s}': expected major, minor, patch, or semver version (e.g., v0.25.0 or v0.25.0-alpha.1)"
+                    )
+                })?;
                 Ok(BumpSpec::Version(s.to_string()))
             }
         }
@@ -85,7 +83,7 @@ impl FromStr for BumpSpec {
 enum NpmCommand {
     /// Bump version and release npm packages
     Bump {
-        /// Version bump: major, minor, patch, or explicit version (e.g., v0.25.0)
+        /// Version bump: major, minor, patch, or explicit semver version
         spec: BumpSpec,
         /// GitHub token for API access
         #[arg(long, env = "GITHUB_TOKEN")]
@@ -140,5 +138,26 @@ fn main() -> Result<()> {
             }
             NpmCommand::Publish { dry_run } => commands::npm::publish(dry_run),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_prerelease_version_specs() {
+        let spec: BumpSpec = "v0.25.0-alpha.1".parse().unwrap();
+
+        match spec {
+            BumpSpec::Version(version) => assert_eq!(version, "v0.25.0-alpha.1"),
+            _ => panic!("expected explicit version bump spec"),
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_version_specs() {
+        assert!("v0.25".parse::<BumpSpec>().is_err());
+        assert!("v0.25.0-alpha..1".parse::<BumpSpec>().is_err());
     }
 }

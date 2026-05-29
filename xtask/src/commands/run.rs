@@ -47,6 +47,7 @@ impl DetailedFailure {
 #[derive(Debug)]
 struct TestResult {
     passed: Option<usize>,
+    total: Option<usize>,
     detailed_failures: Vec<DetailedFailure>,
     success: bool,
     error: Option<String>,
@@ -138,8 +139,8 @@ fn run_single_test(seed: &str) -> TestResult {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let combined = format!("{}{}", stdout, stderr);
 
-            // parse pass count
             let passed = parser::parse_pass_count(&stdout);
+            let total = parser::parse_total_count(&stdout);
 
             // parse detailed JSON failures
             let mut detailed_failures = Vec::new();
@@ -179,16 +180,19 @@ fn run_single_test(seed: &str) -> TestResult {
                 }
             }
 
-            if passed.is_some() {
+            if passed.is_some() || total.is_some() {
+                let success = output.status.success();
                 TestResult {
                     passed,
+                    total,
                     detailed_failures,
-                    success: true,
-                    error: None,
+                    success,
+                    error: (!success).then(|| "test_failed".to_string()),
                 }
             } else {
                 TestResult {
                     passed: None,
+                    total: None,
                     detailed_failures: Vec::new(),
                     success: false,
                     error: Some("parse_failed".to_string()),
@@ -197,6 +201,7 @@ fn run_single_test(seed: &str) -> TestResult {
         }
         Err(e) => TestResult {
             passed: None,
+            total: None,
             detailed_failures: Vec::new(),
             success: false,
             error: Some(e.to_string()),
@@ -281,15 +286,27 @@ pub fn run(num_rounds: usize, workers: Option<usize>, seed: Option<String>) -> R
     let successful_results: Vec<&TestResult> = results.iter().filter(|r| r.success).collect();
     let failed_results: Vec<&TestResult> = results.iter().filter(|r| !r.success).collect();
 
-    if !successful_results.is_empty() {
-        let passed_list: Vec<usize> = successful_results.iter().filter_map(|r| r.passed).collect();
-        let total_passed: usize = passed_list.iter().sum();
-        let total_tests = passed_list.len() * 100;
+    let counted_results: Vec<&TestResult> = results
+        .iter()
+        .filter(|r| r.passed.is_some() && r.total.is_some())
+        .collect();
+
+    if !counted_results.is_empty() {
+        let pass_rates: Vec<f64> = counted_results
+            .iter()
+            .map(|r| {
+                let passed = r.passed.unwrap();
+                let total = r.total.unwrap();
+                (passed as f64 / total as f64) * 100.0
+            })
+            .collect();
+        let total_passed: usize = counted_results.iter().filter_map(|r| r.passed).sum();
+        let total_tests: usize = counted_results.iter().filter_map(|r| r.total).sum();
         let pass_rate = (total_passed as f64 / total_tests as f64) * 100.0;
 
-        let min = *passed_list.iter().min().unwrap();
-        let max = *passed_list.iter().max().unwrap();
-        let avg = passed_list.iter().sum::<usize>() as f64 / passed_list.len() as f64;
+        let min = pass_rates.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = pass_rates.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let avg = pass_rates.iter().sum::<f64>() / pass_rates.len() as f64;
 
         println!("\nAGGREGATE RESULTS");
         println!("{}", "─".repeat(80));
@@ -303,25 +320,25 @@ pub fn run(num_rounds: usize, workers: Option<usize>, seed: Option<String>) -> R
         println!("Total Failed:    {}", total_tests - total_passed);
         println!("Pass Rate:       {:.2}%", pass_rate);
         println!("{}", "─".repeat(80));
-        println!("Min Pass:        {}/100 ({}%)", min, min);
-        println!("Max Pass:        {}/100 ({}%)", max, max);
-        println!("Avg Pass:        {:.1}/100 ({:.1}%)", avg, avg);
+        println!("Min Pass:        {:.1}%", min);
+        println!("Max Pass:        {:.1}%", max);
+        println!("Avg Pass:        {:.1}%", avg);
         println!("{}", "─".repeat(80));
 
         // distribution
-        let ranges = [
-            ("90-100%", 90..=100),
-            ("80-89%", 80..=89),
-            ("70-79%", 70..=79),
-            ("60-69%", 60..=69),
-            ("50-59%", 50..=59),
-            ("<50%", 0..=49),
+        let ranges: [(&str, std::ops::RangeInclusive<f64>); 6] = [
+            ("90-100%", 90.0..=100.0),
+            ("80-89%", 80.0..=89.999),
+            ("70-79%", 70.0..=79.999),
+            ("60-69%", 60.0..=69.999),
+            ("50-59%", 50.0..=59.999),
+            ("<50%", 0.0..=49.999),
         ];
 
         println!("\nDISTRIBUTION");
         println!("{}", "─".repeat(80));
         for (label, range) in ranges {
-            let count = passed_list.iter().filter(|&&p| range.contains(&p)).count();
+            let count = pass_rates.iter().filter(|&&p| range.contains(&p)).count();
             if count > 0 {
                 let bar = "█".repeat(count);
                 println!("{:10} {} ({} rounds)", label, bar, count);
@@ -360,11 +377,8 @@ pub fn run(num_rounds: usize, workers: Option<usize>, seed: Option<String>) -> R
 
 fn save_detailed_failures(results: &[TestResult], seed: &str) -> Result<()> {
     // collect all detailed failures
-    let all_detailed: Vec<&DetailedFailure> = results
-        .iter()
-        .filter(|r| r.success)
-        .flat_map(|r| &r.detailed_failures)
-        .collect();
+    let all_detailed: Vec<&DetailedFailure> =
+        results.iter().flat_map(|r| &r.detailed_failures).collect();
 
     if all_detailed.is_empty() {
         return Ok(());
@@ -425,10 +439,9 @@ fn save_detailed_failures(results: &[TestResult], seed: &str) -> Result<()> {
 }
 
 fn analyze_failures(results: &[TestResult], seed: &str) -> Result<()> {
-    // collect all failures from successful runs, extracting from detailed_failures
+    // collect all failures from runs with detailed output
     let all_failures: Vec<SimpleFailure> = results
         .iter()
-        .filter(|r| r.success)
         .flat_map(|r| &r.detailed_failures)
         .filter_map(|df| {
             // extract the mismatched classes at the position
@@ -453,12 +466,12 @@ fn analyze_failures(results: &[TestResult], seed: &str) -> Result<()> {
         return Ok(());
     }
 
-    let successful_runs = results.iter().filter(|r| r.success).count();
+    let parsed_runs = results.iter().filter(|r| r.passed.is_some()).count();
     let failed_runs = results.iter().filter(|r| !r.success).count();
 
     println!(
-        "\nFAILURE ANALYSIS FROM {} SUCCESSFUL RUNS",
-        successful_runs
+        "\nFAILURE ANALYSIS FROM {} RUNS WITH PARSED OUTPUT",
+        parsed_runs
     );
     println!("{}", "=".repeat(80));
     println!("Total Failures: {}\n", all_failures.len());
@@ -508,8 +521,8 @@ fn analyze_failures(results: &[TestResult], seed: &str) -> Result<()> {
 
     let mut content = String::new();
     content.push_str(&format!(
-        "FAILURE ANALYSIS FROM {} SUCCESSFUL RUNS\n",
-        successful_runs
+        "FAILURE ANALYSIS FROM {} RUNS WITH PARSED OUTPUT\n",
+        parsed_runs
     ));
     content.push_str(&format!("{}\n", "=".repeat(80)));
     content.push_str(&format!("Total Failures: {}\n", all_failures.len()));

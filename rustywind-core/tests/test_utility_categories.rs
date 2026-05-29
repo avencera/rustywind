@@ -51,6 +51,56 @@ fn test_filter_utilities_basic() {
 }
 
 #[test]
+fn test_filter_toggle_utilities_sort_with_filter_properties() {
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "filter-none",
+        "hidden",
+        "outline-dotted",
+        "filter",
+        "outline",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(
+        sorted,
+        vec![
+            "hidden",
+            "outline",
+            "filter",
+            "filter-none",
+            "outline-dotted"
+        ]
+    );
+}
+
+#[test]
+fn test_backdrop_filter_toggle_utilities_sort_with_backdrop_properties() {
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "backdrop-filter-none",
+        "hidden",
+        "backdrop-filter",
+        "backdrop-blur",
+    ];
+
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(
+        sorted,
+        vec![
+            "hidden",
+            "backdrop-blur",
+            "backdrop-filter",
+            "backdrop-filter-none"
+        ]
+    );
+}
+
+#[test]
 fn test_filter_utilities_comprehensive() {
     // Test all filter utility types to ensure they map correctly
     let sorter = HybridSorter::new();

@@ -40,8 +40,8 @@ Use this file whenever a new version of Tailwind CSS or `prettier-plugin-tailwin
 
 ## 5. Regression Guardrails
 Whenever you spot a change upstream:
-1. Re-run `tests/fuzz/tools/test-missing-properties.mjs` and `test-property-positions.mjs` against the updated packages to observe where Prettier places the critical utilities (ring, shadow, outline, select, divide-x-reverse, etc.).
-2. Capture fresh fuzz baselines (`collect_failures.py`, `test_many_rounds.py`).
-3. Update `NEXT.md` and this checklist only if upstream behavior actually changed; otherwise, document that you validated the new release and nothing needs to change.
+1. Run focused property probes such as `tests/fuzz/compare-properties.mjs`, `test-property-mapping.mjs`, and the relevant `test-*.mjs` files against the updated packages.
+2. Capture fresh fuzz baselines with `cargo xtask fuzz run 25` and save any notable failure summaries from `tests/fuzz/tools/output/`.
+3. Update this checklist or `docs/README.md` only if upstream behavior actually changed; otherwise, document the validation in the release notes.
 
-> **Reminder:** `tests/fuzz/research/tailwindcss` and `tests/fuzz/research/prettier-plugin-tailwindcss` should always be the single source of truth. Mirror their logic before trusting any internal guesses.
+> **Reminder:** upstream Tailwind and `prettier-plugin-tailwindcss` source should be the source of truth. Mirror that logic before trusting internal guesses.

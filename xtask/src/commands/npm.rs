@@ -1,5 +1,6 @@
 use crate::BumpSpec;
 use color_eyre::{Result, eyre::Context};
+use semver::{BuildMetadata, Prerelease, Version};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -47,6 +48,7 @@ struct PackageJson {
 
 /// Update version across all npm packages
 pub fn update_version(version: &str) -> Result<()> {
+    let package_version = npm_package_version(version)?;
     let packages_dir = npm_packages_dir();
 
     // Get all package directories
@@ -68,13 +70,13 @@ pub fn update_version(version: &str) -> Result<()> {
         let content = fs::read_to_string(&pkg_json_path)?;
         let mut pkg: PackageJson = serde_json::from_str(&content)?;
 
-        pkg.version = version.to_string();
+        pkg.version = package_version.clone();
 
         // Update optionalDependencies versions
         if let Some(ref mut deps) = pkg.optional_dependencies {
             for (name, dep_version) in deps.iter_mut() {
                 if name.starts_with("rustywind-") {
-                    *dep_version = version.to_string();
+                    *dep_version = package_version.clone();
                 }
             }
         }
@@ -85,11 +87,11 @@ pub fn update_version(version: &str) -> Result<()> {
         println!(
             "Updated {} to {}",
             path.file_name().unwrap().to_string_lossy(),
-            version
+            package_version
         );
     }
 
-    println!("\nAll packages updated to version {}", version);
+    println!("\nAll packages updated to version {}", package_version);
     Ok(())
 }
 
@@ -305,20 +307,56 @@ pub fn bump(spec: BumpSpec, token: Option<&str>, dry_run: bool) -> Result<()> {
 
 /// Increment a semver version at the specified position (0=major, 1=minor, 2=patch)
 fn increment_version(current: &str, position: usize) -> Result<String> {
-    let parts: Vec<&str> = current.split('.').collect();
-    if parts.len() != 3 {
-        color_eyre::eyre::bail!("Invalid version format: {}", current);
+    let current = current.strip_prefix('v').unwrap_or(current);
+    let mut version = Version::parse(current)?;
+
+    match position {
+        0 => {
+            version.major += 1;
+            version.minor = 0;
+            version.patch = 0;
+        }
+        1 => {
+            version.minor += 1;
+            version.patch = 0;
+        }
+        2 => version.patch += 1,
+        _ => color_eyre::eyre::bail!("Invalid version bump position: {}", position),
     }
 
-    let mut nums: Vec<u32> = parts
-        .iter()
-        .map(|p| p.parse().wrap_err("Invalid version number"))
-        .collect::<Result<_>>()?;
+    version.pre = Prerelease::EMPTY;
+    version.build = BuildMetadata::EMPTY;
 
-    nums[position] += 1;
-    for num in nums.iter_mut().skip(position + 1) {
-        *num = 0;
+    Ok(version.to_string())
+}
+
+fn npm_package_version(version: &str) -> Result<String> {
+    let version = version.strip_prefix('v').unwrap_or(version);
+    let version = Version::parse(version)?;
+    Ok(version.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn increments_prerelease_versions_from_core_numbers() {
+        assert_eq!(increment_version("0.25.0-alpha.1", 0).unwrap(), "1.0.0");
+        assert_eq!(increment_version("0.25.0-alpha.1", 1).unwrap(), "0.26.0");
+        assert_eq!(increment_version("0.25.0-alpha.1", 2).unwrap(), "0.25.1");
     }
 
-    Ok(format!("{}.{}.{}", nums[0], nums[1], nums[2]))
+    #[test]
+    fn normalizes_npm_package_versions() {
+        assert_eq!(
+            npm_package_version("v0.25.0-alpha.1").unwrap(),
+            "0.25.0-alpha.1"
+        );
+        assert_eq!(
+            npm_package_version("0.25.0-alpha.1").unwrap(),
+            "0.25.0-alpha.1"
+        );
+        assert!(npm_package_version("v0.25").is_err());
+    }
 }

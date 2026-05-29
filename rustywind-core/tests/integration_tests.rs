@@ -771,7 +771,8 @@ fn test_arbitrary_variant_combinators() {
     let sorter = HybridSorter::new();
 
     let classes = vec![
-        "[&>*]:p-4",           // child combinator
+        "[&>*]:p-4", // child combinator
+        "[&>*:last-child]:rounded-b-lg",
         "[&+*]:mt-4",          // adjacent sibling
         "[&~*]:opacity-50",    // general sibling
         "[&_p]:text-gray-700", // descendant
@@ -781,10 +782,21 @@ fn test_arbitrary_variant_combinators() {
     let sorted = sorter.sort_classes(&classes);
 
     // All classes should be recognized and sorted
-    assert_eq!(sorted.len(), 5);
+    assert_eq!(sorted.len(), 6);
 
     // block (base utility) should come first
     assert_eq!(sorted[0], "block");
+
+    let child_pos = sorted.iter().position(|&c| c == "[&>*]:p-4").unwrap();
+    let last_child_pos = sorted
+        .iter()
+        .position(|&c| c == "[&>*:last-child]:rounded-b-lg")
+        .unwrap();
+
+    assert!(
+        child_pos < last_child_pos,
+        "Base child selector should come before its :last-child refinement"
+    );
 }
 
 /// Test arbitrary variant classes with attribute selectors

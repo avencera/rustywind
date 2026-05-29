@@ -1,45 +1,45 @@
 {
   "name": "rustywind",
   "version": "0.25.0-alpha.1",
-  "description": "CLI for organizing Tailwind CSS classes",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avencera/rustywind.git"
+  "optionalDependencies": {
+    "rustywind-win32-x64-msvc": "0.25.0-alpha.1",
+    "rustywind-linux-arm-gnueabihf": "0.25.0-alpha.1",
+    "rustywind-linux-arm64-gnu": "0.25.0-alpha.1",
+    "rustywind-darwin-x64": "0.25.0-alpha.1",
+    "rustywind-linux-arm64-musl": "0.25.0-alpha.1",
+    "rustywind-darwin-arm64": "0.25.0-alpha.1",
+    "rustywind-linux-x64-musl": "0.25.0-alpha.1",
+    "rustywind-win32-ia32-msvc": "0.25.0-alpha.1"
   },
-  "keywords": [
-    "tailwind",
-    "tailwind css",
-    "headwind",
-    "headwind cli"
-  ],
-  "author": "Praveen Perera",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/avencera/rustywind/issues"
-  },
-  "homepage": "https://github.com/avencera/rustywind#readme",
-  "bin": {
-    "rustywind": "bin/rustywind"
   },
   "files": [
     "bin/",
     "postinstall.js",
     "get-exe.js"
   ],
-  "scripts": {
-    "postinstall": "node postinstall.js"
+  "homepage": "https://github.com/avencera/rustywind#readme",
+  "license": "MIT",
+  "keywords": [
+    "tailwind",
+    "tailwind css",
+    "headwind",
+    "headwind cli"
+  ],
+  "description": "CLI for organizing Tailwind CSS classes",
+  "bin": {
+    "rustywind": "bin/rustywind"
   },
-  "optionalDependencies": {
-    "rustywind-darwin-arm64": "0.24.3",
-    "rustywind-darwin-x64": "0.24.3",
-    "rustywind-linux-arm64-gnu": "0.24.3",
-    "rustywind-linux-arm64-musl": "0.24.3",
-    "rustywind-linux-x64-musl": "0.24.3",
-    "rustywind-linux-arm-gnueabihf": "0.24.3",
-    "rustywind-win32-x64-msvc": "0.24.3",
-    "rustywind-win32-ia32-msvc": "0.24.3"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
   },
   "dependencies": {
     "detect-libc": "^2.0.3"
-  }
+  },
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "author": "Praveen Perera"
 }

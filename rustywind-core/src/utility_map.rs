@@ -689,6 +689,12 @@ impl UtilityMap {
         exact.insert("drop-shadow-2xl", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-none", &["--tw-drop-shadow"][..]);
 
+        // filter toggles
+        exact.insert("filter", &["filter"][..]);
+        exact.insert("filter-none", &["filter"][..]);
+        exact.insert("backdrop-filter", &["backdrop-filter"][..]);
+        exact.insert("backdrop-filter-none", &["backdrop-filter"][..]);
+
         // filter utilities -0 variants (exact mappings to avoid pattern match exclusion)
         exact.insert("grayscale-0", &["--tw-grayscale"][..]);
         exact.insert("invert-0", &["--tw-invert"][..]);

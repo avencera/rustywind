@@ -1,5 +1,5 @@
 /// How individual classes are wrapped.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum ClassWrapping {
     #[default]
     NoWrapping,
