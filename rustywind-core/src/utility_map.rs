@@ -65,6 +65,12 @@ impl UtilityMap {
         exact.insert("contents", &["display"][..]);
         exact.insert("list-item", &["display"][..]);
         exact.insert("hidden", &["display"][..]);
+        exact.insert("table-auto", &["table-layout"][..]);
+        exact.insert("table-fixed", &["table-layout"][..]);
+        exact.insert("sr-only", &["position"][..]);
+        exact.insert("not-sr-only", &["position"][..]);
+        exact.insert("antialiased", &["-webkit-font-smoothing"][..]);
+        exact.insert("subpixel-antialiased", &["-webkit-font-smoothing"][..]);
 
         // position
         exact.insert("static", &["position"][..]);
@@ -130,7 +136,11 @@ impl UtilityMap {
         exact.insert("items-end", &["align-items"][..]);
         exact.insert("items-center", &["align-items"][..]);
         exact.insert("items-baseline", &["align-items"][..]);
+        exact.insert("items-baseline-last", &["align-items"][..]);
         exact.insert("items-stretch", &["align-items"][..]);
+        exact.insert("items-start-safe", &["align-items"][..]);
+        exact.insert("items-end-safe", &["align-items"][..]);
+        exact.insert("items-center-safe", &["align-items"][..]);
 
         exact.insert("justify-start", &["justify-content"][..]);
         exact.insert("justify-end", &["justify-content"][..]);
@@ -140,6 +150,27 @@ impl UtilityMap {
         exact.insert("justify-evenly", &["justify-content"][..]);
         exact.insert("justify-normal", &["justify-content"][..]);
         exact.insert("justify-stretch", &["justify-content"][..]);
+        exact.insert("justify-start-safe", &["justify-content"][..]);
+        exact.insert("justify-center-safe", &["justify-content"][..]);
+        exact.insert("justify-end-safe", &["justify-content"][..]);
+
+        exact.insert("justify-items-start", &["justify-items"][..]);
+        exact.insert("justify-items-end", &["justify-items"][..]);
+        exact.insert("justify-items-center", &["justify-items"][..]);
+        exact.insert("justify-items-stretch", &["justify-items"][..]);
+        exact.insert("justify-items-normal", &["justify-items"][..]);
+        exact.insert("justify-items-start-safe", &["justify-items"][..]);
+        exact.insert("justify-items-end-safe", &["justify-items"][..]);
+        exact.insert("justify-items-center-safe", &["justify-items"][..]);
+
+        exact.insert("justify-self-auto", &["justify-self"][..]);
+        exact.insert("justify-self-start", &["justify-self"][..]);
+        exact.insert("justify-self-end", &["justify-self"][..]);
+        exact.insert("justify-self-center", &["justify-self"][..]);
+        exact.insert("justify-self-stretch", &["justify-self"][..]);
+        exact.insert("justify-self-start-safe", &["justify-self"][..]);
+        exact.insert("justify-self-end-safe", &["justify-self"][..]);
+        exact.insert("justify-self-center-safe", &["justify-self"][..]);
 
         exact.insert("content-start", &["align-content"][..]);
         exact.insert("content-end", &["align-content"][..]);
@@ -195,6 +226,13 @@ impl UtilityMap {
         // appearance
         exact.insert("appearance-none", &["appearance"][..]);
         exact.insert("appearance-auto", &["appearance"][..]);
+        exact.insert("scheme-normal", &["color-scheme"][..]);
+        exact.insert("scheme-light", &["color-scheme"][..]);
+        exact.insert("scheme-dark", &["color-scheme"][..]);
+        exact.insert("scheme-light-dark", &["color-scheme"][..]);
+        exact.insert("scheme-only-light", &["color-scheme"][..]);
+        exact.insert("forced-color-adjust-auto", &["forced-color-adjust"][..]);
+        exact.insert("forced-color-adjust-none", &["forced-color-adjust"][..]);
 
         // resize
         exact.insert("resize-none", &["resize"][..]);
@@ -213,6 +251,9 @@ impl UtilityMap {
         exact.insert("break-words", &["overflow-wrap"][..]);
         exact.insert("break-all", &["word-break"][..]);
         exact.insert("break-keep", &["word-break"][..]);
+        exact.insert("wrap-anywhere", &["overflow-wrap"][..]);
+        exact.insert("wrap-break-word", &["overflow-wrap"][..]);
+        exact.insert("wrap-normal", &["overflow-wrap"][..]);
 
         // break before/after/inside
         exact.insert("break-before-auto", &["break-before"][..]);
@@ -360,10 +401,14 @@ impl UtilityMap {
         // flex grow
         exact.insert("grow", &["flex-grow"][..]);
         exact.insert("grow-0", &["flex-grow"][..]);
+        exact.insert("flex-grow", &["flex-grow"][..]);
+        exact.insert("flex-grow-0", &["flex-grow"][..]);
 
         // flex shrink
         exact.insert("shrink", &["flex-shrink"][..]);
         exact.insert("shrink-0", &["flex-shrink"][..]);
+        exact.insert("flex-shrink", &["flex-shrink"][..]);
+        exact.insert("flex-shrink-0", &["flex-shrink"][..]);
 
         // order
         exact.insert("order-1", &["order"][..]);
@@ -505,6 +550,22 @@ impl UtilityMap {
         exact.insert("origin-bottom-left", &["transform-origin"][..]);
         exact.insert("origin-left", &["transform-origin"][..]);
         exact.insert("origin-top-left", &["transform-origin"][..]);
+        exact.insert("transform", &["transform"][..]);
+        exact.insert("transform-cpu", &["transform"][..]);
+        exact.insert("transform-gpu", &["transform"][..]);
+        exact.insert("transform-none", &["transform"][..]);
+        exact.insert("transform-3d", &["transform-style"][..]);
+        exact.insert("transform-flat", &["transform-style"][..]);
+        exact.insert("backface-hidden", &["backface-visibility"][..]);
+        exact.insert("backface-visible", &["backface-visibility"][..]);
+        exact.insert("perspective-dramatic", &["perspective"][..]);
+        exact.insert("perspective-distant", &["perspective"][..]);
+        exact.insert("perspective-midrange", &["perspective"][..]);
+        exact.insert("perspective-near", &["perspective"][..]);
+        exact.insert("perspective-normal", &["perspective"][..]);
+        exact.insert("perspective-none", &["perspective"][..]);
+        exact.insert("field-sizing-content", &["field-sizing"][..]);
+        exact.insert("field-sizing-fixed", &["field-sizing"][..]);
 
         // typography
         exact.insert(
@@ -512,6 +573,7 @@ impl UtilityMap {
             &["overflow", "text-overflow", "white-space"][..],
         );
         exact.insert("text-ellipsis", &["text-overflow"][..]);
+        exact.insert("overflow-ellipsis", &["text-overflow"][..]);
         exact.insert("text-clip", &["text-overflow"][..]);
 
         exact.insert("italic", &["font-style"][..]);
@@ -534,9 +596,27 @@ impl UtilityMap {
         exact.insert("whitespace-pre-wrap", &["white-space"][..]);
         exact.insert("whitespace-break-spaces", &["white-space"][..]);
 
+        exact.insert("text-wrap", &["text-wrap"][..]);
+        exact.insert("text-nowrap", &["text-wrap"][..]);
+        exact.insert("text-balance", &["text-wrap"][..]);
+        exact.insert("text-pretty", &["text-wrap"][..]);
+
+        exact.insert("normal-nums", &["font-variant-numeric"][..]);
+        exact.insert("ordinal", &["font-variant-numeric"][..]);
+        exact.insert("slashed-zero", &["font-variant-numeric"][..]);
+        exact.insert("lining-nums", &["font-variant-numeric"][..]);
+        exact.insert("oldstyle-nums", &["font-variant-numeric"][..]);
+        exact.insert("proportional-nums", &["font-variant-numeric"][..]);
+        exact.insert("tabular-nums", &["font-variant-numeric"][..]);
+        exact.insert("diagonal-fractions", &["font-variant-numeric"][..]);
+        exact.insert("stacked-fractions", &["font-variant-numeric"][..]);
+
         exact.insert("list-none", &["list-style-type"][..]);
         exact.insert("list-disc", &["list-style-type"][..]);
         exact.insert("list-decimal", &["list-style-type"][..]);
+        exact.insert("hyphens-none", &["hyphens"][..]);
+        exact.insert("hyphens-manual", &["hyphens"][..]);
+        exact.insert("hyphens-auto", &["hyphens"][..]);
 
         exact.insert("list-inside", &["list-style-position"][..]);
         exact.insert("list-outside", &["list-style-position"][..]);
@@ -602,6 +682,8 @@ impl UtilityMap {
         exact.insert("divide-dotted", &["divide-style"][..]);
         exact.insert("divide-double", &["divide-style"][..]);
         exact.insert("divide-none", &["divide-style"][..]);
+        exact.insert("border-collapse", &["border-collapse"][..]);
+        exact.insert("border-separate", &["border-collapse"][..]);
 
         // divide reverse
         // divide-x-reverse maps to --tw-divide-x-reverse (added to end of property list)
@@ -614,15 +696,24 @@ impl UtilityMap {
         exact.insert("space-x-reverse", &["row-gap"][..]);
         exact.insert("space-y-reverse", &["column-gap"][..]);
 
-        // outline style (maps to outline-style property)
+        // outline styles
         exact.insert("outline-none", &["outline-style"][..]);
         exact.insert("outline-solid", &["outline-style"][..]);
         exact.insert("outline-dashed", &["outline-style"][..]);
         exact.insert("outline-dotted", &["outline-style"][..]);
         exact.insert("outline-double", &["outline-style"][..]);
+        exact.insert("outline-hidden", &["outline", "outline-offset"][..]);
 
         // ring (ring-inset sets --tw-ring-inset property)
         exact.insert("ring-inset", &["--tw-ring-inset"][..]);
+
+        // inset ring
+        exact.insert("inset-ring", &["--tw-inset-ring-shadow"][..]);
+        exact.insert("inset-ring-0", &["--tw-inset-ring-shadow"][..]);
+        exact.insert("inset-ring-1", &["--tw-inset-ring-shadow"][..]);
+        exact.insert("inset-ring-2", &["--tw-inset-ring-shadow"][..]);
+        exact.insert("inset-ring-4", &["--tw-inset-ring-shadow"][..]);
+        exact.insert("inset-ring-8", &["--tw-inset-ring-shadow"][..]);
 
         // text alignment
         exact.insert("text-left", &["text-align"][..]);
@@ -639,6 +730,8 @@ impl UtilityMap {
 
         // background position
         exact.insert("bg-bottom", &["background-position"][..]);
+        exact.insert("bg-bottom-left", &["background-position"][..]);
+        exact.insert("bg-bottom-right", &["background-position"][..]);
         exact.insert("bg-center", &["background-position"][..]);
         exact.insert("bg-left", &["background-position"][..]);
         exact.insert("bg-left-bottom", &["background-position"][..]);
@@ -647,6 +740,8 @@ impl UtilityMap {
         exact.insert("bg-right-bottom", &["background-position"][..]);
         exact.insert("bg-right-top", &["background-position"][..]);
         exact.insert("bg-top", &["background-position"][..]);
+        exact.insert("bg-top-left", &["background-position"][..]);
+        exact.insert("bg-top-right", &["background-position"][..]);
 
         // background repeat
         exact.insert("bg-repeat", &["background-repeat"][..]);
@@ -680,14 +775,34 @@ impl UtilityMap {
         exact.insert("bg-gradient-to-l", &["background-image"][..]);
         exact.insert("bg-gradient-to-tl", &["background-image"][..]);
 
+        exact.insert("bg-linear-to-t", &["background-image"][..]);
+        exact.insert("bg-linear-to-tr", &["background-image"][..]);
+        exact.insert("bg-linear-to-r", &["background-image"][..]);
+        exact.insert("bg-linear-to-br", &["background-image"][..]);
+        exact.insert("bg-linear-to-b", &["background-image"][..]);
+        exact.insert("bg-linear-to-bl", &["background-image"][..]);
+        exact.insert("bg-linear-to-l", &["background-image"][..]);
+        exact.insert("bg-linear-to-tl", &["background-image"][..]);
+
+        exact.insert("bg-fixed", &["background-attachment"][..]);
+        exact.insert("bg-local", &["background-attachment"][..]);
+        exact.insert("bg-scroll", &["background-attachment"][..]);
+
         // drop shadow
         exact.insert("drop-shadow", &["--tw-drop-shadow"][..]);
+        exact.insert("drop-shadow-xs", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-sm", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-md", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-lg", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-xl", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-2xl", &["--tw-drop-shadow"][..]);
         exact.insert("drop-shadow-none", &["--tw-drop-shadow"][..]);
+
+        // mask repeat
+        exact.insert("mask-repeat", &["mask-repeat"][..]);
+        exact.insert("mask-no-repeat", &["mask-repeat"][..]);
+        exact.insert("mask-repeat-x", &["mask-repeat"][..]);
+        exact.insert("mask-repeat-y", &["mask-repeat"][..]);
 
         // filter toggles
         exact.insert("filter", &["filter"][..]);
@@ -710,6 +825,10 @@ impl UtilityMap {
         exact.insert("object-right-bottom", &["object-position"][..]);
         exact.insert("object-right-top", &["object-position"][..]);
         exact.insert("object-top", &["object-position"][..]);
+        exact.insert("object-top-left", &["object-position"][..]);
+        exact.insert("object-top-right", &["object-position"][..]);
+        exact.insert("object-bottom-left", &["object-position"][..]);
+        exact.insert("object-bottom-right", &["object-position"][..]);
 
         // aspect ratio
         exact.insert("aspect-auto", &["aspect-ratio"][..]);
@@ -756,6 +875,9 @@ impl UtilityMap {
         // scroll snap align (already exists but consolidating here)
         // snap utilities are already defined above at lines 206-209
 
+        exact.insert("fill-none", &["fill"][..]);
+        exact.insert("stroke-none", &["stroke"][..]);
+
         Self { exact }
     }
 
@@ -783,6 +905,14 @@ impl UtilityMap {
     /// assert!(px_props.contains(&"padding-inline"));
     /// ```
     pub fn get_properties(&self, utility: &str) -> Option<&'static [&'static str]> {
+        if utility.chars().any(char::is_whitespace) {
+            return None;
+        }
+
+        if let Some(props) = arbitrary_property_properties(utility) {
+            return Some(props);
+        }
+
         // try exact match first (fast path)
         if let Some(props) = self.exact.get(utility) {
             return Some(props);
@@ -796,6 +926,18 @@ impl UtilityMap {
     fn match_pattern(&self, utility: &str) -> Option<&'static [&'static str]> {
         // parse utility into base and value
         let (base, value) = parse_utility_parts(utility)?;
+        let is_negative = base.starts_with('-');
+        let base = base.strip_prefix('-').unwrap_or(base);
+
+        if is_negative && !supports_negative_utility(base) {
+            return None;
+        }
+
+        if base == "mask"
+            && let Some(props) = mask_properties(value)
+        {
+            return Some(props);
+        }
 
         // match against known patterns
         match base {
@@ -803,6 +945,7 @@ impl UtilityMap {
             "inset" => Some(&["inset"][..]),
             "inset-x" => Some(&["inset-inline"][..]),
             "inset-y" => Some(&["inset-block"][..]),
+            "inset-s" | "inset-e" | "inset-bs" | "inset-be" => None,
             "start" => Some(&["inset-inline-start"][..]),
             "end" => Some(&["inset-inline-end"][..]),
             "top" => Some(&["top"][..]),
@@ -820,32 +963,60 @@ impl UtilityMap {
             "col" if value.starts_with("span") => Some(&["grid-column"][..]),
             "col" if value.starts_with("start") => Some(&["grid-column-start"][..]),
             "col" if value.starts_with("end") => Some(&["grid-column-end"][..]),
+            "col-span" => Some(&["grid-column"][..]),
+            "col-start" => Some(&["grid-column-start"][..]),
+            "col-end" => Some(&["grid-column-end"][..]),
             "row" if value.starts_with("span") => Some(&["grid-row"][..]),
             "row" if value.starts_with("start") => Some(&["grid-row-start"][..]),
             "row" if value.starts_with("end") => Some(&["grid-row-end"][..]),
+            "row-span" => Some(&["grid-row"][..]),
+            "row-start" => Some(&["grid-row-start"][..]),
+            "row-end" => Some(&["grid-row-end"][..]),
+
+            // scroll spacing
+            "scroll-m" if is_spacing_value(value) => Some(&["scroll-margin"][..]),
+            "scroll-mx" if is_spacing_value(value) => Some(&["scroll-margin-inline"][..]),
+            "scroll-my" if is_spacing_value(value) => Some(&["scroll-margin-block"][..]),
+            "scroll-ms" if is_spacing_value(value) => Some(&["scroll-margin-inline-start"][..]),
+            "scroll-me" if is_spacing_value(value) => Some(&["scroll-margin-inline-end"][..]),
+            "scroll-mt" if is_spacing_value(value) => Some(&["scroll-margin-top"][..]),
+            "scroll-mr" if is_spacing_value(value) => Some(&["scroll-margin-right"][..]),
+            "scroll-mb" if is_spacing_value(value) => Some(&["scroll-margin-bottom"][..]),
+            "scroll-ml" if is_spacing_value(value) => Some(&["scroll-margin-left"][..]),
+            "scroll-p" if is_spacing_value(value) => Some(&["scroll-padding"][..]),
+            "scroll-px" if is_spacing_value(value) => Some(&["scroll-padding-inline"][..]),
+            "scroll-py" if is_spacing_value(value) => Some(&["scroll-padding-block"][..]),
+            "scroll-ps" if is_spacing_value(value) => Some(&["scroll-padding-inline-start"][..]),
+            "scroll-pe" if is_spacing_value(value) => Some(&["scroll-padding-inline-end"][..]),
+            "scroll-pt" if is_spacing_value(value) => Some(&["scroll-padding-top"][..]),
+            "scroll-pr" if is_spacing_value(value) => Some(&["scroll-padding-right"][..]),
+            "scroll-pb" if is_spacing_value(value) => Some(&["scroll-padding-bottom"][..]),
+            "scroll-pl" if is_spacing_value(value) => Some(&["scroll-padding-left"][..]),
 
             // margins
-            "m" => Some(&["margin"][..]),
-            "mx" => Some(&["margin-inline"][..]),
-            "my" => Some(&["margin-block"][..]),
-            "ms" => Some(&["margin-inline-start"][..]),
-            "me" => Some(&["margin-inline-end"][..]),
-            "mt" => Some(&["margin-top"][..]),
-            "mr" => Some(&["margin-right"][..]),
-            "mb" => Some(&["margin-bottom"][..]),
-            "ml" => Some(&["margin-left"][..]),
+            "m" if is_margin_value(value) => Some(&["margin"][..]),
+            "mx" if is_margin_value(value) => Some(&["margin-inline"][..]),
+            "my" if is_margin_value(value) => Some(&["margin-block"][..]),
+            "ms" if is_margin_value(value) => Some(&["margin-inline-start"][..]),
+            "me" if is_margin_value(value) => Some(&["margin-inline-end"][..]),
+            "mt" if is_margin_value(value) => Some(&["margin-top"][..]),
+            "mr" if is_margin_value(value) => Some(&["margin-right"][..]),
+            "mb" if is_margin_value(value) => Some(&["margin-bottom"][..]),
+            "ml" if is_margin_value(value) => Some(&["margin-left"][..]),
 
             // sizing
             "w" => Some(&["width"][..]),
             "h" => Some(&["height"][..]),
-            "size" => Some(&["aspect-ratio"][..]), // aspect-ratio comes before height/width
+            "size" => Some(&["height", "width"][..]),
             "min-w" => Some(&["min-width"][..]),
             "min-h" => Some(&["min-height"][..]),
             "max-w" => Some(&["max-width"][..]),
             "max-h" => Some(&["max-height"][..]),
 
             // flex
-            "flex" if !value.is_empty() => Some(&["flex"][..]), // flex-1, flex-auto, etc.
+            "flex" if is_flex_value(value) => Some(&["flex"][..]),
+            "flex-grow" if is_flex_factor_value(value) => Some(&["flex-grow"][..]),
+            "flex-shrink" if is_flex_factor_value(value) => Some(&["flex-shrink"][..]),
             "flex-row" => Some(&["flex-direction"][..]),
             "flex-row-reverse" => Some(&["flex-direction"][..]),
             "flex-col" => Some(&["flex-direction"][..]),
@@ -853,10 +1024,10 @@ impl UtilityMap {
             "flex-wrap" => Some(&["flex-wrap"][..]),
             "flex-wrap-reverse" => Some(&["flex-wrap"][..]),
             "flex-nowrap" => Some(&["flex-wrap"][..]),
-            "grow" => Some(&["flex-grow"][..]),
-            "grow-0" => Some(&["flex-grow"][..]),
-            "shrink" => Some(&["flex-shrink"][..]),
-            "shrink-0" => Some(&["flex-shrink"][..]),
+            "grow" if value.is_empty() || is_flex_factor_value(value) => Some(&["flex-grow"][..]),
+            "shrink" if value.is_empty() || is_flex_factor_value(value) => {
+                Some(&["flex-shrink"][..])
+            }
             "basis" => Some(&["flex-basis"][..]),
 
             // grid
@@ -876,21 +1047,27 @@ impl UtilityMap {
             "gap-y" => Some(&["row-gap"][..]),
 
             // padding
-            "p" => Some(&["padding"][..]),
-            "px" => Some(&["padding-inline"][..]), // Use padding-inline for left+right
-            "py" => Some(&["padding-block"][..]),  // Use padding-block for top+bottom
-            "ps" => Some(&["padding-inline-start"][..]),
-            "pe" => Some(&["padding-inline-end"][..]),
-            "pt" => Some(&["padding-top"][..]),
-            "pr" => Some(&["padding-right"][..]),
-            "pb" => Some(&["padding-bottom"][..]),
-            "pl" => Some(&["padding-left"][..]),
+            "p" if is_spacing_value(value) => Some(&["padding"][..]),
+            "px" if is_spacing_value(value) => Some(&["padding-inline"][..]), // Use padding-inline for left+right
+            "py" if is_spacing_value(value) => Some(&["padding-block"][..]), // Use padding-block for top+bottom
+            "ps" if is_spacing_value(value) => Some(&["padding-inline-start"][..]),
+            "pe" if is_spacing_value(value) => Some(&["padding-inline-end"][..]),
+            "pt" if is_spacing_value(value) => Some(&["padding-top"][..]),
+            "pr" if is_spacing_value(value) => Some(&["padding-right"][..]),
+            "pb" if is_spacing_value(value) => Some(&["padding-bottom"][..]),
+            "pl" if is_spacing_value(value) => Some(&["padding-left"][..]),
 
             // alignment
-            "justify-normal" | "justify-start" | "justify-end" | "justify-center"
-            | "justify-between" | "justify-around" | "justify-evenly" | "justify-stretch" => {
-                Some(&["justify-content"][..])
-            }
+            "justify-normal"
+            | "justify-start"
+            | "justify-end"
+            | "justify-center"
+            | "justify-between"
+            | "justify-around"
+            | "justify-evenly"
+            | "justify-stretch"
+            | "justify-center-safe"
+            | "justify-end-safe" => Some(&["justify-content"][..]),
             "justify-items-start"
             | "justify-items-end"
             | "justify-items-center"
@@ -900,25 +1077,56 @@ impl UtilityMap {
             | "justify-self-end"
             | "justify-self-center"
             | "justify-self-stretch" => Some(&["justify-self"][..]),
-            "items-start" | "items-end" | "items-center" | "items-baseline" | "items-stretch" => {
-                Some(&["align-items"][..])
-            }
+            "items-start"
+            | "items-end"
+            | "items-center"
+            | "items-baseline"
+            | "items-baseline-last"
+            | "items-stretch" => Some(&["align-items"][..]),
             "self-auto" | "self-start" | "self-end" | "self-center" | "self-stretch"
             | "self-baseline" => Some(&["align-self"][..]),
             "content-normal" | "content-center" | "content-start" | "content-end"
             | "content-between" | "content-around" | "content-evenly" | "content-baseline"
             | "content-stretch" => Some(&["align-content"][..]),
+            "content" => Some(&["content"][..]),
 
             // background
-            "bg" if is_color_value(value) => Some(&["background-color"][..]),
+            "bg" if value.starts_with("[image:") => Some(&["background-image"][..]),
+            "bg" if value.starts_with("[url") => Some(&["background-image"][..]),
+            "bg" if value == "conic" || value == "linear" || value == "radial" => {
+                Some(&["background-image"][..])
+            }
+            "bg" if value.starts_with("radial-") => Some(&["background-image"][..]),
+            "bg" if value.starts_with("linear-") => Some(&["background-image"][..]),
+            "bg-conic" | "bg-linear" | "bg-radial" => Some(&["background-image"][..]),
+            "bg" if value.starts_with("[size:") => Some(&["background-size"][..]),
+            "bg" if value.starts_with("size-") => Some(&["background-size"][..]),
+            "bg" if value.starts_with("[position:") => Some(&["background-position"][..]),
+            "bg" if is_background_position_value(value) => Some(&["background-position"][..]),
+            "bg" if value.starts_with("[length:") => Some(&["background-size"][..]),
+            "bg-position" if is_arbitrary_like_value(value) => Some(&["background-position"][..]),
+            "bg-size" => Some(&["background-size"][..]),
+            "bg" if is_color_like_value(value) => Some(&["background-color"][..]),
             "bg" if value.starts_with('[') => Some(&["background-color"][..]), // arbitrary value
 
             // border width
+            "border-bs" | "border-be" | "border-is" | "border-ie" => None,
+            "border-spacing" => Some(&["border-spacing"][..]),
             "border"
-                if value.is_empty() || value.parse::<u32>().is_ok() || value.starts_with('[') =>
+                if value.is_empty()
+                    || value.parse::<u32>().is_ok()
+                    || (value.starts_with('[') && !is_color_like_value(value)) =>
             {
                 Some(&["border-width"][..])
             }
+            "border-x" if is_color_like_value(value) => Some(&["border-inline-color"][..]),
+            "border-y" if is_color_like_value(value) => Some(&["border-block-color"][..]),
+            "border-s" if is_color_like_value(value) => Some(&["border-inline-start-color"][..]),
+            "border-e" if is_color_like_value(value) => Some(&["border-inline-end-color"][..]),
+            "border-t" if is_color_like_value(value) => Some(&["border-top-color"][..]),
+            "border-r" if is_color_like_value(value) => Some(&["border-right-color"][..]),
+            "border-b" if is_color_like_value(value) => Some(&["border-bottom-color"][..]),
+            "border-l" if is_color_like_value(value) => Some(&["border-left-color"][..]),
             "border-x" => Some(&["border-inline-width"][..]), // Use border-inline-width for left+right
             "border-y" => Some(&["border-block-width"][..]), // Use border-block-width for top+bottom
             "border-s" => Some(&["border-inline-start-width"][..]),
@@ -929,10 +1137,12 @@ impl UtilityMap {
             "border-l" => Some(&["border-left-width"][..]),
 
             // border color
-            "border" if is_color_value(value) => Some(&["border-color"][..]),
+            "border" if is_color_like_value(value) => Some(&["border-color"][..]),
 
             // border radius
-            "rounded" if value.is_empty() || value.starts_with('[') || is_size_keyword(value) => {
+            "rounded"
+                if value.is_empty() || is_arbitrary_like_value(value) || is_size_keyword(value) =>
+            {
                 Some(&["border-radius"][..])
             }
             // side-specific rounded utilities
@@ -955,7 +1165,9 @@ impl UtilityMap {
             "rounded-bl" => Some(&["border-bottom-left-radius"][..]),
 
             // text
+            "list" => Some(&["list-style-type"][..]),
             "text" if is_color_value(value) => Some(&["color"][..]),
+            "text" if value.starts_with('(') => Some(&["color"][..]),
             "text" if is_size_keyword(value) => Some(&["font-size"][..]),
             "text" if value.starts_with('[') => Some(&["font-size"][..]), // arbitrary text size
 
@@ -967,6 +1179,7 @@ impl UtilityMap {
             "opacity" => Some(&["opacity"][..]),
 
             // shadow
+            "shadow" if value.starts_with('[') => Some(&["--tw-shadow", "box-shadow"][..]),
             "shadow" if is_color_value(value) => Some(&["--tw-shadow-color"][..]),
             "shadow"
                 if value.is_empty()
@@ -976,30 +1189,50 @@ impl UtilityMap {
             {
                 Some(&["--tw-shadow", "box-shadow"][..])
             }
+            "inset-shadow" if value.starts_with('[') => Some(&["--tw-inset-shadow"][..]),
+            "inset-shadow" if is_color_like_value(value) => Some(&["--tw-inset-shadow-color"][..]),
+            "inset-shadow" => Some(&["--tw-inset-shadow"][..]),
+            "text-shadow" if value.starts_with('[') => Some(&["--tw-text-shadow"][..]),
+            "text-shadow" if is_color_like_value(value) => Some(&["--tw-text-shadow-color"][..]),
+            "text-shadow" if is_text_shadow_size_value(value) => Some(&["--tw-text-shadow"][..]),
 
             // ring (uses multiple properties)
-            "ring" if value.is_empty() || value.parse::<u32>().is_ok() => Some(
-                &[
-                    "--tw-ring-offset-shadow",
-                    "--tw-ring-shadow",
-                    "--tw-shadow",
-                    "box-shadow",
-                ][..],
-            ),
+            "ring"
+                if value.is_empty()
+                    || value.parse::<u32>().is_ok()
+                    || (value.starts_with('[') && !is_color_like_value(value)) =>
+            {
+                Some(
+                    &[
+                        "--tw-ring-offset-shadow",
+                        "--tw-ring-shadow",
+                        "--tw-shadow",
+                        "box-shadow",
+                    ][..],
+                )
+            }
             "ring" if is_color_value(value) => Some(&["--tw-ring-color"][..]),
             "ring-offset" if value.parse::<u32>().is_ok() => Some(&["--tw-ring-offset-width"][..]),
             "ring-offset" if is_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
+            "inset-ring" if value.is_empty() || value.parse::<u32>().is_ok() => {
+                Some(&["--tw-inset-ring-shadow"][..])
+            }
+            "inset-ring" if is_color_like_value(value) => Some(&["--tw-inset-ring-color"][..]),
 
             // transitions
             "transition" => Some(&["transition-property"][..]),
             "duration" => Some(&["transition-duration"][..]),
             "delay" => Some(&["transition-delay"][..]),
-            "ease" => Some(&["transition-timing-function"][..]),
+            "ease" if !value.is_empty() => Some(&["transition-timing-function"][..]),
 
             // animations
             "animate" => Some(&["animation"][..]),
 
             // transforms
+            "origin" => Some(&["transform-origin"][..]),
+            "transform" => Some(&["transform"][..]),
+            "perspective" => Some(&["perspective"][..]),
+            "perspective-origin" => Some(&["perspective-origin"][..]),
             "rotate" => Some(&["rotate"][..]),
             "-rotate" => Some(&["rotate"][..]),
             "scale" if !value.is_empty() => Some(&["scale"][..]),
@@ -1008,10 +1241,19 @@ impl UtilityMap {
             "-scale-x" => Some(&["--tw-scale-x"][..]),
             "scale-y" => Some(&["--tw-scale-y"][..]),
             "-scale-y" => Some(&["--tw-scale-y"][..]),
+            "scale-z" => Some(&["--tw-scale-z"][..]),
+            "translate" if !value.is_empty() => Some(&["translate"][..]),
+            "-translate" if !value.is_empty() => Some(&["translate"][..]),
             "translate-x" => Some(&["--tw-translate-x"][..]),
             "-translate-x" => Some(&["--tw-translate-x"][..]),
             "translate-y" => Some(&["--tw-translate-y"][..]),
             "-translate-y" => Some(&["--tw-translate-y"][..]),
+            "translate-z" => Some(&["--tw-translate-z"][..]),
+            "rotate-x" => Some(&["--tw-rotate-x"][..]),
+            "rotate-y" => Some(&["--tw-rotate-y"][..]),
+            "rotate-z" => Some(&["--tw-rotate-z"][..]),
+            "skew" => Some(&["transform"][..]),
+            "-skew" => Some(&["transform"][..]),
             "skew-x" => Some(&["--tw-skew-x"][..]),
             "-skew-x" => Some(&["--tw-skew-x"][..]),
             "skew-y" => Some(&["--tw-skew-y"][..]),
@@ -1021,14 +1263,62 @@ impl UtilityMap {
             "blur" => Some(&["--tw-blur"][..]),
             "brightness" => Some(&["--tw-brightness"][..]),
             "contrast" => Some(&["--tw-contrast"][..]),
-            "grayscale" if value.is_empty() || value.starts_with('[') => {
+            "grayscale"
+                if value.is_empty() || value.starts_with('[') || is_numeric_value(value) =>
+            {
                 Some(&["--tw-grayscale"][..])
             }
             "hue-rotate" => Some(&["--tw-hue-rotate"][..]),
-            "invert" if value.is_empty() || value.starts_with('[') => Some(&["--tw-invert"][..]),
+            "invert" if value.is_empty() || value.starts_with('[') || is_numeric_value(value) => {
+                Some(&["--tw-invert"][..])
+            }
             "saturate" => Some(&["--tw-saturate"][..]),
-            "sepia" if value.is_empty() || value.starts_with('[') => Some(&["--tw-sepia"][..]),
-            "drop-shadow" => Some(&["--tw-drop-shadow"][..]),
+            "sepia" if value.is_empty() || value.starts_with('[') || is_numeric_value(value) => {
+                Some(&["--tw-sepia"][..])
+            }
+            "drop-shadow" if is_color_like_value(value) => Some(&["--tw-drop-shadow-color"][..]),
+            "drop-shadow" if is_drop_shadow_size_value(value) => Some(&["--tw-drop-shadow"][..]),
+
+            // masks
+            "mask-clip" => Some(&["mask-clip"][..]),
+            "mask-origin" => Some(&["mask-origin"][..]),
+            "mask-size" => Some(&["mask-size"][..]),
+            "mask-radial-at" => Some(&["--tw-mask-radial-position"][..]),
+            "mask-linear" => Some(&["--tw-mask-linear"][..]),
+            "mask-radial" => Some(mask_radial_properties(value)),
+            "mask-conic" => Some(&["--tw-mask-conic"][..]),
+            "mask-x" if value.starts_with("from-") => Some(
+                &[
+                    "mask-image",
+                    "--tw-mask-right-from-position",
+                    "--tw-mask-left-from-position",
+                ][..],
+            ),
+            "mask-x" if value.starts_with("to-") => Some(
+                &[
+                    "mask-image",
+                    "--tw-mask-right-to-position",
+                    "--tw-mask-left-to-position",
+                ][..],
+            ),
+            "mask-y" if value.starts_with("from-") => Some(
+                &[
+                    "mask-image",
+                    "--tw-mask-top-from-position",
+                    "--tw-mask-bottom-from-position",
+                ][..],
+            ),
+            "mask-y" if value.starts_with("to-") => Some(
+                &[
+                    "mask-image",
+                    "--tw-mask-top-to-position",
+                    "--tw-mask-bottom-to-position",
+                ][..],
+            ),
+            "mask" if value.starts_with("b-from-") => Some(&["--tw-mask-bottom-from-position"][..]),
+            "mask" if value.starts_with("l-from-") => Some(&["--tw-mask-left-from-position"][..]),
+            "mask" if value.starts_with("r-from-") => Some(&["--tw-mask-right-from-position"][..]),
+            "mask" if value.starts_with("t-from-") => Some(&["--tw-mask-top-from-position"][..]),
 
             // backdrop filters - map to specific custom properties for correct sorting
             "backdrop-blur" => Some(&["--tw-backdrop-blur"][..]),
@@ -1042,7 +1332,10 @@ impl UtilityMap {
             "backdrop-sepia" => Some(&["--tw-backdrop-sepia"][..]),
 
             // will change
-            "will-change" => Some(&["will-change"][..]),
+            "will-change" if is_will_change_value(value) => Some(&["will-change"][..]),
+
+            // containment
+            "contain" => Some(&["contain"][..]),
 
             // outline
             "outline" if value.is_empty() || value == "none" || value.parse::<u32>().is_ok() => {
@@ -1059,6 +1352,17 @@ impl UtilityMap {
             // caret color
             "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
 
+            // placeholder color
+            "placeholder" if is_color_like_value(value) => Some(&["placeholder-color"][..]),
+
+            // svg paint
+            "fill" if is_color_like_value(value) => Some(&["fill"][..]),
+            "stroke" if value.parse::<u32>().is_ok() || is_arbitrary_like_value(value) => {
+                Some(&["stroke-width"][..])
+            }
+            "stroke" if is_color_like_value(value) => Some(&["stroke"][..]),
+            "object" if is_arbitrary_like_value(value) => Some(&["object-position"][..]),
+
             // space between
             // per Tailwind v4, space-x and space-y use different --tw-sort properties:
             // space-x uses row-gap (index 153), space-y uses column-gap (index 152)
@@ -1067,8 +1371,14 @@ impl UtilityMap {
             "space-y" => Some(&["column-gap"][..]),
 
             // divide
-            "divide-x" => Some(&["divide-x-width"][..]),
-            "divide-y" => Some(&["divide-y-width"][..]),
+            "divide-x" if is_color_like_value(value) => Some(&["--tw-divide-color-sort"][..]),
+            "divide-y" if is_color_like_value(value) => Some(&["--tw-divide-color-sort"][..]),
+            "divide-x" if value.is_empty() || value.parse::<u32>().is_ok() => {
+                Some(&["divide-x-width"][..])
+            }
+            "divide-y" if value.is_empty() || value.parse::<u32>().is_ok() => {
+                Some(&["divide-y-width"][..])
+            }
             "divide" if is_color_value(value) => Some(&["divide-color"][..]),
             "divide-opacity" => Some(&["border-opacity"][..]),
 
@@ -1083,9 +1393,13 @@ impl UtilityMap {
 
             // background utilities
             "bg-opacity" => Some(&["background-opacity"][..]),
+            "via" if value == "none" => Some(&["--tw-gradient-via-stops"][..]),
             "from" if is_color_value(value) => Some(&["--tw-gradient-from"][..]),
             "via" if is_color_value(value) => Some(&["--tw-gradient-via"][..]),
             "to" if is_color_value(value) => Some(&["--tw-gradient-to"][..]),
+            "from" if is_gradient_position(value) => Some(&["--tw-gradient-from-position"][..]),
+            "via" if is_gradient_position(value) => Some(&["--tw-gradient-via-position"][..]),
+            "to" if is_gradient_position(value) => Some(&["--tw-gradient-to-position"][..]),
 
             // aspect ratio (arbitrary values)
             "aspect" => Some(&["aspect-ratio"][..]),
@@ -1095,29 +1409,11 @@ impl UtilityMap {
             "decoration" if value.parse::<u32>().is_ok() => {
                 Some(&["text-decoration-thickness"][..])
             }
-            "decoration" => Some(&["text-decoration-color"][..]), // Fallback: custom colors
-
             // underline offset
             "underline-offset" => Some(&["text-underline-offset"][..]),
 
             // text indent
             "indent" => Some(&["text-indent"][..]),
-
-            // fallbacks for color utilities with custom/unknown color names
-            // these catch utilities that didn't match is_color_value() checks above
-            // in real projects with Tailwind config, these custom colors would be recognized
-            "from" => Some(&["--tw-gradient-from"][..]),
-            "to" => Some(&["--tw-gradient-to"][..]),
-            "via" => Some(&["--tw-gradient-via"][..]),
-            "border" if !value.is_empty() => Some(&["border-color"][..]), // border-customcolor
-            "divide" => Some(&["divide-color"][..]),                      // divide-customcolor
-            "ring" if !value.is_empty() => Some(&["--tw-ring-color"][..]), // ring-customcolor
-            "ring-offset" if !value.is_empty() => Some(&["--tw-ring-offset-color"][..]), // ring-offset-customcolor
-            "accent" => Some(&["accent-color"][..]), // accent-customcolor
-            "caret" => Some(&["caret-color"][..]),   // caret-customcolor
-            "outline" if !value.is_empty() && value.parse::<u32>().is_err() => {
-                Some(&["outline-color"][..]) // outline-customcolor (not outline-2)
-            }
 
             // unknown utility
             _ => None,
@@ -1129,6 +1425,302 @@ impl Default for UtilityMap {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn arbitrary_property_properties(utility: &str) -> Option<&'static [&'static str]> {
+    let inner = utility.strip_prefix('[')?.split_once(']')?.0;
+    let (property, _) = inner.split_once(':')?;
+
+    match property {
+        "--tw-sort" => None,
+        "container-type" => Some(&["container-type"][..]),
+        "container-name" => Some(&["container-type"][..]),
+        "background-image" => Some(&["background-image"][..]),
+        "background-size" => Some(&["background-size"][..]),
+        "background-position" => Some(&["background-position"][..]),
+        "place-content" => Some(&["place-content"][..]),
+        "mask-image" => Some(&["mask-image"][..]),
+        "-webkit-mask-image" => Some(&["content"][..]),
+        "mask-composite" => Some(&["mask-composite"][..]),
+        "-webkit-mask-composite" => Some(&["content"][..]),
+        "mask-size" => Some(&["mask-size"][..]),
+        "mask-position" => Some(&["mask-position"][..]),
+        "mask-repeat" => Some(&["mask-repeat"][..]),
+        "mask-origin" => Some(&["mask-origin"][..]),
+        "transform" => Some(&["transform"][..]),
+        "transform-box" => Some(&["content"][..]),
+        "transform-origin" => Some(&["transform-origin"][..]),
+        "transition" => Some(&["content"][..]),
+        "transition-behavior" => Some(&["transition-behavior"][..]),
+        "transition-delay" => Some(&["transition-delay"][..]),
+        "transition-duration" => Some(&["transition-duration"][..]),
+        "transition-timing-function" => Some(&["transition-timing-function"][..]),
+        "appearance" => Some(&["appearance"][..]),
+        "overflow-wrap" => Some(&["overflow-wrap"][..]),
+        "word-break" => Some(&["word-break"][..]),
+        _ => Some(&["content"][..]),
+    }
+}
+
+fn mask_properties(value: &str) -> Option<&'static [&'static str]> {
+    if value.starts_with("[position:") {
+        return Some(&["mask-position"][..]);
+    }
+    if value.starts_with("[size:") {
+        return Some(&["mask-size"][..]);
+    }
+    if let Some(value) = value.strip_prefix("t-from-") {
+        return Some(mask_stop_properties("top", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("t-to-") {
+        return Some(mask_stop_properties("top", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("r-from-") {
+        return Some(mask_stop_properties("right", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("r-to-") {
+        return Some(mask_stop_properties("right", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("b-from-") {
+        return Some(mask_stop_properties("bottom", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("b-to-") {
+        return Some(mask_stop_properties("bottom", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("l-from-") {
+        return Some(mask_stop_properties("left", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("l-to-") {
+        return Some(mask_stop_properties("left", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("x-from-") {
+        return Some(mask_axis_stop_properties("x", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("x-to-") {
+        return Some(mask_axis_stop_properties("x", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("y-from-") {
+        return Some(mask_axis_stop_properties("y", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("y-to-") {
+        return Some(mask_axis_stop_properties("y", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("linear-from-") {
+        return Some(mask_stop_properties("linear", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("linear-to-") {
+        return Some(mask_stop_properties("linear", "to", value));
+    }
+    if let Some(value) = value.strip_prefix("radial-from-") {
+        return Some(mask_stop_properties("radial", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("radial-to-") {
+        return Some(mask_stop_properties("radial", "to", value));
+    }
+    if value.starts_with("radial-at-") {
+        return Some(&["--tw-mask-radial-position"][..]);
+    }
+    if let Some(value) = value.strip_prefix("conic-from-") {
+        return Some(mask_stop_properties("conic", "from", value));
+    }
+    if let Some(value) = value.strip_prefix("conic-to-") {
+        return Some(mask_stop_properties("conic", "to", value));
+    }
+
+    match value {
+        value if value.starts_with("clip-") => Some(&["mask-clip"][..]),
+        value if value.starts_with("origin-") => Some(&["mask-origin"][..]),
+        "add" | "subtract" | "intersect" | "exclude" => Some(&["mask-composite"][..]),
+        "alpha" | "luminance" | "match" => Some(&["mask-mode"][..]),
+        "cover" | "contain" | "auto" => Some(&["mask-size"][..]),
+        "top" | "top-left" | "top-right" | "left" | "center" | "right" | "bottom-left"
+        | "bottom" | "bottom-right" => Some(&["mask-position"][..]),
+        value if value.starts_with("t-") => Some(&["--tw-mask-top"][..]),
+        value if value.starts_with("r-") => Some(&["--tw-mask-right"][..]),
+        value if value.starts_with("b-") => Some(&["--tw-mask-bottom"][..]),
+        value if value.starts_with("l-") => Some(&["--tw-mask-left"][..]),
+        "no-repeat" | "repeat" | "repeat-x" | "repeat-y" | "repeat-round" | "repeat-space" => {
+            Some(&["mask-repeat"][..])
+        }
+        value if value.starts_with('[') => Some(&["mask-image"][..]),
+        "circle" | "ellipse" => Some(&["--tw-mask-radial-shape"][..]),
+        value if value.starts_with("linear-") => Some(&["--tw-mask-linear-position"][..]),
+        value if value.starts_with("radial-") => Some(&["--tw-mask-radial"][..]),
+        value if value.starts_with("conic-") => Some(&["--tw-mask-conic-position"][..]),
+        value if is_color_like_value(value) => Some(&["mask-image"][..]),
+        _ => None,
+    }
+}
+
+fn mask_radial_properties(value: &str) -> &'static [&'static str] {
+    if let Some(value) = value.strip_prefix("from-") {
+        return mask_stop_properties("radial", "from", value);
+    }
+
+    if let Some(value) = value.strip_prefix("to-") {
+        return mask_stop_properties("radial", "to", value);
+    }
+
+    if value.starts_with("at-") {
+        return &["--tw-mask-radial-position"][..];
+    }
+
+    if matches!(value, "circle" | "ellipse") {
+        return &["--tw-mask-radial-shape"][..];
+    }
+
+    if matches!(
+        value,
+        "closest-side" | "closest-corner" | "farthest-side" | "farthest-corner"
+    ) {
+        return &["--tw-mask-radial-size"][..];
+    }
+
+    &["--tw-mask-radial"][..]
+}
+
+fn mask_stop_properties(side: &str, stop: &str, value: &str) -> &'static [&'static str] {
+    match (side, stop, is_color_like_value(value)) {
+        ("top", "from", true) => &["--tw-mask-top-from-color"][..],
+        ("top", "from", false) => &["--tw-mask-top-from-position"][..],
+        ("top", "to", true) => &["--tw-mask-top-to-color"][..],
+        ("top", "to", false) => &["--tw-mask-top-to-position"][..],
+        ("right", "from", true) => &["--tw-mask-right-from-color"][..],
+        ("right", "from", false) => &["--tw-mask-right-from-position"][..],
+        ("right", "to", true) => &["--tw-mask-right-to-color"][..],
+        ("right", "to", false) => &["--tw-mask-right-to-position"][..],
+        ("bottom", "from", true) => &["--tw-mask-bottom-from-color"][..],
+        ("bottom", "from", false) => &["--tw-mask-bottom-from-position"][..],
+        ("bottom", "to", true) => &["--tw-mask-bottom-to-color"][..],
+        ("bottom", "to", false) => &["--tw-mask-bottom-to-position"][..],
+        ("left", "from", true) => &["--tw-mask-left-from-color"][..],
+        ("left", "from", false) => &["--tw-mask-left-from-position"][..],
+        ("left", "to", true) => &["--tw-mask-left-to-color"][..],
+        ("left", "to", false) => &["--tw-mask-left-to-position"][..],
+        ("linear", "from", true) => &["--tw-mask-linear-from-color"][..],
+        ("linear", "from", false) => &["--tw-mask-linear-from-position"][..],
+        ("linear", "to", true) => &["--tw-mask-linear-to-color"][..],
+        ("linear", "to", false) => &["--tw-mask-linear-to-position"][..],
+        ("radial", "from", true) => &["--tw-mask-radial-from-color"][..],
+        ("radial", "from", false) => &["--tw-mask-radial-from-position"][..],
+        ("radial", "to", true) => &["--tw-mask-radial-to-color"][..],
+        ("radial", "to", false) => &["--tw-mask-radial-to-position"][..],
+        ("conic", "from", true) => &["--tw-mask-conic-from-color"][..],
+        ("conic", "from", false) => &["--tw-mask-conic-from-position"][..],
+        ("conic", "to", true) => &["--tw-mask-conic-to-color"][..],
+        ("conic", "to", false) => &["--tw-mask-conic-to-position"][..],
+        _ => &["mask-image"][..],
+    }
+}
+
+fn mask_axis_stop_properties(axis: &str, stop: &str, value: &str) -> &'static [&'static str] {
+    match (axis, stop, is_color_like_value(value)) {
+        ("x", "from", true) => &[
+            "mask-image",
+            "--tw-mask-right-from-color",
+            "--tw-mask-left-from-color",
+        ][..],
+        ("x", "from", false) => &[
+            "mask-image",
+            "--tw-mask-right-from-position",
+            "--tw-mask-left-from-position",
+        ][..],
+        ("x", "to", true) => &[
+            "mask-image",
+            "--tw-mask-right-to-color",
+            "--tw-mask-left-to-color",
+        ][..],
+        ("x", "to", false) => &[
+            "mask-image",
+            "--tw-mask-right-to-position",
+            "--tw-mask-left-to-position",
+        ][..],
+        ("y", "from", true) => &[
+            "mask-image",
+            "--tw-mask-top-from-color",
+            "--tw-mask-bottom-from-color",
+        ][..],
+        ("y", "from", false) => &[
+            "mask-image",
+            "--tw-mask-top-from-position",
+            "--tw-mask-bottom-from-position",
+        ][..],
+        ("y", "to", true) => &[
+            "mask-image",
+            "--tw-mask-top-to-color",
+            "--tw-mask-bottom-to-color",
+        ][..],
+        ("y", "to", false) => &[
+            "mask-image",
+            "--tw-mask-top-to-position",
+            "--tw-mask-bottom-to-position",
+        ][..],
+        _ => &["mask-image"][..],
+    }
+}
+
+fn supports_negative_utility(base: &str) -> bool {
+    matches!(
+        base,
+        "inset"
+            | "inset-x"
+            | "inset-y"
+            | "inset-s"
+            | "inset-e"
+            | "inset-bs"
+            | "inset-be"
+            | "start"
+            | "end"
+            | "top"
+            | "right"
+            | "bottom"
+            | "left"
+            | "z"
+            | "order"
+            | "m"
+            | "mx"
+            | "my"
+            | "ms"
+            | "me"
+            | "mt"
+            | "mr"
+            | "mb"
+            | "ml"
+            | "scroll-m"
+            | "scroll-mx"
+            | "scroll-my"
+            | "scroll-ms"
+            | "scroll-me"
+            | "scroll-mt"
+            | "scroll-mr"
+            | "scroll-mb"
+            | "scroll-ml"
+            | "translate"
+            | "translate-x"
+            | "translate-y"
+            | "translate-z"
+            | "rotate"
+            | "rotate-x"
+            | "rotate-y"
+            | "rotate-z"
+            | "scale"
+            | "scale-x"
+            | "scale-y"
+            | "scale-z"
+            | "skew"
+            | "skew-x"
+            | "skew-y"
+            | "hue-rotate"
+            | "backdrop-hue-rotate"
+            | "mask-linear"
+            | "mask-conic"
+            | "outline-offset"
+            | "space-x"
+            | "space-y"
+            | "tracking"
+            | "indent"
+            | "bg-position"
+    )
 }
 
 /// Parse a utility into its base name and value.
@@ -1149,6 +1741,11 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
     } else {
         utility
     };
+
+    // handle arbitrary properties: [--foo:bar], [mask-image:...]
+    if utility_without_opacity.starts_with('[') {
+        return Some((utility_without_opacity, ""));
+    }
 
     // handle arbitrary values: bg-[#fff], w-[100px]
     if let Some(bracket_start) = utility_without_opacity.find('[') {
@@ -1172,14 +1769,43 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "min-h",
         "max-w",
         "max-h",
+        "inset-x",
+        "inset-y",
+        "inset-bs",
+        "inset-be",
+        "inset-s",
+        "inset-e",
+        "scroll-mx",
+        "scroll-my",
+        "scroll-ms",
+        "scroll-me",
+        "scroll-mt",
+        "scroll-mr",
+        "scroll-mb",
+        "scroll-ml",
+        "scroll-m",
+        "scroll-px",
+        "scroll-py",
+        "scroll-ps",
+        "scroll-pe",
+        "scroll-pt",
+        "scroll-pr",
+        "scroll-pb",
+        "scroll-pl",
+        "scroll-p",
         "border-t",
         "border-r",
         "border-b",
         "border-l",
         "border-x",
         "border-y",
+        "border-bs",
+        "border-be",
+        "border-is",
+        "border-ie",
         "border-s",
         "border-e",
+        "border-spacing",
         "rounded-t",
         "rounded-r",
         "rounded-b",
@@ -1201,11 +1827,24 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "auto-rows",
         "gap-x",
         "gap-y",
+        "flex-grow",
         "flex-row",
+        "flex-shrink",
         "flex-col",
         "flex-wrap",
         "flex-nowrap",
         "ring-offset",
+        "ring-opacity",
+        "inset-ring",
+        "ring-inset",
+        "drop-shadow",
+        "bg-position",
+        "bg-size",
+        "bg-linear",
+        "bg-radial",
+        "bg-conic",
+        "text-shadow",
+        "inset-shadow",
         "col-span",
         "col-start",
         "col-end",
@@ -1214,8 +1853,22 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "row-end",
         "translate-x",
         "translate-y",
+        "translate-z",
+        "perspective-origin",
         "skew-x",
         "skew-y",
+        "rotate-x",
+        "rotate-y",
+        "rotate-z",
+        "mask-radial-at",
+        "mask-radial",
+        "mask-linear",
+        "mask-conic",
+        "mask-clip",
+        "mask-origin",
+        "mask-size",
+        "mask-x",
+        "mask-y",
         "backdrop-blur",
         "backdrop-brightness",
         "backdrop-contrast",
@@ -1236,6 +1889,7 @@ fn parse_utility_parts(utility: &str) -> Option<(&str, &str)> {
         "hue-rotate",
         "scale-x",
         "scale-y",
+        "scale-z",
         "bg-opacity", // Add opacity utilities to prevent incorrect parsing as colors
         "text-opacity",
         "border-opacity",
@@ -1301,8 +1955,8 @@ fn is_color_value(value: &str) -> bool {
     if value.contains('-') {
         let parts: Vec<&str> = value.split('-').collect();
         if parts.len() == 2 {
-            // check if second part is a number (shade)
-            if parts[1].parse::<u32>().is_ok() {
+            // check for known Tailwind color scales with default numeric shades
+            if is_core_color_name(parts[0]) && is_default_color_shade(parts[1]) {
                 return true;
             }
         }
@@ -1311,12 +1965,14 @@ fn is_color_value(value: &str) -> bool {
     // check for named colors: red, blue, transparent, current, inherit
     matches!(
         value,
-        "transparent"
-            | "current"
-            | "inherit"
-            | "black"
-            | "white"
-            | "red"
+        "transparent" | "current" | "inherit" | "black" | "white"
+    )
+}
+
+fn is_core_color_name(value: &str) -> bool {
+    matches!(
+        value,
+        "red"
             | "blue"
             | "green"
             | "yellow"
@@ -1339,6 +1995,82 @@ fn is_color_value(value: &str) -> bool {
             | "fuchsia"
             | "rose"
     )
+}
+
+fn is_default_color_shade(value: &str) -> bool {
+    matches!(
+        value,
+        "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "950"
+    )
+}
+
+fn is_arbitrary_like_value(value: &str) -> bool {
+    value.starts_with('[') || value.starts_with('(')
+}
+
+fn is_spacing_value(value: &str) -> bool {
+    value == "px"
+        || is_numeric_value(value)
+        || is_fraction_value(value)
+        || is_arbitrary_like_value(value)
+}
+
+fn is_margin_value(value: &str) -> bool {
+    value == "auto" || is_spacing_value(value)
+}
+
+fn is_fraction_value(value: &str) -> bool {
+    let Some((numerator, denominator)) = value.split_once('/') else {
+        return false;
+    };
+
+    !numerator.is_empty()
+        && !denominator.is_empty()
+        && numerator.parse::<u32>().is_ok()
+        && denominator.parse::<u32>().is_ok()
+}
+
+fn is_numeric_value(value: &str) -> bool {
+    value.parse::<f64>().is_ok()
+}
+
+fn is_color_like_value(value: &str) -> bool {
+    is_color_value(value) || value == "current" || value.starts_with('(')
+}
+
+fn is_flex_value(value: &str) -> bool {
+    matches!(value, "auto" | "initial" | "none")
+        || is_numeric_value(value)
+        || is_arbitrary_like_value(value)
+}
+
+fn is_flex_factor_value(value: &str) -> bool {
+    is_numeric_value(value) || is_arbitrary_like_value(value)
+}
+
+fn is_gradient_position(value: &str) -> bool {
+    value.ends_with('%') || value.starts_with('[') || value.starts_with('(')
+}
+
+fn is_drop_shadow_size_value(value: &str) -> bool {
+    is_arbitrary_like_value(value)
+        || matches!(value, "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "none")
+}
+
+fn is_text_shadow_size_value(value: &str) -> bool {
+    is_arbitrary_like_value(value) || matches!(value, "2xs" | "xs" | "sm" | "md" | "lg" | "none")
+}
+
+fn is_will_change_value(value: &str) -> bool {
+    is_arbitrary_like_value(value) || matches!(value, "auto" | "scroll" | "contents" | "transform")
+}
+
+fn is_background_position_value(value: &str) -> bool {
+    value.starts_with("[top")
+        || value.starts_with("[right")
+        || value.starts_with("[bottom")
+        || value.starts_with("[left")
+        || value.starts_with("[center")
 }
 
 /// Check if a value is a size keyword.
@@ -1400,6 +2132,9 @@ pub static UTILITY_MAP: LazyLock<UtilityMap> = LazyLock::new(UtilityMap::new);
 static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::new(|| {
     let mut map = HashMap::new();
 
+    map.insert("sr-only", 9);
+    map.insert("not-sr-only", 8);
+
     // ring utilities: 3 declarations
     // Tailwind generates --tw-ring-offset-shadow, --tw-ring-shadow, and box-shadow
     map.insert("ring", 3);
@@ -1418,6 +2153,7 @@ static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
     // Tailwind generates --tw-drop-shadow and filter composite
     // NOTE: must list all variants explicitly since "drop-shadow" contains a dash
     map.insert("drop-shadow", 2);
+    map.insert("drop-shadow-xs", 2);
     map.insert("drop-shadow-sm", 2);
     map.insert("drop-shadow-md", 2);
     map.insert("drop-shadow-lg", 2);
@@ -1654,6 +2390,20 @@ mod tests {
         // arbitrary size values
         assert_eq!(map.get_properties("w-[100px]"), Some(&["width"][..]));
         assert_eq!(map.get_properties("m-[10rem]"), Some(&["margin"][..]));
+
+        // arbitrary CSS properties
+        assert_eq!(
+            map.get_properties("[appearance:textfield]"),
+            Some(&["appearance"][..])
+        );
+        assert_eq!(
+            map.get_properties("[overflow-wrap:anywhere]"),
+            Some(&["overflow-wrap"][..])
+        );
+        assert_eq!(
+            map.get_properties("[word-break:break-word]"),
+            Some(&["word-break"][..])
+        );
     }
 
     #[test]
@@ -1662,6 +2412,13 @@ mod tests {
 
         assert_eq!(map.get_properties("unknown-utility"), None);
         assert_eq!(map.get_properties("fake-class"), None);
+        assert_eq!(map.get_properties("flex-center"), None);
+        assert_eq!(map.get_properties("from-alternative"), None);
+        assert_eq!(map.get_properties("decoration-charcoal-500"), None);
+        assert_eq!(map.get_properties("text-shadow-custom"), None);
+        assert_eq!(map.get_properties("stroke-1.5"), None);
+        assert_eq!(map.get_properties("will-change"), None);
+        assert_eq!(map.get_properties("max-w-[min(100%, 500px)]"), None);
     }
 
     #[test]
@@ -1736,6 +2493,20 @@ mod tests {
         assert_eq!(map.get_properties("flex-wrap"), Some(&["flex-wrap"][..]));
         assert_eq!(map.get_properties("grow"), Some(&["flex-grow"][..]));
         assert_eq!(map.get_properties("shrink"), Some(&["flex-shrink"][..]));
+        assert_eq!(map.get_properties("flex-grow-0"), Some(&["flex-grow"][..]));
+        assert_eq!(
+            map.get_properties("flex-shrink-0"),
+            Some(&["flex-shrink"][..])
+        );
+        assert_eq!(map.get_properties("shrink-f0"), None);
+    }
+
+    #[test]
+    fn test_svg_paint_utilities() {
+        let map = UtilityMap::new();
+
+        assert_eq!(map.get_properties("fill-none"), Some(&["fill"][..]));
+        assert_eq!(map.get_properties("stroke-none"), Some(&["stroke"][..]));
     }
 
     #[test]
