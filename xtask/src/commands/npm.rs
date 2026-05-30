@@ -200,7 +200,12 @@ pub fn prepare_binaries(version: &str, token: Option<&str>) -> Result<()> {
 /// (npm defaults to "latest").
 fn dist_tag_for_version(version: &str) -> Option<String> {
     let version = Version::parse(version.strip_prefix('v').unwrap_or(version)).ok()?;
-    version.pre.as_str().split('.').next().map(|id| id.to_string())
+    version
+        .pre
+        .as_str()
+        .split('.')
+        .next()
+        .map(|id| id.to_string())
 }
 
 /// Build the base `npm publish` command with optional dist-tag.
@@ -230,7 +235,10 @@ pub fn publish(dry_run: bool) -> Result<()> {
     let tag = dist_tag_for_version(&current_version);
 
     if let Some(ref tag) = tag {
-        println!("Detected prerelease {}, using --tag {}", current_version, tag);
+        println!(
+            "Detected prerelease {}, using --tag {}",
+            current_version, tag
+        );
     }
 
     // Platform packages first
