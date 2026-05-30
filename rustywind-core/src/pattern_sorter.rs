@@ -31,7 +31,8 @@ use std::cmp::Ordering;
 use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
 use crate::variant_order::{
-    VariantInfo, calculate_variant_order, compare_variant_lists, parse_variants,
+    ARBITRARY_VARIANT_BIT, VariantInfo, calculate_variant_order, compare_variant_lists,
+    parse_variants,
 };
 
 /// Check if a variant chain contains bare group/peer variants (without modifiers).
@@ -43,8 +44,224 @@ fn has_bare_group_or_peer(variant_chain: &[VariantInfo]) -> bool {
         .any(|v| (v.base == "group" || v.base == "peer") && v.modifier.is_none())
 }
 
-fn all_variants_simple(variant_chain: &[VariantInfo]) -> bool {
-    variant_chain.iter().all(|v| v.modifier.is_none())
+fn compare_selector_dynamic_sequences(a: &[VariantInfo], z: &[VariantInfo]) -> Ordering {
+    let a_sequence = selector_dynamic_sequence(a);
+    let z_sequence = selector_dynamic_sequence(z);
+
+    if a_sequence.is_empty() || z_sequence.is_empty() {
+        return Ordering::Equal;
+    }
+
+    let first_difference = first_variant_difference_index(a, z);
+    if first_difference < a_sequence[0].0 || first_difference < z_sequence[0].0 {
+        return Ordering::Equal;
+    }
+
+    compare_selector_dynamic_keys(&a_sequence, &z_sequence)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SelectorDynamicKey<'a> {
+    kind: u8,
+    modifier_kind: u8,
+    value_kind: u8,
+    value: &'a str,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct ArbitraryVariantKey {
+    kind: u8,
+    selector: String,
+}
+
+fn first_variant_difference_index(a: &[VariantInfo], z: &[VariantInfo]) -> usize {
+    for (index, (a_variant, z_variant)) in a.iter().zip(z.iter()).enumerate() {
+        if a_variant.cmp_variants(z_variant) != Ordering::Equal {
+            return index;
+        }
+    }
+
+    a.len().min(z.len())
+}
+
+fn compare_selector_dynamic_keys(
+    a: &[(usize, SelectorDynamicKey<'_>)],
+    z: &[(usize, SelectorDynamicKey<'_>)],
+) -> Ordering {
+    for ((_, a_key), (_, z_key)) in a.iter().zip(z.iter()) {
+        if a_key.kind != z_key.kind {
+            return Ordering::Equal;
+        }
+
+        match a_key
+            .modifier_kind
+            .cmp(&z_key.modifier_kind)
+            .then_with(|| a_key.value_kind.cmp(&z_key.value_kind))
+            .then_with(|| compare_alphanumeric(a_key.value, z_key.value))
+        {
+            Ordering::Equal => continue,
+            other => return other,
+        }
+    }
+
+    a.len().cmp(&z.len())
+}
+
+fn selector_dynamic_sequence(
+    variant_chain: &[VariantInfo],
+) -> Vec<(usize, SelectorDynamicKey<'_>)> {
+    variant_chain
+        .iter()
+        .enumerate()
+        .filter_map(|(index, variant)| selector_dynamic_key(variant).map(|key| (index, key)))
+        .collect()
+}
+
+fn selector_dynamic_key(variant: &VariantInfo) -> Option<SelectorDynamicKey<'_>> {
+    if matches!(variant.base.as_str(), "group" | "peer") {
+        return None;
+    }
+
+    if let Some(key) = selector_dynamic_base_key(&variant.base) {
+        return Some(key);
+    };
+
+    if variant.base == "not"
+        && let Some(modifier) = variant.modifier.as_deref()
+        && let Some(mut key) = selector_dynamic_key(modifier)
+    {
+        key.modifier_kind = key.kind;
+        key.kind = 0;
+        return Some(key);
+    }
+
+    None
+}
+
+fn selector_dynamic_base_key(base: &str) -> Option<SelectorDynamicKey<'_>> {
+    if let Some(value) = base.strip_prefix("in-") {
+        return Some(selector_key(1, arbitrary_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("has-") {
+        return Some(selector_key(2, has_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("aria-") {
+        return Some(selector_key(3, arbitrary_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("data-") {
+        return Some(selector_key(4, arbitrary_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("nth-last-of-type-") {
+        return Some(selector_key(8, arbitrary_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("nth-of-type-") {
+        return Some(selector_key(7, arbitrary_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("nth-last-") {
+        return Some(selector_key(6, arbitrary_selector_value_key(value)));
+    }
+
+    if let Some(value) = base.strip_prefix("nth-") {
+        return Some(selector_key(5, arbitrary_selector_value_key(value)));
+    }
+
+    None
+}
+
+fn selector_key<'a>(kind: u8, (value_kind, value): (u8, &'a str)) -> SelectorDynamicKey<'a> {
+    SelectorDynamicKey {
+        kind,
+        modifier_kind: 0,
+        value_kind,
+        value,
+    }
+}
+
+fn arbitrary_selector_value_key(value: &str) -> (u8, &str) {
+    if let Some(inner) = bracket_inner(value) {
+        (1, inner)
+    } else {
+        (0, value)
+    }
+}
+
+fn has_selector_value_key(value: &str) -> (u8, &str) {
+    let Some(inner) = bracket_inner(value) else {
+        return (0, value);
+    };
+
+    let kind = match inner.as_bytes().first().copied() {
+        Some(b'.') | Some(b'#') => 1,
+        Some(b'+') => 2,
+        Some(b'~') => 3,
+        Some(b'[') => 4,
+        _ => 5,
+    };
+
+    (kind, inner)
+}
+
+fn bracket_inner(value: &str) -> Option<&str> {
+    value.strip_prefix('[')?.split(']').next()
+}
+
+fn arbitrary_variant_key(value: &str) -> ArbitraryVariantKey {
+    let raw_selector = value
+        .strip_prefix('[')
+        .unwrap_or(value)
+        .strip_suffix(']')
+        .unwrap_or(value);
+    let selector = raw_selector.replace('_', " ");
+
+    let kind = match raw_selector.as_bytes() {
+        [b'>' | b'+' | b'~', ..] => 0,
+        [b'&', b'_', ..] => 1,
+        [b'&', b'+', ..] => 2,
+        [b'&', b'.' | b'#', ..] => 3,
+        [b'&', b':', b':', ..] => 4,
+        [b'&', b':', ..] => 5,
+        [b'.' | b'#', ..] => 6,
+        [b'[', ..] => 7,
+        [b'&', b'>', ..] => 8,
+        [b'&', b'[', ..] => 9,
+        [b'&', b'~', ..] => 10,
+        [b'&', ..] => 11,
+        _ => 12,
+    };
+
+    ArbitraryVariantKey { kind, selector }
+}
+
+fn compare_variant_masks(a: &[VariantInfo], z: &[VariantInfo]) -> Ordering {
+    let a_components = variant_mask_components(a);
+    let z_components = variant_mask_components(z);
+    let mut a_iter = a_components.iter().rev();
+    let mut z_iter = z_components.iter().rev();
+
+    loop {
+        match (a_iter.next(), z_iter.next()) {
+            (Some(a_variant), Some(z_variant)) => match a_variant.cmp_variants(z_variant) {
+                Ordering::Equal => continue,
+                other => return other,
+            },
+            (None, Some(_)) => return Ordering::Less,
+            (Some(_), None) => return Ordering::Greater,
+            (None, None) => return Ordering::Equal,
+        }
+    }
+}
+
+fn variant_mask_components(variant_chain: &[VariantInfo]) -> Vec<&VariantInfo> {
+    let mut components: Vec<_> = variant_chain.iter().collect();
+    components.sort_by(|a, z| a.cmp_variants(z));
+    components.dedup_by(|a, z| a.cmp_variants(z) == Ordering::Equal);
+    components
 }
 
 /// Compare two strings alphanumerically (like Tailwind CSS does).
@@ -108,6 +325,24 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
     a.len().cmp(&z.len())
 }
 
+fn utility_part(class: &str) -> &str {
+    let mut start = 0;
+    let mut bracket_depth: u32 = 0;
+
+    for (index, character) in class.char_indices() {
+        match character {
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            ':' if bracket_depth == 0 => start = index + 1,
+            _ => {}
+        }
+    }
+
+    let utility = &class[start..];
+    let utility = utility.strip_prefix('!').unwrap_or(utility);
+    utility.strip_suffix('!').unwrap_or(utility)
+}
+
 /// Extract the base name from a utility class, removing size modifiers.
 ///
 /// This function extracts the base name for utilities with size modifiers:
@@ -118,7 +353,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
 /// This is used for proper alphabetical comparison when properties match.
 fn extract_base_name(utility: &str) -> &str {
     // strip variants first to get just the utility part
-    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+    let utility_base = utility_part(utility);
 
     // extract base for rounded utilities
     if let Some(after_rounded) = utility_base.strip_prefix("rounded-") {
@@ -150,7 +385,7 @@ fn extract_base_name(utility: &str) -> &str {
 /// Utilities with the same property are sorted by their numeric value when available.
 fn extract_numeric_value(utility: &str) -> Option<f64> {
     // remove variants to get just the utility part
-    let utility = utility.split(':').next_back()?;
+    let utility = utility_part(utility);
 
     // handle arbitrary values first (e.g., h-[120px], bg-white/30, max-w-[485px])
     // check for brackets [...] or opacity /number
@@ -326,7 +561,7 @@ fn has_arbitrary_value(class: &str) -> bool {
 /// Returns false for fractions like: w-1/4, h-1/2 (these are not opacity)
 fn has_opacity_syntax(class: &str) -> bool {
     // strip variants to get the utility part
-    let utility = class.split(':').next_back().unwrap_or(class);
+    let utility = utility_part(class);
 
     if let Some(slash_pos) = utility.rfind('/') {
         let before_slash = &utility[..slash_pos];
@@ -365,7 +600,7 @@ fn has_opacity_syntax(class: &str) -> bool {
 /// Returns (base_number, denominator) where denominator is None for whole numbers
 fn extract_base_number(class: &str) -> Option<(i32, Option<i32>)> {
     // strip variants to get the utility part
-    let utility = class.split(':').next_back().unwrap_or(class);
+    let utility = utility_part(class);
 
     // only process width/height utilities with numeric values
     if !utility.starts_with("w-") && !utility.starts_with("h-") {
@@ -398,7 +633,7 @@ fn extract_base_number(class: &str) -> Option<(i32, Option<i32>)> {
 /// Returns false for positive values: rotate-0, skew-y-1, translate-x-2
 fn is_negative_value(class: &str) -> bool {
     // strip variants first to get just the utility part
-    let utility = class.split(':').next_back().unwrap_or(class);
+    let utility = utility_part(class);
 
     // check if the utility starts with a dash followed by a letter
     // this handles cases like: -rotate-1, -translate-x-4, -skew-y-3
@@ -425,7 +660,7 @@ fn is_negative_value(class: &str) -> bool {
 /// then by shade number when color names match (matching Prettier's behavior).
 fn extract_color_name(utility: &str) -> Option<&str> {
     // strip variants first to get just the utility part
-    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+    let utility_base = utility_part(utility);
 
     // remove opacity suffix if present (e.g., bg-blue-500/50 → bg-blue-500)
     let utility_without_opacity = utility_base.split('/').next().unwrap_or(utility_base);
@@ -508,15 +743,17 @@ fn extract_color_name(utility: &str) -> Option<&str> {
 /// Check if a utility property should have arbitrary values sort BEFORE regular values
 ///
 /// Tailwind/Prettier uses property-specific ordering:
-/// - max-*, w, h, size, rounded, leading: arbitrary BEFORE keyword (more specific first)
-/// - min-*, spacing, text, etc.: keyword BEFORE arbitrary (semantic first)
+/// - min-*, max-*, w, h, size, rounded, leading: arbitrary BEFORE keyword (more specific first)
+/// - spacing, text, etc.: keyword BEFORE arbitrary (semantic first)
 fn should_arbitrary_come_first(class: &str) -> bool {
     // strip variants to get the base utility
-    let utility = class.split(':').next_back().unwrap_or(class);
+    let utility = utility_part(class);
 
     // properties where arbitrary values come BEFORE regular values
     utility.starts_with("max-w-")
         || utility.starts_with("max-h-")
+        || utility.starts_with("min-w-")
+        || utility.starts_with("min-h-")
         || (utility.starts_with("w-") && !utility.starts_with("will-"))
         || (utility.starts_with("h-") && !utility.starts_with("hue-"))
         || utility.starts_with("size-")
@@ -545,7 +782,7 @@ fn should_arbitrary_come_first(class: &str) -> bool {
 /// - all other utilities get priority 100 (default)
 fn get_utility_prefix_priority(utility: &str) -> u32 {
     // extract the base utility name without variants
-    let utility_base = utility.split(':').next_back().unwrap_or(utility);
+    let utility_base = utility_part(utility);
 
     if utility_base.starts_with("space-") {
         return 1;
@@ -562,15 +799,14 @@ impl Ord for SortKey {
     /// Order of comparison:
     /// 1. Unparseable classes (bare group:/peer:) sort first
     /// 2. Base classes (no variants) sort next
-    /// 3. Coarse variant order (bitwise OR of variant indices)
-    /// 4. Fine-grained variant chain comparison (recursive, handles multi-level variants)
-    /// 5. Property indices (compare ALL properties in order for proper tiebreaking)
-    /// 6. Utility prefix priority (space-* before gap-* when properties match)
-    /// 7. Property count (MORE properties first - utilities with more properties sort earlier)
-    /// 8. Color name alphabetical (for color utilities)
-    /// 9. Negative value priority (negatives before positives)
-    /// 10. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
-    /// 11. Alphabetical (final tiebreaker)
+    /// 3. Variant mask order
+    /// 4. Property indices (compare ALL properties in order for proper tiebreaking)
+    /// 5. Utility prefix priority (space-* before gap-* when properties match)
+    /// 6. Property count (MORE properties first - utilities with more properties sort earlier)
+    /// 7. Color name alphabetical (for color utilities)
+    /// 8. Negative value priority (negatives before positives)
+    /// 9. Numeric value (when both present - lower value first, e.g., p-4 before p-8)
+    /// 10. Alphabetical (final tiebreaker)
     fn cmp(&self, other: &Self) -> Ordering {
         // 1. unparseable classes sort FIRST (before everything else)
         //    when BOTH are unparseable, continue with normal comparison but skip base class check
@@ -615,10 +851,11 @@ impl Ord for SortKey {
             }
         }
 
-        // bit 63 indicates presence of arbitrary variants
-        const ARBITRARY_BIT: u128 = 1u128 << 63;
-        let self_has_arbitrary = self.variant_order & ARBITRARY_BIT != 0;
-        let other_has_arbitrary = other.variant_order & ARBITRARY_BIT != 0;
+        let self_has_arbitrary = self.variant_order & ARBITRARY_VARIANT_BIT != 0;
+        let other_has_arbitrary = other.variant_order & ARBITRARY_VARIANT_BIT != 0;
+        let selector_dynamic_cmp =
+            compare_selector_dynamic_sequences(&self.variant_chain, &other.variant_chain);
+        let variant_mask_cmp = compare_variant_masks(&self.variant_chain, &other.variant_chain);
 
         // 2. compare by arbitrary variant presence and selectors
         // classes without arbitrary variants sort BEFORE classes with arbitrary variants
@@ -628,19 +865,22 @@ impl Ord for SortKey {
             (true, false) => return Ordering::Greater,
             (true, true) => {
                 // both have arbitrary variants - compare selectors FIRST
-                let decode = |s: &str| {
-                    let s = s.strip_prefix('[').unwrap_or(s);
-                    let s = s.strip_suffix(']').unwrap_or(s);
-                    s.replace('_', " ")
-                };
-                let a: Vec<_> = self.arbitrary_variants.iter().map(|s| decode(s)).collect();
-                let b: Vec<_> = other.arbitrary_variants.iter().map(|s| decode(s)).collect();
+                let a: Vec<_> = self
+                    .arbitrary_variants
+                    .iter()
+                    .map(|s| arbitrary_variant_key(s))
+                    .collect();
+                let b: Vec<_> = other
+                    .arbitrary_variants
+                    .iter()
+                    .map(|s| arbitrary_variant_key(s))
+                    .collect();
                 match a.cmp(&b) {
                     Ordering::Equal => {
                         // same arbitrary selectors - compare known variant bits
                         // (mask out the arbitrary bit for comparison)
-                        let self_known = self.variant_order & !ARBITRARY_BIT;
-                        let other_known = other.variant_order & !ARBITRARY_BIT;
+                        let self_known = self.variant_order & !ARBITRARY_VARIANT_BIT;
+                        let other_known = other.variant_order & !ARBITRARY_VARIANT_BIT;
                         if self_known != other_known {
                             return self_known.cmp(&other_known);
                         }
@@ -650,11 +890,15 @@ impl Ord for SortKey {
                 }
             }
             (false, false) => {
-                // neither has arbitrary - compare by known variant bits
-                if self.variant_order != other.variant_order {
-                    return self.variant_order.cmp(&other.variant_order);
+                if selector_dynamic_cmp != Ordering::Equal {
+                    return selector_dynamic_cmp;
                 }
-                // fall through to fine-grained comparison
+
+                // neither has arbitrary - compare by the concrete variant mask
+                if variant_mask_cmp != Ordering::Equal {
+                    return variant_mask_cmp;
+                }
+                // fall through to utility output comparison
             }
         }
 
@@ -679,21 +923,9 @@ impl Ord for SortKey {
                 .cmp(&self.property_indices.len())
         };
 
-        let variant_cmp = || compare_variant_lists(&self.variant_chain, &other.variant_chain);
-
-        // 3. compare property and fine-grained variant stack order
-        // for simple variant stacks with the same coarse bitset, Prettier lets
-        // utility order decide before breaking ties between equivalent stacks
-        let simple_variant_tie = !self_has_arbitrary
-            && !other_has_arbitrary
-            && all_variants_simple(&self.variant_chain)
-            && all_variants_simple(&other.variant_chain);
-
-        let ordering = if simple_variant_tie {
-            property_cmp().then_with(variant_cmp)
-        } else {
-            variant_cmp().then_with(property_cmp)
-        };
+        // 3. when variant masks are equivalent, Tailwind compares utility output
+        // before the final candidate-name tiebreaker
+        let ordering = property_cmp();
 
         ordering
             // CRITICAL FIX: when property indices match, check utility prefix priority
@@ -941,13 +1173,14 @@ impl PatternSorter {
         // calculate variant order using bitwise flags
         let variant_order = calculate_variant_order(&parsed.variants);
 
+        let variants_left_to_right: Vec<&str> = parsed.variants.iter().rev().copied().collect();
+
         // parse variants into structured form for recursive comparison
-        let variant_chain = parse_variants(&parsed.variants);
+        let variant_chain = parse_variants(&variants_left_to_right);
 
         // extract arbitrary variants for lexicographic tiebreaking
         // these are variants that start with '[' (e.g., [&.htmx-request], [&>*])
-        let arbitrary_variants: Vec<compact_str::CompactString> = parsed
-            .variants
+        let arbitrary_variants: Vec<compact_str::CompactString> = variants_left_to_right
             .iter()
             .filter(|v| v.starts_with('['))
             .map(|v| compact_str::CompactString::new(*v))
@@ -1072,14 +1305,22 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
         |(a_key, a_variant_order, a_class), (z_key, z_variant_order, z_class)| {
             match (a_key, z_key) {
                 (Some(a), Some(z)) => a.cmp(z),
+                (Some(_), None) if is_ellipsis_class(z_class) => Ordering::Less,
                 (Some(_), None) => Ordering::Greater, // known classes after unknown
-                (None, Some(_)) => Ordering::Less,    // unknown classes before known
+                (None, Some(_)) if is_ellipsis_class(a_class) => Ordering::Greater,
+                (None, Some(_)) => Ordering::Less, // unknown classes before known
                 (None, None) => {
-                    // unknown classes: sort by variant order first, then alphabetically
-                    // lower variant order values come first (0 for no variants, then increasing)
-                    a_variant_order
-                        .cmp(z_variant_order)
-                        .then_with(|| a_class.cmp(z_class))
+                    match (is_ellipsis_class(a_class), is_ellipsis_class(z_class)) {
+                        (true, false) => Ordering::Greater,
+                        (false, true) => Ordering::Less,
+                        _ => {
+                            // unknown classes: sort by variant order first, then alphabetically
+                            // lower variant order values come first (0 for no variants, then increasing)
+                            a_variant_order
+                                .cmp(z_variant_order)
+                                .then_with(|| a_class.cmp(z_class))
+                        }
+                    }
                 }
             }
         },
@@ -1087,6 +1328,10 @@ pub fn sort_classes<'a>(classes: &[&'a str]) -> Vec<&'a str> {
 
     // extract the sorted classes
     with_keys.iter().map(|(_, _, class)| *class).collect()
+}
+
+fn is_ellipsis_class(class: &str) -> bool {
+    class == "..." || class == "…"
 }
 
 #[cfg(test)]
@@ -1132,6 +1377,102 @@ mod tests {
 
         // tailwind v4: focus-within (34) < hover (35) < focus (36) < focus-visible (37)
         assert_eq!(sorted, vec!["hover:p-1", "focus:p-1"]);
+    }
+
+    #[test]
+    fn test_selector_dynamic_variant_ordering() {
+        let cases = [
+            (
+                vec![
+                    "rtl:group-data-[size=default]/switch:data-checked:translate-x-0",
+                    "group-data-[size=default]/switch:data-unchecked:translate-x-0",
+                    "rtl:group-data-[size=default]/switch:data-unchecked:translate-x-0",
+                    "group-data-[size=default]/switch:data-checked:translate-x-0",
+                ],
+                vec![
+                    "group-data-[size=default]/switch:data-checked:translate-x-0",
+                    "group-data-[size=default]/switch:data-unchecked:translate-x-0",
+                    "rtl:group-data-[size=default]/switch:data-checked:translate-x-0",
+                    "rtl:group-data-[size=default]/switch:data-unchecked:translate-x-0",
+                ],
+            ),
+            (
+                vec![
+                    "data-[orientation=horizontal]:w-full",
+                    "data-disabled:pointer-events-none",
+                ],
+                vec![
+                    "data-disabled:pointer-events-none",
+                    "data-[orientation=horizontal]:w-full",
+                ],
+            ),
+            (
+                vec!["data-dragging:scale-120", "has-focus-visible:ring-[3px]"],
+                vec!["has-focus-visible:ring-[3px]", "data-dragging:scale-120"],
+            ),
+            (
+                vec![
+                    "in-[figure]:-mx-1",
+                    "sm:max-lg:nth-[2n+1]:border-l-transparent",
+                    "in-data-stack:mt-0",
+                    "sm:max-lg:nth-[2n]:border-r-transparent",
+                ],
+                vec![
+                    "in-data-stack:mt-0",
+                    "in-[figure]:-mx-1",
+                    "sm:max-lg:nth-[2n]:border-r-transparent",
+                    "sm:max-lg:nth-[2n+1]:border-l-transparent",
+                ],
+            ),
+            (
+                vec![
+                    "data-expanded:opacity-100",
+                    "has-disabled:opacity-50",
+                    "data-behind:not-data-expanded:pointer-events-none",
+                    "not-has-[>*.w-full]:w-fit",
+                    "data-behind:opacity-0",
+                ],
+                vec![
+                    "not-has-[>*.w-full]:w-fit",
+                    "has-disabled:opacity-50",
+                    "data-behind:opacity-0",
+                    "data-behind:not-data-expanded:pointer-events-none",
+                    "data-expanded:opacity-100",
+                ],
+            ),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(sort_classes(&input), expected);
+        }
+    }
+
+    #[test]
+    fn test_variant_mask_ordering() {
+        let cases = [
+            (
+                vec![
+                    "group-focus:autofill:list-inside",
+                    "autofill:group-focus:min-h-max",
+                ],
+                vec![
+                    "autofill:group-focus:min-h-max",
+                    "group-focus:autofill:list-inside",
+                ],
+            ),
+            (
+                vec!["peer-focus:grid-flow-dense", "group-hover:peer-hover:w-3/4"],
+                vec!["group-hover:peer-hover:w-3/4", "peer-focus:grid-flow-dense"],
+            ),
+            (
+                vec!["hover:focus:block", "focus:hover:block"],
+                vec!["focus:hover:block", "hover:focus:block"],
+            ),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(sort_classes(&input), expected);
+        }
     }
 
     #[test]
