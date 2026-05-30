@@ -820,6 +820,66 @@ fn test_arbitrary_variant_attributes() {
     assert_eq!(sorted[0], "flex");
 }
 
+/// Test arbitrary variants without `&` sort before `&` selectors
+#[test]
+fn test_arbitrary_variant_selector_kinds() {
+    let sorter = HybridSorter::new();
+
+    let classes = vec![
+        "[&>div>div:first-child]:hidden",
+        "**:[[role=tablist]]:hidden",
+    ];
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(
+        sorted,
+        vec![
+            "**:[[role=tablist]]:hidden",
+            "[&>div>div:first-child]:hidden",
+        ]
+    );
+
+    let classes = vec!["**:[[cmdk-item]]:px-2", "[&_[cmdk-item]_svg]:h-5"];
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(
+        sorted,
+        vec!["[&_[cmdk-item]_svg]:h-5", "**:[[cmdk-item]]:px-2"]
+    );
+
+    let classes = vec![
+        "[&:not(:last-child)]:border-b",
+        "[&.htmx-request]:pointer-events-none",
+        "[&+*]:mt-4",
+    ];
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(
+        sorted,
+        vec![
+            "[&+*]:mt-4",
+            "[&.htmx-request]:pointer-events-none",
+            "[&:not(:last-child)]:border-b",
+        ]
+    );
+
+    let classes = vec![
+        "[&[data-state=open]]:bg-gray-100",
+        "[&::after]:absolute",
+        "[&+*]:mt-4",
+    ];
+    let sorted = sorter.sort_classes(&classes);
+
+    assert_eq!(
+        sorted,
+        vec![
+            "[&+*]:mt-4",
+            "[&::after]:absolute",
+            "[&[data-state=open]]:bg-gray-100",
+        ]
+    );
+}
+
 /// Test at-rule arbitrary variants
 #[test]
 fn test_arbitrary_variant_at_rules() {

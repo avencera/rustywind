@@ -8,9 +8,9 @@ fn test_opacity_slash_recognition() {
         ("text-white/60", true),      // Standard color + opacity → KNOWN
         ("bg-black/25", true),        // Standard color + opacity → KNOWN
         ("bg-red-500/50", true),      // Standard color shade + opacity → KNOWN
-        ("to-stroke/0", true), // Gradient stop utilities are always known (maps to --tw-gradient-to)
-        ("bg-primary/20", false), // Custom color + opacity → UNKNOWN
-        ("from-stroke/0", true), // Gradient stop utilities are always known (maps to --tw-gradient-from)
+        ("to-stroke/0", false),       // custom gradient color + opacity → UNKNOWN
+        ("bg-primary/20", false),     // Custom color + opacity → UNKNOWN
+        ("from-stroke/0", false),     // custom gradient color + opacity → UNKNOWN
         ("border-gray-300/50", true), // Standard color shade + opacity → KNOWN
     ];
 
