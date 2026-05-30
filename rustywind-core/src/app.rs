@@ -6,7 +6,7 @@ use crate::{
     hybrid_sorter::HybridSorter,
     sorter::{FinderRegex, Sorter},
 };
-use ahash::AHashMap as HashMap;
+use ahash::{AHashMap as HashMap, AHashSet as HashSet};
 use aho_corasick::{Anchored, Input};
 use regex::Captures;
 use std::sync::LazyLock;
@@ -57,7 +57,11 @@ impl RustyWind {
     /// Sorts the classes in the file contents.
     pub fn sort_file_contents<'a>(&self, file_contents: &'a str) -> Cow<'a, str> {
         self.regex.replace_all(file_contents, |caps: &Captures| {
-            let classes = &caps[1];
+            let classes = caps
+                .get(1)
+                .or_else(|| caps.get(2))
+                .expect("class extractor regex must include a capture group")
+                .as_str();
             let sorted_classes = self.sort_classes(classes);
             caps[0].replace(classes, &sorted_classes)
         })
@@ -71,7 +75,7 @@ impl RustyWind {
         let mut sorted = self.sort_classes_vec(extracted_classes.into_iter());
 
         if !self.allow_duplicates {
-            sorted.dedup();
+            deduplicate_classes(&mut sorted);
         }
 
         self.rewrap_wrapped_classes(sorted)
@@ -79,15 +83,15 @@ impl RustyWind {
 
     fn unwrap_wrapped_classes<'a>(&self, class_string: &'a str) -> Vec<&'a str> {
         match self.class_wrapping {
-            ClassWrapping::NoWrapping => class_string.split_ascii_whitespace().collect(),
+            ClassWrapping::NoWrapping => split_class_tokens(class_string),
             ClassWrapping::CommaSingleQuotes => class_string
                 .split(',')
-                .flat_map(|class| class.split_ascii_whitespace())
+                .flat_map(split_class_tokens)
                 .map(|class| class.trim_matches('\''))
                 .collect(),
             ClassWrapping::CommaDoubleQuotes => class_string
                 .split(',')
-                .flat_map(|class| class.split_ascii_whitespace())
+                .flat_map(split_class_tokens)
                 .map(|class| class.trim_matches('"'))
                 .collect(),
         }
@@ -196,6 +200,43 @@ impl RustyWind {
     }
 }
 
+fn split_class_tokens(class_string: &str) -> Vec<&str> {
+    let mut tokens = Vec::new();
+    let mut start = None;
+    let mut bracket_depth: u32 = 0;
+
+    for (index, character) in class_string.char_indices() {
+        match character {
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            _ => {}
+        }
+
+        if character.is_ascii_whitespace() && bracket_depth == 0 {
+            if let Some(token_start) = start.take() {
+                tokens.push(&class_string[token_start..index]);
+            }
+        } else if start.is_none() {
+            start = Some(index);
+        }
+    }
+
+    if let Some(token_start) = start {
+        tokens.push(&class_string[token_start..]);
+    }
+
+    tokens
+}
+
+fn deduplicate_classes(classes: &mut Vec<&str>) {
+    let mut seen = HashSet::new();
+    classes.retain(|class| is_ellipsis_placeholder(class) || seen.insert(*class));
+}
+
+fn is_ellipsis_placeholder(class: &str) -> bool {
+    class == "..." || class == "…"
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,6 +334,14 @@ mod tests {
             1,
             "All flex duplicates should be removed"
         );
+    }
+
+    #[test]
+    fn test_keeps_duplicate_ellipsis_placeholders() {
+        let input = r#"<div className="transition ... ... flex"></div>"#;
+        let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
+
+        assert_eq!(result.matches("...").count(), 2);
     }
 
     #[test]
@@ -399,6 +448,12 @@ mod tests {
         ; "no wrapping"
     )]
     #[test_case(
+        r#"max-w-[min(100%, 500px)] my-6"#,
+        ClassWrapping::NoWrapping,
+        vec![r#"max-w-[min(100%, 500px)]"#, r#"my-6"#]
+        ; "arbitrary value with whitespace"
+    )]
+    #[test_case(
         r#"'flex-col', 'inline', 'flex'"#,
         ClassWrapping::CommaSingleQuotes,
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
@@ -444,6 +499,14 @@ mod tests {
         };
 
         assert_eq!(app.rewrap_wrapped_classes(input), output)
+    }
+
+    #[test]
+    fn test_arbitrary_value_with_whitespace_stays_intact() {
+        let classes = "my-6 max-w-[min(100%, 500px)]";
+        let sorted = RUSTYWIND_DEFAULT.sort_classes(classes);
+
+        assert_eq!(sorted, "max-w-[min(100%, 500px)] my-6");
     }
 
     #[test]
