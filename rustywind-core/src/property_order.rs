@@ -158,6 +158,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "row-gap",
     "--tw-space-x-reverse",
     "--tw-space-y-reverse",
+    "--tw-divide-color-sort",
     "divide-x-width",
     "divide-y-width",
     "--tw-divide-y-reverse",
@@ -261,13 +262,13 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-mask-linear-to-color",
     "--tw-mask-linear-to-position",
     "--tw-mask-radial",
-    "--tw-mask-radial-shape",
-    "--tw-mask-radial-size",
-    "--tw-mask-radial-position",
     "--tw-mask-radial-from-color",
     "--tw-mask-radial-from-position",
     "--tw-mask-radial-to-color",
     "--tw-mask-radial-to-position",
+    "--tw-mask-radial-shape",
+    "--tw-mask-radial-size",
+    "--tw-mask-radial-position",
     "--tw-mask-conic",
     "--tw-mask-conic-position",
     "--tw-mask-conic-from-color",
@@ -339,13 +340,13 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "mix-blend-mode",
     "box-shadow",
     "--tw-shadow",
-    "--tw-inset-shadow",
-    "--tw-inset-shadow-color",
     "--tw-ring-offset-shadow",
     "--tw-ring-shadow",
+    "--tw-inset-ring-shadow",
+    "--tw-inset-shadow",
     "--tw-shadow-color",
     "--tw-ring-color",
-    "--tw-inset-ring-shadow",
+    "--tw-inset-shadow-color",
     "--tw-inset-ring-color",
     "--tw-ring-offset-width",
     "--tw-ring-offset-color",
@@ -357,6 +358,7 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-brightness",
     "--tw-contrast",
     "--tw-drop-shadow",
+    "--tw-drop-shadow-color",
     "--tw-grayscale",
     "--tw-hue-rotate",
     "--tw-invert",
@@ -385,6 +387,13 @@ pub const PROPERTY_ORDER: &[&str] = &[
     "--tw-ring-inset",
     "contain",
     "content",
+    "text-shadow",
+    "--tw-text-shadow",
+    "--tw-text-shadow-color",
+    "backface-visibility",
+    "perspective",
+    "perspective-origin",
+    "transform-style",
     "forced-color-adjust",
 ];
 
@@ -413,8 +422,7 @@ static PROPERTY_INDEX_MAP: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
 /// ```
 /// use rustywind_core::property_order::get_property_index;
 ///
-/// assert_eq!(get_property_index("margin"), Some(26));
-/// assert_eq!(get_property_index("padding"), Some(250));
+/// assert!(get_property_index("margin") < get_property_index("padding"));
 /// assert_eq!(get_property_index("unknown-property"), None);
 /// ```
 #[inline]
@@ -428,10 +436,7 @@ mod tests {
 
     #[test]
     fn test_property_count() {
-        // exact original 341-property order that achieved 96% pass rate
-        // this was empirically tuned before the Tailwind v4 sync (commit 3758006)
-        // updated to 342 properties after Phase 1-3 improvements (99.92% pass rate)
-        assert_eq!(PROPERTY_ORDER.len(), 342);
+        assert_eq!(PROPERTY_ORDER.len(), 351);
     }
 
     #[test]
