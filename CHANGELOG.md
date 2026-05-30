@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [0.25.0-alpha.1] - 2026-05-30
+
+### Tailwind v4 support
+
+This release aligns rustywind's class sorting with Tailwind CSS v4 and the
+latest prettier-plugin-tailwindcss, adding support for new utilities, variants,
+and sorting behavior.
+
+- Update class extraction regex to handle arbitrary values with whitespace
+  (e.g. `max-w-[min(100%, 500px)]`)
+- Add bracket-depth-aware token splitting
+- Handle ellipsis placeholders (`...` and `…`) in dedup and sorting
+- Support prefix important modifier (`!bg-white`) and arbitrary CSS properties
+  (`[--foo:bar]`)
+- Support CSS variable shorthand values (`text-(--color)`)
+- Expand variant list from 58 to 82, adding `*`, `**`, `not-*`, `has`, `in`,
+  `aria`, `data`, `nth-*`, `max-*`, `min-*`
+- Add selector-dynamic and variant-mask comparison for proper data-/aria-/nth-*
+  variant ordering
+- Classify arbitrary variant selectors by type (combinators, pseudo-classes,
+  attribute selectors)
+- Update property order (342 → 351) with mask, shadow, perspective, and
+  text-shadow properties
+- Expand utility mapping with mask, gradient, drop-shadow, text-shadow, and
+  many other Tailwind v4 utilities
+- Improve color recognition with explicit core color name and shade checks
+- Add npm dist-tag support for prerelease publishing
+
 ## [0.24.3] - 2025-08-07
 
 - Fix version number mismatch
