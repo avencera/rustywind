@@ -193,27 +193,52 @@ pub fn prepare_binaries(version: &str, token: Option<&str>) -> Result<()> {
     Ok(())
 }
 
+/// Determine the npm dist-tag for a given version string.
+///
+/// Prerelease versions (e.g. "0.25.0-alpha.1") return a tag based on the
+/// prerelease identifier ("alpha", "beta", "rc"). Stable versions return None
+/// (npm defaults to "latest").
+fn dist_tag_for_version(version: &str) -> Option<String> {
+    let version = Version::parse(version.strip_prefix('v').unwrap_or(version)).ok()?;
+    version.pre.as_str().split('.').next().map(|id| id.to_string())
+}
+
+/// Build the base `npm publish` command with optional dist-tag.
+fn npm_publish_cmd(current_dir: &Path, tag: Option<&str>, dry_run: bool) -> Command {
+    let mut cmd = Command::new("npm");
+    cmd.arg("publish")
+        .arg("--access")
+        .arg("public")
+        .current_dir(current_dir);
+
+    if let Some(tag) = tag {
+        cmd.arg("--tag").arg(tag);
+    }
+
+    if dry_run {
+        cmd.arg("--dry-run");
+    }
+
+    cmd
+}
+
 /// Publish all npm packages
 pub fn publish(dry_run: bool) -> Result<()> {
     let packages_dir = npm_packages_dir();
     let target_map = target_to_package();
+    let current_version = get_current_version()?;
+    let tag = dist_tag_for_version(&current_version);
+
+    if let Some(ref tag) = tag {
+        println!("Detected prerelease {}, using --tag {}", current_version, tag);
+    }
 
     // Platform packages first
     for pkg_dir in target_map.values() {
         let pkg_path = packages_dir.join(pkg_dir);
         println!("Publishing rustywind-{}...", pkg_dir);
 
-        let mut cmd = Command::new("npm");
-        cmd.arg("publish")
-            .arg("--access")
-            .arg("public")
-            .current_dir(&pkg_path);
-
-        if dry_run {
-            cmd.arg("--dry-run");
-        }
-
-        let status = cmd.status()?;
+        let status = npm_publish_cmd(&pkg_path, tag.as_deref(), dry_run).status()?;
         if !status.success() && !dry_run {
             eprintln!("Warning: Failed to publish {}, may already exist", pkg_dir);
         }
@@ -233,17 +258,7 @@ pub fn publish(dry_run: bool) -> Result<()> {
         color_eyre::eyre::bail!("Failed to install dependencies for main package");
     }
 
-    let mut cmd = Command::new("npm");
-    cmd.arg("publish")
-        .arg("--access")
-        .arg("public")
-        .current_dir(&main_pkg_path);
-
-    if dry_run {
-        cmd.arg("--dry-run");
-    }
-
-    let status = cmd.status()?;
+    let status = npm_publish_cmd(&main_pkg_path, tag.as_deref(), dry_run).status()?;
     if !status.success() {
         color_eyre::eyre::bail!("Failed to publish main package");
     }
