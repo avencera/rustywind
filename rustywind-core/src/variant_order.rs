@@ -10,10 +10,10 @@
 //!
 //! ## Compound Variants
 //!
-//! Compound variants like `peer-hover` and `group-focus` require special handling.
-//! They are compared recursively: first by their base (peer, group), then by their
-//! modifier (hover, focus). This matches Tailwind's behavior where `peer-hover` comes
-//! before `peer-focus` because `hover` (index 37) comes before `focus` (index 38).
+//! Compound variants like `peer-hover`, `group-focus`, and `not-hover` require
+//! special handling. They are compared recursively: first by their base, then by
+//! their modifier. This matches Tailwind's behavior where `peer-hover` comes
+//! before `peer-focus` because `hover` comes before `focus`.
 
 /// The canonical order of variants from Tailwind CSS.
 ///
@@ -30,66 +30,89 @@
 /// assert!(get_variant_index("focus").unwrap() < get_variant_index("focus-visible").unwrap());
 /// ```
 pub const VARIANT_ORDER: &[&str] = &[
-    // Tailwind's exact variant order (extracted from Prettier plugin and Tailwind v4 source)
-    // This order is CRITICAL - group/peer MUST be early (indices 1-2), dark MUST be at index 56
+    // Tailwind's variant order, aligned with the current Prettier plugin defaults
     "read-write",        // 0
-    "group", // 1 ← CRITICAL! Was at index 76, causing peer-focus/group-hover to sort incorrectly
-    "peer",  // 2 ← CRITICAL! Was at index 75, causing peer-focus/group-hover to sort incorrectly
-    "first-letter", // 3
-    "first-line", // 4
-    "marker", // 5
-    "selection", // 6
-    "file",  // 7
-    "placeholder", // 8 ← Key for dark:placeholder
-    "backdrop", // 9
-    "before", // 10
-    "after", // 11
-    "first", // 12
-    "last",  // 13
-    "only",  // 14
-    "odd",   // 15
-    "even",  // 16
-    "first-of-type", // 17
-    "last-of-type", // 18
-    "only-of-type", // 19
-    "visited", // 20
-    "target", // 21
-    "open",  // 22
-    "default", // 23
-    "checked", // 24
-    "indeterminate", // 25
-    "placeholder-shown", // 26
-    "autofill", // 27
-    "optional", // 28
-    "required", // 29
-    "valid", // 30
-    "invalid", // 31
-    "in-range", // 32
-    "out-of-range", // 33
-    "read-only", // 34
-    "empty", // 35
-    "focus-within", // 36
-    "hover", // 37
-    "focus", // 38
-    "focus-visible", // 39
-    "active", // 40
-    "enabled", // 41
-    "disabled", // 42
-    "motion-safe", // 43
-    "motion-reduce", // 44
-    "contrast-more", // 45
-    "contrast-less", // 46
-    "sm",    // 47
-    "md",    // 48
-    "lg",    // 49
-    "xl",    // 50
-    "2xl",   // 51
-    "portrait", // 52
-    "landscape", // 53
-    "ltr",   // 54
-    "rtl",   // 55
-    "dark",  // 56 ← CRITICAL! Was at index 74, causing dark:placeholder to sort incorrectly
-    "print", // 57
+    "*",                 // 1
+    "**",                // 2
+    "not",               // 3
+    "not-sm",            // 4
+    "not-md",            // 5
+    "not-lg",            // 6
+    "not-xl",            // 7
+    "not-2xl",           // 8
+    "not-dark",          // 9
+    "group",             // 10
+    "peer",              // 11
+    "first-letter",      // 12
+    "first-line",        // 13
+    "marker",            // 14
+    "selection",         // 15
+    "file",              // 16
+    "placeholder",       // 17
+    "backdrop",          // 18
+    "before",            // 19
+    "after",             // 20
+    "first",             // 21
+    "last",              // 22
+    "only",              // 23
+    "odd",               // 24
+    "even",              // 25
+    "first-of-type",     // 26
+    "last-of-type",      // 27
+    "only-of-type",      // 28
+    "visited",           // 29
+    "target",            // 30
+    "open",              // 31
+    "default",           // 32
+    "checked",           // 33
+    "indeterminate",     // 34
+    "placeholder-shown", // 35
+    "autofill",          // 36
+    "optional",          // 37
+    "required",          // 38
+    "valid",             // 39
+    "invalid",           // 40
+    "in-range",          // 41
+    "out-of-range",      // 42
+    "read-only",         // 43
+    "empty",             // 44
+    "focus-within",      // 45
+    "hover",             // 46
+    "focus",             // 47
+    "focus-visible",     // 48
+    "active",            // 49
+    "enabled",           // 50
+    "disabled",          // 51
+    "in",                // 52
+    "has",               // 53
+    "aria",              // 54
+    "data",              // 55
+    "nth",               // 56
+    "nth-last",          // 57
+    "nth-of-type",       // 58
+    "nth-last-of-type",  // 59
+    "motion-safe",       // 60
+    "motion-reduce",     // 61
+    "contrast-more",     // 62
+    "contrast-less",     // 63
+    "max-[]",            // 64
+    "max-2xl",           // 65
+    "max-xl",            // 66
+    "max-lg",            // 67
+    "max-md",            // 68
+    "max-sm",            // 69
+    "min-[]",            // 70
+    "sm",                // 71
+    "md",                // 72
+    "lg",                // 73
+    "xl",                // 74
+    "2xl",               // 75
+    "portrait",          // 76
+    "landscape",         // 77
+    "ltr",               // 78
+    "rtl",               // 79
+    "dark",              // 80
+    "print",             // 81
 ];
 
 /// A structured representation of a variant that may be compound.
@@ -124,12 +147,14 @@ impl VariantInfo {
     /// Parse a variant string into structured form.
     ///
     /// Examples:
-    /// - "hover" → VariantInfo { base: "hover", modifier: None }
-    /// - "peer-hover" → VariantInfo { base: "peer", modifier: Some("hover") }
-    /// - "peer-focus-within" → VariantInfo { base: "peer", modifier: Some("focus-within") }
+    /// - "hover" -> VariantInfo { base: "hover", modifier: None }
+    /// - "peer-hover" -> VariantInfo { base: "peer", modifier: Some("hover") }
+    /// - "not-focus" -> VariantInfo { base: "not", modifier: Some("focus") }
     pub fn parse(variant: &str) -> Self {
-        // check for compound variants (peer-*, group-*)
-        if (variant.starts_with("peer-") || variant.starts_with("group-"))
+        // check for compound variants (peer-*, group-*, not-*)
+        if (variant.starts_with("peer-")
+            || variant.starts_with("group-")
+            || variant.starts_with("not-"))
             && let Some(dash_pos) = variant.find('-')
         {
             let base = &variant[..dash_pos];
@@ -155,8 +180,8 @@ impl VariantInfo {
 
         // CRITICAL: Use INDEX-based comparison for all variants
         // This matches Tailwind/Prettier's behavior where variants are sorted by their indices
-        // - focus:dark: < dark:focus: (by index: focus=38 < dark=56)
-        // - peer-hover: < peer-focus: (by index: hover=37 < focus=38)
+        // - focus:dark: < dark:focus: (focus comes before dark)
+        // - peer-hover: < peer-focus: (hover comes before focus)
         {
             // compound variants or modifiers: use indices
             let self_idx = get_variant_index(&self.base);
@@ -171,7 +196,9 @@ impl VariantInfo {
                                 (Some(m1), Some(m2)) => m1.cmp_variants_internal(m2, false), // NOT top level
                                 (Some(_), None) => Ordering::Greater, // Compound after simple
                                 (None, Some(_)) => Ordering::Less,    // Simple before compound
-                                (None, None) => Ordering::Equal,
+                                (None, None) => {
+                                    compare_dynamic_variant_bases(&self.base, &other.base)
+                                }
                             }
                         }
                         other => other,
@@ -183,6 +210,87 @@ impl VariantInfo {
             }
         }
     }
+}
+
+fn compare_dynamic_variant_bases(a: &str, b: &str) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    match (dynamic_variant_sort_key(a), dynamic_variant_sort_key(b)) {
+        (Some((a_kind, a_value)), Some((b_kind, b_value))) => {
+            a_kind.cmp(&b_kind).then_with(|| a_value.cmp(b_value))
+        }
+        _ => {
+            if a == b {
+                Ordering::Equal
+            } else {
+                a.cmp(b)
+            }
+        }
+    }
+}
+
+fn dynamic_variant_sort_key(variant: &str) -> Option<(u8, &str)> {
+    if let Some(value) = variant.strip_prefix("nth-last-of-type-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("nth-of-type-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("nth-last-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("nth-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("data-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("aria-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("in-") {
+        return Some(arbitrary_value_sort_key(value));
+    }
+
+    if let Some(value) = variant.strip_prefix("has-") {
+        return Some(has_variant_sort_key(value));
+    }
+
+    None
+}
+
+fn arbitrary_value_sort_key(value: &str) -> (u8, &str) {
+    if let Some(inner) = bracket_inner(value) {
+        (1, inner)
+    } else {
+        (0, value)
+    }
+}
+
+fn has_variant_sort_key(value: &str) -> (u8, &str) {
+    let Some(inner) = bracket_inner(value) else {
+        return (0, value);
+    };
+
+    let kind = match inner.as_bytes().first().copied() {
+        Some(b'.') | Some(b'#') => 1,
+        Some(b'+') => 2,
+        Some(b'~') => 3,
+        Some(b'[') => 4,
+        _ => 5,
+    };
+
+    (kind, inner)
+}
+
+fn bracket_inner(value: &str) -> Option<&str> {
+    value.strip_prefix('[')?.split(']').next()
 }
 
 /// Get the index of a variant in the canonical order.
@@ -198,20 +306,78 @@ impl VariantInfo {
 /// ```
 /// use rustywind_core::variant_order::get_variant_index;
 ///
-/// assert_eq!(get_variant_index("group"), Some(1));
-/// assert_eq!(get_variant_index("peer"), Some(2));
-/// assert_eq!(get_variant_index("placeholder"), Some(8));
-/// assert_eq!(get_variant_index("focus-within"), Some(36));
-/// assert_eq!(get_variant_index("hover"), Some(37));
-/// assert_eq!(get_variant_index("focus"), Some(38));
-/// assert_eq!(get_variant_index("focus-visible"), Some(39));
-/// assert_eq!(get_variant_index("sm"), Some(47));
-/// assert_eq!(get_variant_index("dark"), Some(56));
+/// assert_eq!(get_variant_index("group"), Some(10));
+/// assert_eq!(get_variant_index("peer"), Some(11));
+/// assert_eq!(get_variant_index("placeholder"), Some(17));
+/// assert_eq!(get_variant_index("focus-within"), Some(45));
+/// assert_eq!(get_variant_index("hover"), Some(46));
+/// assert_eq!(get_variant_index("focus"), Some(47));
+/// assert_eq!(get_variant_index("focus-visible"), Some(48));
+/// assert_eq!(get_variant_index("sm"), Some(71));
+/// assert_eq!(get_variant_index("dark"), Some(80));
 /// assert_eq!(get_variant_index("unknown-variant"), None);
 /// ```
 #[inline]
 pub fn get_variant_index(variant: &str) -> Option<usize> {
-    VARIANT_ORDER.iter().position(|&v| v == variant)
+    let variant = variant.split_once('/').map_or(variant, |(base, _)| base);
+
+    if let Some(index) = VARIANT_ORDER.iter().position(|&v| v == variant) {
+        return Some(index);
+    }
+
+    if variant.starts_with("group-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "group");
+    }
+
+    if variant.starts_with("peer-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "peer");
+    }
+
+    if variant.starts_with("not-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "not");
+    }
+
+    if variant.starts_with("max-[") {
+        return VARIANT_ORDER.iter().position(|&v| v == "max-[]");
+    }
+
+    if variant.starts_with("min-[") {
+        return VARIANT_ORDER.iter().position(|&v| v == "min-[]");
+    }
+
+    if variant.starts_with("in-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "in");
+    }
+
+    if variant.starts_with("has-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "has");
+    }
+
+    if variant.starts_with("aria-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "aria");
+    }
+
+    if variant.starts_with("data-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "data");
+    }
+
+    if variant.starts_with("nth-last-of-type-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "nth-last-of-type");
+    }
+
+    if variant.starts_with("nth-of-type-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "nth-of-type");
+    }
+
+    if variant.starts_with("nth-last-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "nth-last");
+    }
+
+    if variant.starts_with("nth-") {
+        return VARIANT_ORDER.iter().position(|&v| v == "nth");
+    }
+
+    None
 }
 
 /// Parse a list of variant strings into structured variant infos.
@@ -243,20 +409,37 @@ pub fn parse_variants(variants: &[&str]) -> Vec<VariantInfo> {
 pub fn compare_variant_lists(a: &[VariantInfo], b: &[VariantInfo]) -> std::cmp::Ordering {
     use std::cmp::Ordering;
 
-    // compare element by element first (lexicographic comparison)
-    for (v1, v2) in a.iter().zip(b.iter()) {
-        match v1.cmp_variants(v2) {
-            Ordering::Equal => continue,
-            other => return other,
-        }
+    let (Some((a_head, a_tail)), Some((b_head, b_tail))) = (a.split_first(), b.split_first())
+    else {
+        return a.len().cmp(&b.len());
+    };
+
+    match compare_variant_base_order(a_head, b_head) {
+        Ordering::Equal => {}
+        other => return other,
     }
 
-    // all common elements are equal - now compare by length
+    if a.len() != b.len() {
+        return a.len().cmp(&b.len());
+    }
 
-    // in ALL cases (including duplicate pseudo-elements), shorter variant lists come FIRST
-    // this matches Prettier/Tailwind behavior: after: comes before after:after:
-    // Tailwind does NOT have special handling for duplicate pseudo-elements
-    a.len().cmp(&b.len()) // FEWER variants = LESS (comes first)
+    match compare_variant_lists(a_tail, b_tail) {
+        Ordering::Equal => {}
+        other => return other,
+    }
+
+    a_head.cmp_variants(b_head)
+}
+
+fn compare_variant_base_order(a: &VariantInfo, b: &VariantInfo) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    match (get_variant_index(&a.base), get_variant_index(&b.base)) {
+        (Some(a_idx), Some(b_idx)) => a_idx.cmp(&b_idx),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => a.base.cmp(&b.base),
+    }
 }
 
 /// Calculate the variant order as a bitwise flag for sorting.
@@ -281,19 +464,19 @@ pub fn compare_variant_lists(a: &[VariantInfo], b: &[VariantInfo]) -> std::cmp::
 /// let order = calculate_variant_order(&["placeholder", "dark"]);
 /// assert!(order > calculate_variant_order(&["hover"]));
 /// ```
-/// Bit 63 is set for ANY class with arbitrary/unknown variants.
+/// A high bit is set for ANY class with arbitrary/unknown variants.
 /// This ensures the sorting order:
 /// 1. Base classes (no variants) → variant_order = 0
 /// 2. Known-only variants (e.g., hover:block) → variant_order = 2^(known_index)
-/// 3. Classes with ANY arbitrary variant → variant_order has bit 63 set
+/// 3. Classes with ANY arbitrary variant → variant_order has a high arbitrary bit set
 ///
 /// Within classes with arbitrary variants:
-/// - Pure arbitrary (e.g., [&.x]:block) = 2^63
-/// - Mixed (e.g., hover:[&.x]:block) = 2^63 + 2^37
-/// - Since 2^63 < 2^63 + 2^37, pure sorts BEFORE mixed
+/// - Pure arbitrary (e.g., [&.x]:block) = `ARBITRARY_VARIANT_BIT`
+/// - Mixed (e.g., hover:[&.x]:block) = `ARBITRARY_VARIANT_BIT + 2^37`
+/// - Since the pure arbitrary value has fewer known bits, it sorts before mixed
 ///
 /// This matches Tailwind's algorithm where arbitrary variants sort AFTER non-arbitrary.
-const ARBITRARY_VARIANT_BIT: u128 = 1u128 << 63;
+pub(crate) const ARBITRARY_VARIANT_BIT: u128 = 1u128 << 120;
 
 pub fn calculate_variant_order(variants: &[&str]) -> u128 {
     if variants.is_empty() {
@@ -305,8 +488,8 @@ pub fn calculate_variant_order(variants: &[&str]) -> u128 {
 
     for variant in variants {
         if let Some(idx) = get_variant_index(variant) {
-            // known variant - set bit at its index (0-57)
-            if idx < 63 {
+            // known variant - set bit at its index
+            if idx < 120 {
                 order |= 1u128 << idx;
             }
         } else if variant.starts_with('[') {
@@ -316,14 +499,14 @@ pub fn calculate_variant_order(variants: &[&str]) -> u128 {
             // handle compound variants like "peer-hover", "group-focus", or "peer-focus-within"
             // CRITICAL: For compound variants, use ONLY the base part (peer, group) for sorting
             // The modifier (hover, focus) is used for tiebreaking elsewhere, not in bitwise order
-            // this makes peer-hover sort at peer's position (index 2), not hover's position (index 37)
+            // this makes peer-hover sort at peer's position, not hover's position
             if let Some(dash_pos) = variant.find('-') {
                 let first_part = &variant[..dash_pos];
 
                 // only add the first part (base variant) to the order
-                // this ensures peer-hover sorts near peer (index 2), not near hover (index 37)
+                // this ensures peer-hover sorts near peer, not near hover
                 if let Some(idx) = get_variant_index(first_part)
-                    && idx < 63
+                    && idx < 120
                 {
                     order |= 1u128 << idx;
                 } else {
@@ -336,8 +519,8 @@ pub fn calculate_variant_order(variants: &[&str]) -> u128 {
         }
     }
 
-    // set bit 63 for ANY class with arbitrary variants
-    // this ensures: hover:block (2^37) sorts BEFORE [&.a]:block (2^63)
+    // set a high bit for any class with arbitrary variants
+    // this ensures: hover:block sorts before [&.a]:block
     if has_arbitrary {
         order |= ARBITRARY_VARIANT_BIT;
     }
@@ -351,43 +534,45 @@ mod tests {
 
     #[test]
     fn test_variant_count() {
-        assert_eq!(VARIANT_ORDER.len(), 58);
+        assert_eq!(VARIANT_ORDER.len(), 82);
     }
 
     #[test]
     fn test_get_variant_index() {
         // test critical early positions
         assert_eq!(get_variant_index("read-write"), Some(0));
-        assert_eq!(get_variant_index("group"), Some(1));
-        assert_eq!(get_variant_index("peer"), Some(2));
+        assert_eq!(get_variant_index("group"), Some(10));
+        assert_eq!(get_variant_index("peer"), Some(11));
 
         // test pseudo-elements
-        assert_eq!(get_variant_index("placeholder"), Some(8));
-        assert_eq!(get_variant_index("before"), Some(10));
-        assert_eq!(get_variant_index("after"), Some(11));
+        assert_eq!(get_variant_index("placeholder"), Some(17));
+        assert_eq!(get_variant_index("before"), Some(19));
+        assert_eq!(get_variant_index("after"), Some(20));
 
         // test interactive variants (order: focus-within, hover, focus, focus-visible, active)
-        assert_eq!(get_variant_index("focus-within"), Some(36));
-        assert_eq!(get_variant_index("hover"), Some(37));
-        assert_eq!(get_variant_index("focus"), Some(38));
-        assert_eq!(get_variant_index("focus-visible"), Some(39));
-        assert_eq!(get_variant_index("active"), Some(40));
+        assert_eq!(get_variant_index("focus-within"), Some(45));
+        assert_eq!(get_variant_index("hover"), Some(46));
+        assert_eq!(get_variant_index("focus"), Some(47));
+        assert_eq!(get_variant_index("focus-visible"), Some(48));
+        assert_eq!(get_variant_index("active"), Some(49));
 
         // test enabled/disabled (enabled comes before disabled)
-        assert_eq!(get_variant_index("enabled"), Some(41));
-        assert_eq!(get_variant_index("disabled"), Some(42));
+        assert_eq!(get_variant_index("enabled"), Some(50));
+        assert_eq!(get_variant_index("disabled"), Some(51));
 
         // test responsive variants
-        assert_eq!(get_variant_index("sm"), Some(47));
-        assert_eq!(get_variant_index("md"), Some(48));
-        assert_eq!(get_variant_index("lg"), Some(49));
+        assert_eq!(get_variant_index("max-xl"), Some(66));
+        assert_eq!(get_variant_index("min-[900px]"), Some(70));
+        assert_eq!(get_variant_index("sm"), Some(71));
+        assert_eq!(get_variant_index("md"), Some(72));
+        assert_eq!(get_variant_index("lg"), Some(73));
 
         // test orientation (portrait before landscape)
-        assert_eq!(get_variant_index("portrait"), Some(52));
-        assert_eq!(get_variant_index("landscape"), Some(53));
+        assert_eq!(get_variant_index("portrait"), Some(76));
+        assert_eq!(get_variant_index("landscape"), Some(77));
 
         // test critical dark position
-        assert_eq!(get_variant_index("dark"), Some(56));
+        assert_eq!(get_variant_index("dark"), Some(80));
 
         // test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);
@@ -476,18 +661,18 @@ mod tests {
 
     #[test]
     fn test_calculate_variant_order_unknown() {
-        // unknown variants should set bit 63 so they sort after known-only
+        // unknown variants should set the arbitrary bit so they sort after known-only
         let order = calculate_variant_order(&["unknown-variant"]);
         assert!(order > 0, "unknown variants should have non-zero order");
         assert!(
             order & ARBITRARY_VARIANT_BIT != 0,
-            "unknown variants should set bit 63"
+            "unknown variants should set the arbitrary bit"
         );
 
-        // mix of known and unknown SHOULD set bit 63 (has arbitrary)
+        // mix of known and unknown should set the arbitrary bit
         let mixed_order = calculate_variant_order(&["hover", "unknown", "focus"]);
         let known_order = calculate_variant_order(&["hover", "focus"]);
-        // mixed should have known bits PLUS bit 63
+        // mixed should have known bits plus the arbitrary bit
         assert_eq!(
             mixed_order,
             known_order | ARBITRARY_VARIANT_BIT,
@@ -495,7 +680,7 @@ mod tests {
         );
         assert!(
             mixed_order & ARBITRARY_VARIANT_BIT != 0,
-            "mixed order should have bit 63 set"
+            "mixed order should have the arbitrary bit set"
         );
     }
 
@@ -516,7 +701,7 @@ mod tests {
             "pure arbitrary variants should sort after print"
         );
 
-        // pure arbitrary variants should have bit 63 set
+        // pure arbitrary variants should have the arbitrary bit set
         assert!(arbitrary_order & ARBITRARY_VARIANT_BIT != 0);
 
         // different pure arbitrary variants should all sort after known-only variants
@@ -525,27 +710,27 @@ mod tests {
         assert!(arbitrary2_order > print_order);
         assert!(arbitrary3_order > print_order);
 
-        // mixed variants (known + arbitrary) SHOULD have bit 63 set
+        // mixed variants (known + arbitrary) should have the arbitrary bit set
         // they sort AFTER known-only, but pure arbitrary sorts BEFORE mixed
-        // because pure has only bit 63, while mixed has bit 63 + known bits
+        // because pure has only the arbitrary bit, while mixed also has known bits
         let focus_order = calculate_variant_order(&["focus"]);
         let mixed_order = calculate_variant_order(&["focus", "[&.collapsed]"]);
 
-        // mixed SHOULD have bit 63 (has arbitrary variant)
+        // mixed should have the arbitrary bit
         assert!(
             mixed_order & ARBITRARY_VARIANT_BIT != 0,
-            "mixed variants should have bit 63 set"
+            "mixed variants should have the arbitrary bit set"
         );
-        // mixed should have known bits + bit 63
+        // mixed should have known bits plus the arbitrary bit
         assert_eq!(
             mixed_order,
             focus_order | ARBITRARY_VARIANT_BIT,
             "mixed order should equal focus bit + arbitrary bit"
         );
-        // pure arbitrary (just bit 63) should sort BEFORE mixed (bit 63 + focus bit)
+        // pure arbitrary should sort before mixed arbitrary plus focus
         assert!(
             arbitrary_order < mixed_order,
-            "pure arbitrary should sort before mixed (2^63 < 2^63 + 2^focus)"
+            "pure arbitrary should sort before mixed arbitrary plus focus"
         );
     }
 
@@ -562,7 +747,7 @@ mod tests {
     #[test]
     fn test_high_index_variants() {
         // test variants at higher indices to ensure they work correctly
-        // dark is at index 56, portrait at 52, print at 57
+        // dark, portrait, and print are high enough to catch bit-width regressions
 
         // get the actual indices
         let dark_idx = get_variant_index("dark").unwrap();
@@ -570,9 +755,9 @@ mod tests {
         let print_idx = get_variant_index("print").unwrap();
 
         // verify expected indices
-        assert_eq!(dark_idx, 56, "dark should be at index 56");
-        assert_eq!(portrait_idx, 52, "portrait should be at index 52");
-        assert_eq!(print_idx, 57, "print should be at index 57");
+        assert_eq!(dark_idx, 80, "dark should be at index 80");
+        assert_eq!(portrait_idx, 76, "portrait should be at index 76");
+        assert_eq!(print_idx, 81, "print should be at index 81");
 
         // calculate variant orders - these should NOT be 0
         let dark_order = calculate_variant_order(&["dark"]);
@@ -616,22 +801,19 @@ mod tests {
         assert!(dark_order > base_order);
         assert!(hover_order > base_order);
 
-        // dark (index 56) should come after hover (index 37)
+        // dark should come after hover
         assert!(dark_order > hover_order);
     }
 
     #[test]
     fn test_compound_variants() {
-        // test that compound variants use ONLY the base part for ordering
-        // this is critical for proper sorting where peer-hover sorts at peer's position (index 2)
+        // test that compound variants use their group/peer variant buckets
         let peer_hover_order = calculate_variant_order(&["peer-hover"]);
         let peer_order = calculate_variant_order(&["peer"]);
 
-        // peer-hover should equal peer (not peer | hover)
-        // this makes it sort at peer's early position (index 2), not hover's later position (index 37)
         assert_eq!(
             peer_hover_order, peer_order,
-            "peer-hover should sort at peer's position"
+            "peer-hover should sort at peer position"
         );
 
         // test group-focus
@@ -640,7 +822,7 @@ mod tests {
 
         assert_eq!(
             group_focus_order, group_order,
-            "group-focus should sort at group's position"
+            "group-focus should sort at group position"
         );
 
         // test multi-dash compound (peer-focus-within)
@@ -648,29 +830,30 @@ mod tests {
 
         assert_eq!(
             peer_focus_within_order, peer_order,
-            "peer-focus-within should sort at peer's position"
+            "peer-focus-within should sort at peer position"
         );
 
         // test that compound variants sort correctly relative to simple variants
-        // peer-hover uses peer's index (2), so it sorts BEFORE after (index 11)
+        // peer-hover sorts before first-letter and after not-dark in the official plugin
         let after_order = calculate_variant_order(&["after"]);
         assert!(
             peer_hover_order < after_order,
-            "peer-hover (index 2) should sort before after (index 11)"
+            "peer-hover should sort before after"
         );
+        assert!(peer_hover_order > calculate_variant_order(&["not-dark"]));
 
-        // peer-hover also sorts before dark (index 56)
+        // peer-hover also sorts before dark
         let dark_order = calculate_variant_order(&["dark"]);
         assert!(
             peer_hover_order < dark_order,
-            "peer-hover (index 2) should sort before dark (index 56)"
+            "peer-hover should sort before dark"
         );
 
-        // but peer-hover sorts after group (index 1) since peer is at index 2
+        // but peer-hover sorts after group since peer is after group
         let group_hover_order = calculate_variant_order(&["group-hover"]);
         assert!(
             group_hover_order < peer_hover_order,
-            "group-hover (index 1) should sort before peer-hover (index 2)"
+            "group-hover should sort before peer-hover"
         );
     }
 
@@ -711,7 +894,7 @@ mod tests {
             seen_orders.insert(order);
         }
 
-        // Verify we have unique orders for all 58 variants + base (0)
+        // verify we have unique orders for all variants plus base
         assert_eq!(
             seen_orders.len(),
             VARIANT_ORDER.len() + 1,
