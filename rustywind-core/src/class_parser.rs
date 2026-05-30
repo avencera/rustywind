@@ -88,7 +88,9 @@ impl<'a> ParsedClass<'a> {
     /// assert_eq!(parsed.full_utility(), "flex");
     /// ```
     pub fn full_utility(&self) -> String {
-        if self.value.is_empty() {
+        if self.utility.is_empty() {
+            self.value.to_string()
+        } else if self.value.is_empty() {
             self.utility.to_string()
         } else {
             format!("{}-{}", self.utility, self.value)
@@ -166,8 +168,8 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
 
     let mut working = class;
 
-    // handle important modifier (!)
-    let important = working.ends_with('!');
+    // handle important suffix modifier
+    let mut important = working.ends_with('!');
     if important {
         working = &working[..working.len() - 1];
     }
@@ -180,8 +182,20 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
         return None;
     }
 
+    if parts.len() > 1
+        && parts[..parts.len() - 1]
+            .iter()
+            .any(|part| part.starts_with('!'))
+    {
+        return None;
+    }
+
     // last part is the utility (with value)
-    let utility_part = parts[parts.len() - 1];
+    let mut utility_part = parts[parts.len() - 1];
+    if let Some(stripped) = utility_part.strip_prefix('!') {
+        important = true;
+        utility_part = stripped;
+    }
 
     // everything before is variants
     // Tailwind parses variants RIGHT-TO-LEFT, so we need to reverse them
@@ -252,10 +266,26 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         return None;
     }
 
+    // handle arbitrary properties: [--foo:bar], [mask-image:...]
+    if utility.starts_with('[') {
+        return Some((utility, ""));
+    }
+
     // handle arbitrary values: bg-[#fff], w-[100px]
-    if let Some(bracket_start) = utility.find('[') {
+    if let Some(bracket_start) = utility.find('[')
+        && utility.as_bytes().get(bracket_start.saturating_sub(1)) != Some(&b'/')
+    {
         let base = &utility[..bracket_start.saturating_sub(1)];
         let value = &utility[bracket_start..];
+        return Some((base, value));
+    }
+
+    // handle CSS variable shorthand values: text-(--color), rounded-(--radius)
+    if let Some(paren_start) = utility.find('(')
+        && utility.as_bytes().get(paren_start.saturating_sub(1)) == Some(&b'-')
+    {
+        let base = &utility[..paren_start.saturating_sub(1)];
+        let value = &utility[paren_start..];
         return Some((base, value));
     }
 
@@ -272,14 +302,44 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         "min-h",
         "max-w",
         "max-h",
+        "inset-ring",
+        "inset-x",
+        "inset-y",
+        "scroll-mx",
+        "scroll-my",
+        "scroll-ms",
+        "scroll-me",
+        "scroll-mt",
+        "scroll-mr",
+        "scroll-mb",
+        "scroll-ml",
+        "scroll-m",
+        "scroll-px",
+        "scroll-py",
+        "scroll-ps",
+        "scroll-pe",
+        "scroll-pt",
+        "scroll-pr",
+        "scroll-pb",
+        "scroll-pl",
+        "scroll-p",
         "border-t",
         "border-r",
         "border-b",
         "border-l",
         "border-x",
         "border-y",
+        "border-bs",
+        "border-be",
+        "border-is",
+        "border-ie",
         "border-s",
         "border-e",
+        "border-spacing",
+        "inset-bs",
+        "inset-be",
+        "inset-s",
+        "inset-e",
         "rounded-t",
         "rounded-r",
         "rounded-b",
@@ -301,11 +361,23 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         "auto-rows",
         "gap-x",
         "gap-y",
+        "flex-grow",
         "flex-row",
+        "flex-shrink",
         "flex-col",
         "flex-wrap",
         "flex-nowrap",
         "ring-offset",
+        "ring-opacity",
+        "ring-inset",
+        "drop-shadow",
+        "bg-position",
+        "bg-size",
+        "bg-linear",
+        "bg-radial",
+        "bg-conic",
+        "text-shadow",
+        "inset-shadow",
         "col-span",
         "col-start",
         "col-end",
@@ -314,8 +386,23 @@ fn parse_utility_value(utility: &str) -> Option<(&str, &str)> {
         "row-end",
         "translate-x",
         "translate-y",
+        "translate-z",
+        "perspective-origin",
         "scale-x",
         "scale-y",
+        "scale-z",
+        "rotate-x",
+        "rotate-y",
+        "rotate-z",
+        "mask-radial",
+        "mask-radial-at",
+        "mask-linear",
+        "mask-conic",
+        "mask-clip",
+        "mask-origin",
+        "mask-size",
+        "mask-x",
+        "mask-y",
         "skew-x",
         "skew-y",
         "backdrop-blur",
@@ -415,6 +502,11 @@ mod tests {
         assert_eq!(parsed.utility, "bg");
         assert_eq!(parsed.value, "red-500");
         assert!(parsed.important);
+
+        let parsed = parse_class("!max-w-5xl").unwrap();
+        assert_eq!(parsed.utility, "max-w");
+        assert_eq!(parsed.value, "5xl");
+        assert!(parsed.important);
     }
 
     #[test]
@@ -425,6 +517,14 @@ mod tests {
         assert_eq!(parsed.utility, "mx");
         assert_eq!(parsed.value, "4");
         assert!(parsed.important);
+
+        let parsed = parse_class("hover:!bg-white").unwrap();
+        assert_eq!(parsed.variants, vec!["hover"]);
+        assert_eq!(parsed.utility, "bg");
+        assert_eq!(parsed.value, "white");
+        assert!(parsed.important);
+
+        assert!(parse_class("!hover:bg-white").is_none());
     }
 
     #[test]
