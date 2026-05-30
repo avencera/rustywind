@@ -1,0 +1,20 @@
+{
+  "name": "rustywind-linux-arm64-gnu",
+  "version": "0.25.0-alpha.1",
+  "cpu": [
+    "arm64"
+  ],
+  "description": "The Linux ARM64 (glibc) binary for rustywind",
+  "files": [
+    "rustywind"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
+  "license": "MIT",
+  "preferUnplugged": true,
+  "os": [
+    "linux"
+  ]
+}

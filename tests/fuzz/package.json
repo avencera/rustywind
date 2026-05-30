@@ -1,0 +1,20 @@
+{
+  "name": "rustywind-fuzz-test",
+  "version": "1.0.0",
+  "description": "Fuzz testing RustyWind against Prettier's Tailwind plugin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:fuzz && npm run test:patterns",
+    "test:fuzz": "node compare.js",
+    "test:patterns": "node compare-real-world-patterns.js",
+    "test:with-legacy": "FILTER_LEGACY=false node compare.js"
+  },
+  "dependencies": {
+    "seedrandom": "^3.0.5"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.7.1"
+  }
+}

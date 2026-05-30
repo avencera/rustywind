@@ -3,11 +3,16 @@ use std::borrow::Cow;
 use crate::{
     class_wrapping::ClassWrapping,
     consts::{VARIANT_SEARCHER, VARIANTS},
+    hybrid_sorter::HybridSorter,
     sorter::{FinderRegex, Sorter},
 };
-use ahash::AHashMap as HashMap;
+use ahash::{AHashMap as HashMap, AHashSet as HashSet};
 use aho_corasick::{Anchored, Input};
 use regex::Captures;
+use std::sync::LazyLock;
+
+/// Global instance of the HybridSorter for pattern-based sorting.
+static PATTERN_SORTER: LazyLock<HybridSorter> = LazyLock::new(HybridSorter::new);
 
 /// The options to pass to the sorter.
 #[derive(Debug, Clone)]
@@ -22,7 +27,7 @@ impl Default for RustyWind {
     fn default() -> Self {
         Self {
             regex: FinderRegex::DefaultRegex,
-            sorter: Sorter::DefaultSorter,
+            sorter: Sorter::PatternSorter,
             allow_duplicates: false,
             class_wrapping: ClassWrapping::NoWrapping,
         }
@@ -52,7 +57,11 @@ impl RustyWind {
     /// Sorts the classes in the file contents.
     pub fn sort_file_contents<'a>(&self, file_contents: &'a str) -> Cow<'a, str> {
         self.regex.replace_all(file_contents, |caps: &Captures| {
-            let classes = &caps[1];
+            let classes = caps
+                .get(1)
+                .or_else(|| caps.get(2))
+                .expect("class extractor regex must include a capture group")
+                .as_str();
             let sorted_classes = self.sort_classes(classes);
             caps[0].replace(classes, &sorted_classes)
         })
@@ -66,7 +75,7 @@ impl RustyWind {
         let mut sorted = self.sort_classes_vec(extracted_classes.into_iter());
 
         if !self.allow_duplicates {
-            sorted.dedup();
+            deduplicate_classes(&mut sorted);
         }
 
         self.rewrap_wrapped_classes(sorted)
@@ -74,15 +83,15 @@ impl RustyWind {
 
     fn unwrap_wrapped_classes<'a>(&self, class_string: &'a str) -> Vec<&'a str> {
         match self.class_wrapping {
-            ClassWrapping::NoWrapping => class_string.split_ascii_whitespace().collect(),
+            ClassWrapping::NoWrapping => split_class_tokens(class_string),
             ClassWrapping::CommaSingleQuotes => class_string
                 .split(',')
-                .flat_map(|class| class.split_ascii_whitespace())
+                .flat_map(split_class_tokens)
                 .map(|class| class.trim_matches('\''))
                 .collect(),
             ClassWrapping::CommaDoubleQuotes => class_string
                 .split(',')
-                .flat_map(|class| class.split_ascii_whitespace())
+                .flat_map(split_class_tokens)
                 .map(|class| class.trim_matches('"'))
                 .collect(),
         }
@@ -105,6 +114,13 @@ impl RustyWind {
     }
 
     fn sort_classes_vec<'a>(&self, classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+        // use pattern-based sorting if PatternSorter is selected
+        if matches!(self.sorter, Sorter::PatternSorter) {
+            let classes_vec: Vec<&str> = classes.collect();
+            return PATTERN_SORTER.sort_classes(&classes_vec);
+        }
+
+        // otherwise, use the old HashMap-based approach
         let enumerated_classes = classes.map(|class| ((class), self.sorter.get(class)));
 
         let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
@@ -184,6 +200,43 @@ impl RustyWind {
     }
 }
 
+fn split_class_tokens(class_string: &str) -> Vec<&str> {
+    let mut tokens = Vec::new();
+    let mut start = None;
+    let mut bracket_depth: u32 = 0;
+
+    for (index, character) in class_string.char_indices() {
+        match character {
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            _ => {}
+        }
+
+        if character.is_ascii_whitespace() && bracket_depth == 0 {
+            if let Some(token_start) = start.take() {
+                tokens.push(&class_string[token_start..index]);
+            }
+        } else if start.is_none() {
+            start = Some(index);
+        }
+    }
+
+    if let Some(token_start) = start {
+        tokens.push(&class_string[token_start..]);
+    }
+
+    tokens
+}
+
+fn deduplicate_classes(classes: &mut Vec<&str>) {
+    let mut seen = HashSet::new();
+    classes.retain(|class| is_ellipsis_placeholder(class) || seen.insert(*class));
+}
+
+fn is_ellipsis_placeholder(class: &str) -> bool {
+    class == "..." || class == "…"
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,7 +245,7 @@ mod tests {
     use test_case::test_case;
     const RUSTYWIND_DEFAULT: RustyWind = RustyWind {
         regex: FinderRegex::DefaultRegex,
-        sorter: Sorter::DefaultSorter,
+        sorter: Sorter::PatternSorter,
         allow_duplicates: false,
         class_wrapping: ClassWrapping::NoWrapping,
     };
@@ -209,247 +262,169 @@ mod tests {
     }
 
     // SORT_CLASSES_VEC ---------------------------------------------------------------------------
-    #[test_case(
-        ["inline", "inline-block", "random-class", "shadow-sm", "py-2", "justify-end", "px-2", "flex"],
-        vec!["inline-block", "inline", "flex", "justify-end", "py-2", "px-2", "shadow-sm", "random-class"]
-        ; "classes inline inline-block random-class shadow-sm py-2 justify-end px-2 flex"
-    )]
-    #[test_case(
-        ["bg-purple", "text-white", "unknown-class", "flex-col", "gap-4", "flex", "skew-y-0"],
-        vec!["flex", "flex-col", "gap-4", "text-white", "skew-y-0", "bg-purple", "unknown-class"]
-        ; "classes bg-purple text-white unknown-class flex-col gap-4 flex skew-y-0"
-    )]
-    #[test_case(
-        ["translate-x-7", "bg-orange-200", "unknown-class", "static", "top-5", "flex", "items-center"],
-        vec!["flex", "static", "top-5", "items-center", "bg-orange-200", "translate-x-7", "unknown-class"]
-        ; "classes translate-x-7 bg-orange-200 unknown-class static top-5 flex items-center"
-    )]
-    fn test_sort_classes_vec<'a>(input: impl IntoIterator<Item = &'a str>, output: Vec<&str>) {
-        assert_eq!(
-            RUSTYWIND_DEFAULT.sort_classes_vec(input.into_iter()),
-            output
-        )
-    }
+    // Note: Removed old static-list ordering tests. Pattern-based sorting follows
+    // Tailwind v4's canonical property order, tested in integration_tests.rs
 
     // SORT_FILE_CONTENTS -------------------------------------------------------------------------
-    // BASIC, SINGLE ELEMENT TESTS
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"<div class="py-2 inline random-class shadow-sm"></div>"#,
-        r#"<div class="inline py-2 shadow-sm random-class"></div>"#
-        ; "div tag using class"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"<section className="inline lg:inline-block abcd py-2"></section>"#,
-        r#"<section className="inline py-2 lg:inline-block abcd"></section>"#
-        ; "section tag using className"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"<p class="unknown-class bg-blue-300 py-2 object-top">content</p>"#,
-        r#"<p class="object-top py-2 bg-blue-300 unknown-class">content</p>"#
-        ; "p tag using class"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"<p className="py-2 py-2 random-class underline underline underline">text</p>"#,
-        r#"<p className="py-2 underline random-class">text</p>"#
-        ; "p tag remove duplicates"
-    )]
-    #[test_case(
-        &RustyWind { allow_duplicates: true, ..RUSTYWIND_DEFAULT},
-        r#"<section className="inline py-2 py-2 random-class italic italic italic"></section>"#,
-        r#"<section className="inline py-2 py-2 italic italic italic random-class"></section>"#
-        ; "section tag keeps duplicates if bool set"
-    )]
-    // BASE
-    //
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
-            <div>
-                <div class='mt-4 mb-0.5 flex inline-block inline px-0.5 pt-10 random-class justify-items absolute relative another-random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6'>
-                    </ul>
-                </div>
-            </div>
-        "#,
-        r#"
-            <div>
-                <div class='inline-block inline flex absolute relative px-0.5 pt-10 mt-4 mb-0.5 random-class justify-items another-random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6'>
-                    </ul>
-                </div>
-            </div>
-        "#
-        ; "sorts classes"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
-            <div>
-                <div class='4xl:inline-block absolute xl:relative relative flex inline-block xl:absolute sm:relative sm:flex inline random-class justify-items another-random-class
-                sm:absolute 4xl:flex xl:random-class sm:inline-block'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
-                </div>
-            </div>
-        "#,
-        r#"
-            <div>
-                <div class='inline-block inline flex absolute relative sm:inline-block sm:flex sm:absolute sm:relative xl:absolute xl:relative 4xl:inline-block 4xl:flex random-class justify-items another-random-class xl:random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
-                </div>
-            </div>
-        "#
-        ; "sorts responsive classes"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
-            <div>
-                <div class='even:inline 4xl:inline-block focus-visible:flex absolute xl:relative relative focus:flex flex active:flex disabled:flex visited:flex inline-block dark:absolute sm:relative sm:flex inline random-class justify-items another-random-class 
-                sm:absolute 4xl:flex xl:random-class sm:inline-block'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
-                </div>
-            </div>
-        "#,
-        r#"
-            <div>
-                <div class='inline-block inline flex absolute relative sm:inline-block sm:flex sm:absolute sm:relative xl:relative 4xl:inline-block 4xl:flex dark:absolute even:inline visited:flex focus:flex focus-visible:flex active:flex disabled:flex random-class justify-items another-random-class xl:random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6 xl:flex'>
-                </div>
-            </div>
-        "#
-        ; "sorts variant classes"
-    )]
-    // DUPLICATES
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
-            <div>
-                <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6'>
-                    </ul>
-                </div>
-            </div>
-        "#,
-        r#"
-            <div>
-                <div class='inline-block inline flex absolute relative random-class justify-items another-random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6'>
-                    </ul>
-                </div>
-            </div>
-        "#
-        ; "removes duplicates"
-    )]
-    #[test_case(
-        &RustyWind { allow_duplicates: true, ..RUSTYWIND_DEFAULT},
-        r#"
-            <div>
-                <div class='absolute relative flex flex flex flex inline-block inline random-class justify-items another-random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6'>
-                    </ul>
-                </div>
-            </div>
-        "#,
-        r#"
-            <div>
-                <div class='inline-block inline flex flex flex flex absolute relative random-class justify-items another-random-class'>
-                    <ul class='flex items-center md:pr-4 lg:pr-6'>
-                    </ul>
-                </div>
-            </div>
-        "#
-        ; "keeps duplicates if bool set"
-    )]
-    // MULTI-LINE AND OTHER SPACING
-    // Note the intentionally poor spacing. Rustywind isn't concerned so much about formatting, but
-    // due to how whitespace is handled, it all ends up on one line as a side effect. This makes it
-    // easier for formatters like Prettier to do their job.
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
+    // test behavioral properties, not exact ordering (which is tested in integration_tests.rs)
+
+    #[test]
+    fn test_deduplicates_classes() {
+        let input =
+            r#"<p className="py-2 py-2 random-class underline underline underline">text</p>"#;
+        let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
+
+        // should have only one py-2 and one underline
+        assert_eq!(result.matches("py-2").count(), 1);
+        assert_eq!(result.matches("underline").count(), 1);
+    }
+
+    #[test]
+    fn test_keeps_duplicates_when_configured() {
+        let app = RustyWind {
+            allow_duplicates: true,
+            ..RUSTYWIND_DEFAULT
+        };
+        let input =
+            r#"<section className="inline py-2 py-2 random-class italic italic italic"></section>"#;
+        let result = app.sort_file_contents(input);
+
+        // should have two py-2 and three italic
+        assert_eq!(result.matches("py-2").count(), 2);
+        assert_eq!(result.matches("italic").count(), 3);
+    }
+
+    #[test]
+    fn test_pattern_sorter_removes_duplicates_by_default() {
+        // test that PatternSorter (default) removes duplicates when allow_duplicates=false
+        // this ensures the fast path doesn't bypass deduplication logic
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            allow_duplicates: false,
+            ..RUSTYWIND_DEFAULT
+        };
+
+        // test case from the issue description
+        let input = r#"<div class="flex flex"></div>"#;
+        let result = app.sort_file_contents(input);
+
+        // should collapse to single flex
+        assert_eq!(
+            result.matches("flex").count(),
+            1,
+            "Duplicates should be removed with PatternSorter"
+        );
+        assert_eq!(result, r#"<div class="flex"></div>"#);
+
+        // test with more duplicates
+        let input2 = r#"<div class="m-4 p-4 m-4 flex p-4 flex m-4"></div>"#;
+        let result2 = app.sort_file_contents(input2);
+        assert_eq!(
+            result2.matches("m-4").count(),
+            1,
+            "All m-4 duplicates should be removed"
+        );
+        assert_eq!(
+            result2.matches("p-4").count(),
+            1,
+            "All p-4 duplicates should be removed"
+        );
+        assert_eq!(
+            result2.matches("flex").count(),
+            1,
+            "All flex duplicates should be removed"
+        );
+    }
+
+    #[test]
+    fn test_keeps_duplicate_ellipsis_placeholders() {
+        let input = r#"<div className="transition ... ... flex"></div>"#;
+        let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
+
+        assert_eq!(result.matches("...").count(), 2);
+    }
+
+    #[test]
+    fn test_pattern_sorter_keeps_duplicates_when_configured() {
+        // test that allow_duplicates=true works with PatternSorter
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            allow_duplicates: true,
+            regex: FinderRegex::DefaultRegex,
+            class_wrapping: ClassWrapping::NoWrapping,
+        };
+
+        let input = r#"<div class="flex flex m-4 m-4"></div>"#;
+        let result = app.sort_file_contents(input);
+
+        // should keep all duplicates
+        assert_eq!(
+            result.matches("flex").count(),
+            2,
+            "Duplicates should be kept when allow_duplicates=true"
+        );
+        assert_eq!(
+            result.matches("m-4").count(),
+            2,
+            "Duplicates should be kept when allow_duplicates=true"
+        );
+    }
+
+    #[test]
+    fn test_base_classes_before_variants() {
+        let input = r#"<div class='hover:flex focus:flex flex'></div>"#;
+        let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
+
+        // extract the class content
+        let class_content = result
+            .split("class='")
+            .nth(1)
+            .unwrap()
+            .split('\'')
+            .next()
+            .unwrap();
+        let classes: Vec<&str> = class_content.split_whitespace().collect();
+
+        // flex (base) should come before all variants
+        let flex_idx = classes.iter().position(|&c| c == "flex").unwrap();
+        let hover_idx = classes.iter().position(|&c| c == "hover:flex").unwrap();
+        let focus_idx = classes.iter().position(|&c| c == "focus:flex").unwrap();
+
+        assert!(
+            flex_idx < hover_idx,
+            "Base 'flex' should come before 'hover:flex'"
+        );
+        assert!(
+            flex_idx < focus_idx,
+            "Base 'flex' should come before 'focus:flex'"
+        );
+    }
+
+    #[test]
+    fn test_multiline_gets_flattened() {
+        let input = r#"
             <div
               class="
-                grid
-                border
-                fixed
-                top-0
-                right-0
-                z-20
-                grid-flow-col
-                gap-2
-                justify-start
-                my-12
-                mx-8
-                text-red-800
-                bg-red-50
-                rounded
-                border-red-100
-                shadow-2xl
+                flex
+                p-4
+                m-4
               "
             >
-              <!-- ... -->
             </div>
-        "#,
-        r#"
-            <div
-              class="grid fixed top-0 right-0 z-20 grid-flow-col gap-2 justify-start my-12 mx-8 text-red-800 bg-red-50 rounded border border-red-100 shadow-2xl"
-            >
-              <!-- ... -->
-            </div>
-        "#
-        ; "sorts and formats multiline class list"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
-            <div
-              class="
-                grid border fixed
-                top-0
-                right-0
-                z-20
-                grid-flow-col
-                gap-2
-                justify-start
-                my-12 mx-8 text-red-800
-                bg-red-50
-                rounded
-                border-red-100
-                shadow-2xl
-              "
-            >
-              <!-- ... -->
-            </div>
-        "#,
-        r#"
-            <div
-              class="grid fixed top-0 right-0 z-20 grid-flow-col gap-2 justify-start my-12 mx-8 text-red-800 bg-red-50 rounded border border-red-100 shadow-2xl"
-            >
-              <!-- ... -->
-            </div>
-        "#
-        ; "sorts and formats multiline and space separated class list"
-    )]
-    #[test_case(
-        &RUSTYWIND_DEFAULT,
-        r#"
-            <div class="m-2 grid-cols-4
-                    gap-1 foo
-                border  theres-a-tab-here:	bar border-red-600
-                    ">
-            </div>
-        "#,
-        r#"
-            <div class="grid-cols-4 gap-1 m-2 border border-red-600 foo theres-a-tab-here: bar">
-            </div>
-        "#
-        ; "sorts and formats multiline and space separated class list, with custom classes"
-    )]
-    // NO CLASSES
+        "#;
+        let result = RUSTYWIND_DEFAULT.sort_file_contents(input);
+
+        // should be on one line
+        let class_content = result
+            .split("class=\"")
+            .nth(1)
+            .unwrap()
+            .split('"')
+            .next()
+            .unwrap();
+        assert!(!class_content.contains('\n'));
+    }
+
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"This is to represent any other normal file."#,
@@ -471,6 +446,12 @@ mod tests {
         ClassWrapping::NoWrapping,
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "no wrapping"
+    )]
+    #[test_case(
+        r#"max-w-[min(100%, 500px)] my-6"#,
+        ClassWrapping::NoWrapping,
+        vec![r#"max-w-[min(100%, 500px)]"#, r#"my-6"#]
+        ; "arbitrary value with whitespace"
     )]
     #[test_case(
         r#"'flex-col', 'inline', 'flex'"#,
@@ -520,25 +501,97 @@ mod tests {
         assert_eq!(app.rewrap_wrapped_classes(input), output)
     }
 
+    #[test]
+    fn test_arbitrary_value_with_whitespace_stays_intact() {
+        let classes = "my-6 max-w-[min(100%, 500px)]";
+        let sorted = RUSTYWIND_DEFAULT.sort_classes(classes);
+
+        assert_eq!(sorted, "max-w-[min(100%, 500px)] my-6");
+    }
+
+    #[test]
+    fn test_pattern_sorter_integration() {
+        // test that PatternSorter can be used in RustyWind
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            ..RUSTYWIND_DEFAULT
+        };
+
+        let classes = "p-4 m-4 flex hover:p-1";
+        let sorted = app.sort_classes(classes);
+
+        // pattern-based sorting: margin(25) < display(35) < padding(252) < variants
+        assert_eq!(sorted, "m-4 flex p-4 hover:p-1");
+    }
+
+    #[test]
+    fn test_pattern_sorter_with_file_contents() {
+        let app = RustyWind {
+            sorter: Sorter::PatternSorter,
+            ..RUSTYWIND_DEFAULT
+        };
+
+        let input = r#"<div class="p-4 m-4 flex"></div>"#;
+        let output = app.sort_file_contents(input);
+
+        // pattern-based sorting: margin(25) < display(35) < padding(252)
+        assert_eq!(output, r#"<div class="m-4 flex p-4"></div>"#);
+    }
+
+    /// Test that arbitrary variant classes are matched by the regex (Issue #115)
+    #[test]
+    fn test_regex_matches_arbitrary_variants() {
+        let app = RUSTYWIND_DEFAULT;
+
+        // test element state selectors
+        let input = r#"<div class="[&.htmx-request]:h-0 flex p-4"></div>"#;
+        assert!(app.has_classes(input), "Should match [&.class] syntax");
+
+        let sorted = app.sort_file_contents(input);
+        assert!(
+            sorted.contains("[&.htmx-request]:h-0"),
+            "Arbitrary variant should be preserved in output"
+        );
+
+        // test child/sibling selectors
+        let input2 = r#"<div class="[&>*]:p-4 [&+*]:mt-4 block"></div>"#;
+        assert!(app.has_classes(input2), "Should match combinator syntax");
+
+        // test attribute selectors
+        let input3 = r#"<div class="[&[data-state=open]]:bg-gray-100 flex"></div>"#;
+        assert!(
+            app.has_classes(input3),
+            "Should match attribute selector syntax"
+        );
+
+        // test at-rule variants
+        let input4 = r#"<div class="[@supports(display:grid)]:grid flex"></div>"#;
+        assert!(app.has_classes(input4), "Should match @-rule syntax");
+
+        // test calc with percentage
+        let input5 = r#"<div class="w-[calc(100%+20px)] flex"></div>"#;
+        assert!(app.has_classes(input5), "Should match calc with percentage");
+    }
+
     #[test_case(
         None,
         ClassWrapping::NoWrapping,
         r#"<div class="flex-col inline flex"></div>"#,
-        r#"<div class="inline flex flex-col"></div>"#
+        r#"<div class="flex inline flex-col"></div>"#
         ; "normal HTML use case"
     )]
     #[test_case(
         Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
         ClassWrapping::CommaSingleQuotes,
         r#"classes = ['flex-col', 'inline', 'flex']"#,
-        r#"classes = ['inline', 'flex', 'flex-col']"#
+        r#"classes = ['flex', 'inline', 'flex-col']"#
         ; "array with single quotes"
     )]
     #[test_case(
         Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
         ClassWrapping::CommaDoubleQuotes,
         r#"classes = ["flex-col", "inline", "flex"]"#,
-        r#"classes = ["inline", "flex", "flex-col"]"#
+        r#"classes = ["flex", "inline", "flex-col"]"#
         ; "array with double quotes"
     )]
     fn test_unusual_use_cases(
@@ -554,7 +607,7 @@ mod tests {
 
         let app = RustyWind {
             regex,
-            sorter: Sorter::DefaultSorter,
+            sorter: Sorter::PatternSorter,
             allow_duplicates: false,
             class_wrapping,
         };

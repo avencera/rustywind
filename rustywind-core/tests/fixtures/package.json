@@ -1,0 +1,18 @@
+{
+  "name": "tailwind-css-fixtures",
+  "version": "1.0.0",
+  "description": "CSS fixtures for testing the Tailwind CSS class extractor",
+  "type": "module",
+  "scripts": {
+    "count:v3": "node count-css-classes.mjs tailwind.css",
+    "count:v4": "node count-css-classes.mjs tailwind-v4.css",
+    "verify": "npm run count:v3 && echo '' && npm run count:v4"
+  },
+  "keywords": ["tailwindcss", "test", "fixtures"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "postcss": "^8.4.49",
+    "postcss-selector-parser": "^7.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "rustywind-linux-arm-gnueabihf",
+  "version": "0.25.0-alpha.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
+  "cpu": [
+    "arm"
+  ],
+  "preferUnplugged": true,
+  "files": [
+    "rustywind"
+  ],
+  "license": "MIT",
+  "os": [
+    "linux"
+  ],
+  "description": "The Linux ARM (gnueabihf) binary for rustywind"
+}
