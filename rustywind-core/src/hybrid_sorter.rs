@@ -150,14 +150,18 @@ impl HybridSorter {
         // classes without keys (unknown/custom) come first (maintaining relative order)
         // classes with valid keys come after (sorted by key)
         // this matches prettier-plugin-tailwindcss behavior where unknown classes sort first
-        with_keys.sort_by(
-            |(a_key, _a_class), (z_key, _z_class)| match (a_key, z_key) {
-                (Some(a), Some(z)) => a.cmp(z),
-                (Some(_), None) => Ordering::Greater, // Known classes after unknown
-                (None, Some(_)) => Ordering::Less,    // Unknown classes before known
-                (None, None) => Ordering::Equal,      // Unknown classes maintain relative order
+        with_keys.sort_by(|(a_key, a_class), (z_key, z_class)| match (a_key, z_key) {
+            (Some(a), Some(z)) => a.cmp(z),
+            (Some(_), None) if is_ellipsis_class(z_class) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater, // Known classes after unknown
+            (None, Some(_)) if is_ellipsis_class(a_class) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less, // Unknown classes before known
+            (None, None) => match (is_ellipsis_class(a_class), is_ellipsis_class(z_class)) {
+                (true, false) => Ordering::Greater,
+                (false, true) => Ordering::Less,
+                _ => Ordering::Equal,
             },
-        );
+        });
 
         // extract the sorted classes (pre-allocated for efficiency)
         let mut result = Vec::with_capacity(with_keys.len());
@@ -184,6 +188,10 @@ impl HybridSorter {
     pub fn clear_cache(&self) {
         self.cache.clear();
     }
+}
+
+fn is_ellipsis_class(class: &str) -> bool {
+    class == "..." || class == "…"
 }
 
 impl Default for HybridSorter {
@@ -329,19 +337,19 @@ mod tests {
 
         // test multiple unknown classes in various orders
         let classes = vec![
-            "flex",           // known: should be 5th
-            "zebra-class",    // unknown: should be 1st (original position)
-            "grid",           // known: should be 6th
-            "apple-class",    // unknown: should be 2nd (original position)
-            "m-4",            // known: should be 4th (by property order)
-            "[custom:value]", // unknown: should be 3rd (original position)
-            "banana-class",   // unknown: should be 7th (original position)
+            "flex",               // known: should be 5th
+            "zebra-class",        // unknown: should be 1st (original position)
+            "grid",               // known: should be 6th
+            "apple-class",        // unknown: should be 2nd (original position)
+            "m-4",                // known: should be 4th (by property order)
+            "custom-value-class", // unknown: should be 3rd (original position)
+            "banana-class",       // unknown: should be 7th (original position)
         ];
         let sorted = sorter.sort_classes(&classes);
 
         // verify unknown classes come first and maintain relative order (not alphabetized)
-        // original order: zebra-class, apple-class, [custom:value], banana-class
-        // if alphabetized it would be: [custom:value], apple-class, banana-class, zebra-class
+        // original order: zebra-class, apple-class, custom-value-class, banana-class
+        // if alphabetized it would be: apple-class, banana-class, custom-value-class, zebra-class
         // but we want to preserve original order
         assert_eq!(
             sorted[0], "zebra-class",
@@ -352,7 +360,7 @@ mod tests {
             "Second unknown class should maintain position"
         );
         assert_eq!(
-            sorted[2], "[custom:value]",
+            sorted[2], "custom-value-class",
             "Third unknown class should maintain position"
         );
         assert_eq!(
