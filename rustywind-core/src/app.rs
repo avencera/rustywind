@@ -5,14 +5,22 @@ use crate::{
     consts::{VARIANT_SEARCHER, VARIANTS},
     hybrid_sorter::HybridSorter,
     sorter::{FinderRegex, Sorter},
+    tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value},
 };
 use ahash::{AHashMap as HashMap, AHashSet as HashSet};
 use aho_corasick::{Anchored, Input};
 use regex::Captures;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock, RwLock};
 
 /// Global instance of the HybridSorter for pattern-based sorting.
 static PATTERN_SORTER: LazyLock<HybridSorter> = LazyLock::new(HybridSorter::new);
+static PREFIXED_PATTERN_SORTERS: LazyLock<RwLock<HashMap<String, Arc<HybridSorter>>>> =
+    LazyLock::new(|| RwLock::new(HashMap::new()));
+
+struct SortCandidate<'a> {
+    original: &'a str,
+    lookup: Cow<'a, str>,
+}
 
 /// The options to pass to the sorter.
 #[derive(Debug, Clone)]
@@ -21,6 +29,7 @@ pub struct RustyWind {
     pub sorter: Sorter,
     pub allow_duplicates: bool,
     pub class_wrapping: ClassWrapping,
+    pub tailwind_prefix: Option<String>,
 }
 
 impl Default for RustyWind {
@@ -30,6 +39,7 @@ impl Default for RustyWind {
             sorter: Sorter::PatternSorter,
             allow_duplicates: false,
             class_wrapping: ClassWrapping::NoWrapping,
+            tailwind_prefix: None,
         }
     }
 }
@@ -41,11 +51,22 @@ impl RustyWind {
         allow_duplicates: bool,
         class_wrapping: ClassWrapping,
     ) -> Self {
+        Self::new_with_tailwind_prefix(regex, sorter, allow_duplicates, class_wrapping, None)
+    }
+
+    pub fn new_with_tailwind_prefix(
+        regex: FinderRegex,
+        sorter: Sorter,
+        allow_duplicates: bool,
+        class_wrapping: ClassWrapping,
+        tailwind_prefix: Option<String>,
+    ) -> Self {
         Self {
             regex,
             sorter,
             allow_duplicates,
             class_wrapping,
+            tailwind_prefix,
         }
     }
 
@@ -117,27 +138,41 @@ impl RustyWind {
         // use pattern-based sorting if PatternSorter is selected
         if matches!(self.sorter, Sorter::PatternSorter) {
             let classes_vec: Vec<&str> = classes.collect();
+            if let Some(tailwind_prefix) = self
+                .tailwind_prefix
+                .as_deref()
+                .and_then(normalize_tailwind_prefix_value)
+            {
+                return prefixed_pattern_sorter(tailwind_prefix).sort_classes(&classes_vec);
+            }
             return PATTERN_SORTER.sort_classes(&classes_vec);
         }
 
         // otherwise, use the old HashMap-based approach
-        let enumerated_classes = classes.map(|class| ((class), self.sorter.get(class)));
+        let candidates = classes.map(|class| SortCandidate {
+            original: class,
+            lookup: normalize_tailwind_prefix(class, self.tailwind_prefix.as_deref()),
+        });
 
         let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
         let mut custom_classes: Vec<&str> = vec![];
-        let mut variants: HashMap<&str, Vec<&str>> = HashMap::new();
+        let mut variants: HashMap<&str, Vec<SortCandidate>> = HashMap::new();
 
-        for (class, maybe_size) in enumerated_classes {
-            match maybe_size {
-                Some(size) => tailwind_classes.push((class, size)),
+        for candidate in candidates {
+            match self
+                .sorter
+                .get(candidate.original)
+                .or_else(|| self.sorter.get(candidate.lookup.as_ref()))
+            {
+                Some(size) => tailwind_classes.push((candidate.original, size)),
                 None => {
-                    let input = Input::new(class).anchored(Anchored::Yes);
+                    let input = Input::new(candidate.lookup.as_ref()).anchored(Anchored::Yes);
                     match VARIANT_SEARCHER.find(input) {
                         Some(prefix_match) => {
                             let prefix = VARIANTS[prefix_match.pattern()];
-                            variants.entry(prefix).or_default().push(class)
+                            variants.entry(prefix).or_default().push(candidate)
                         }
-                        None => custom_classes.push(class),
+                        None => custom_classes.push(candidate.original),
                     }
                 }
             }
@@ -173,19 +208,42 @@ impl RustyWind {
 
     fn sort_variant_classes<'a>(
         &self,
-        classes: Vec<&'a str>,
+        classes: Vec<SortCandidate<'a>>,
         mut custom_classes: Vec<&'a str>,
         class_after: usize,
     ) -> (Vec<&'a str>, Vec<&'a str>) {
         let mut tailwind_classes = Vec::with_capacity(classes.len());
 
-        for class in classes {
-            match class
+        for candidate in classes {
+            let normalized_remainder = candidate.lookup.get(class_after..);
+            let v4_original_remainder = self
+                .tailwind_prefix
+                .as_deref()
+                .and_then(normalize_tailwind_prefix_value)
+                .and_then(|prefix| {
+                    candidate
+                        .original
+                        .strip_prefix(prefix)
+                        .and_then(|rest| rest.strip_prefix(':'))
+                        .zip(normalized_remainder)
+                        .map(|(_, normalized_remainder)| format!("{prefix}:{normalized_remainder}"))
+                });
+
+            match candidate
+                .original
                 .get(class_after..)
                 .and_then(|class| self.sorter.get(class))
+                .or_else(|| {
+                    v4_original_remainder
+                        .as_deref()
+                        .and_then(|class| self.sorter.get(class))
+                })
+                .or_else(|| normalized_remainder.and_then(|class| self.sorter.get(class)))
             {
-                Some(class_placement) => tailwind_classes.push((class, class_placement)),
-                None => custom_classes.push(class),
+                Some(class_placement) => {
+                    tailwind_classes.push((candidate.original, class_placement))
+                }
+                None => custom_classes.push(candidate.original),
             }
         }
 
@@ -198,6 +256,30 @@ impl RustyWind {
 
         (sorted_classes, custom_classes)
     }
+}
+
+fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
+    if let Some(sorter) = PREFIXED_PATTERN_SORTERS
+        .read()
+        .expect("prefixed pattern sorter cache should not be poisoned")
+        .get(tailwind_prefix)
+    {
+        return Arc::clone(sorter);
+    }
+
+    let mut sorters = PREFIXED_PATTERN_SORTERS
+        .write()
+        .expect("prefixed pattern sorter cache should not be poisoned");
+
+    Arc::clone(
+        sorters
+            .entry(tailwind_prefix.to_string())
+            .or_insert_with(|| {
+                Arc::new(HybridSorter::new_with_tailwind_prefix(Some(
+                    tailwind_prefix,
+                )))
+            }),
+    )
 }
 
 fn split_class_tokens(class_string: &str) -> Vec<&str> {
@@ -248,6 +330,7 @@ mod tests {
         sorter: Sorter::PatternSorter,
         allow_duplicates: false,
         class_wrapping: ClassWrapping::NoWrapping,
+        tailwind_prefix: None,
     };
 
     // HAS_CLASSES --------------------------------------------------------------------------------
@@ -352,6 +435,7 @@ mod tests {
             allow_duplicates: true,
             regex: FinderRegex::DefaultRegex,
             class_wrapping: ClassWrapping::NoWrapping,
+            tailwind_prefix: None,
         };
 
         let input = r#"<div class="flex flex m-4 m-4"></div>"#;
@@ -610,6 +694,7 @@ mod tests {
             sorter: Sorter::PatternSorter,
             allow_duplicates: false,
             class_wrapping,
+            tailwind_prefix: None,
         };
 
         assert_eq!(app.sort_file_contents(input), output);
