@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.0-rc.1] - 2026-06-10
+
+### Added
+
+- Add Tailwind prefix-aware sorting for Tailwind v3 (`tw-`) and v4 (`tw:`)
+  prefix styles while preserving original class strings in output
+
+### Breaking changes
+
+- `RustyWind` now includes a `tailwind_prefix` option. Code constructing
+  `RustyWind` with a struct literal must set `tailwind_prefix: None` or use
+  `RustyWind::new`.
+- `PatternSorter` is no longer a unit struct. Use `PatternSorter::new()` or
+  `PatternSorter::default()`.
+- For prefix-aware sorters, `SortKey.class` stores the normalized class used for
+  sorting rather than the original prefixed input.
+
 ## [0.3.1] - 2025-08-07
 
 - Fix class extraction regex, [#119](https://github.com/avencera/rustywind/pull/119), thanks [@5need](https://github.com/5need)

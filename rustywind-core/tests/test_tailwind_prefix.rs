@@ -60,6 +60,18 @@ fn tailwind_v4_prefixed_classes_sort_like_unprefixed_classes() {
 }
 
 #[test]
+fn mixed_prefixed_and_unprefixed_classes_sort_together() {
+    let sorter = HybridSorter::new_with_tailwind_prefix(Some("tw"));
+
+    let classes = vec!["tw-p-4", "text-xl", "tw-flex"];
+
+    assert_eq!(
+        sorter.sort_classes(&classes),
+        vec!["tw-flex", "tw-p-4", "text-xl"]
+    );
+}
+
+#[test]
 fn prefixed_sort_key_uses_normalized_class() {
     let sorter = HybridSorter::new_with_tailwind_prefix(Some("tw"));
 

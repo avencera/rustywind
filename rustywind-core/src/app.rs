@@ -224,9 +224,9 @@ impl RustyWind {
                     candidate
                         .original
                         .strip_prefix(prefix)
-                        .and_then(|rest| rest.strip_prefix(':'))
-                        .zip(normalized_remainder)
-                        .map(|(_, normalized_remainder)| format!("{prefix}:{normalized_remainder}"))
+                        .and_then(|rest| rest.strip_prefix(':'))?;
+                    normalized_remainder
+                        .map(|normalized_remainder| format!("{prefix}:{normalized_remainder}"))
                 });
 
             match candidate

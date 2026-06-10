@@ -1,6 +1,6 @@
 {
   "name": "rustywind-darwin-arm64",
-  "version": "0.25.0-alpha.1",
+  "version": "0.25.0-rc.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"

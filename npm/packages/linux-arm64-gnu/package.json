@@ -1,6 +1,6 @@
 {
   "name": "rustywind-linux-arm64-gnu",
-  "version": "0.25.0-alpha.1",
+  "version": "0.25.0-rc.1",
   "cpu": [
     "arm64"
   ],
