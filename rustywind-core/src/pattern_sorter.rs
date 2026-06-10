@@ -30,6 +30,7 @@ use std::cmp::Ordering;
 
 use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
+use crate::tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value};
 use crate::variant_order::{
     ARBITRARY_VARIANT_BIT, VariantInfo, calculate_variant_order, compare_variant_lists,
     parse_variants,
@@ -540,7 +541,7 @@ pub struct SortKey {
     /// Number of properties this utility generates
     pub property_count: usize,
 
-    /// Original class string (for alphabetical tiebreaker)
+    /// Class string used for sorting and alphabetical tiebreaks
     /// Uses CompactString for memory efficiency (24 bytes inline, no heap for typical classes)
     pub class: compact_str::CompactString,
 
@@ -1139,12 +1140,25 @@ impl PartialOrd for SortKey {
 ///
 /// This struct provides methods to generate sort keys for classes and sort
 /// collections of classes according to Tailwind's canonical ordering.
-pub struct PatternSorter;
+pub struct PatternSorter {
+    tailwind_prefix: Option<compact_str::CompactString>,
+}
 
 impl PatternSorter {
     /// Create a new pattern sorter.
     pub fn new() -> Self {
-        Self
+        Self {
+            tailwind_prefix: None,
+        }
+    }
+
+    /// Create a new pattern sorter that understands a configured Tailwind prefix.
+    pub fn new_with_tailwind_prefix(tailwind_prefix: Option<&str>) -> Self {
+        Self {
+            tailwind_prefix: tailwind_prefix
+                .and_then(normalize_tailwind_prefix_value)
+                .map(compact_str::CompactString::new),
+        }
     }
 
     /// Get the sort key for a class string.
@@ -1167,8 +1181,10 @@ impl PatternSorter {
     /// assert!(key.variant_order > 0);
     /// ```
     pub fn get_sort_key(&self, class: &str) -> Option<SortKey> {
+        let sort_class = normalize_tailwind_prefix(class, self.tailwind_prefix.as_deref());
+
         // parse the class
-        let parsed = parse_class(class)?;
+        let parsed = parse_class(&sort_class)?;
 
         // calculate variant order using bitwise flags
         let variant_order = calculate_variant_order(&parsed.variants);
@@ -1205,17 +1221,17 @@ impl PatternSorter {
 
         // count how many CSS declarations this utility generates
         // use the real declaration count from Tailwind (not just property count)
-        let property_count = crate::utility_map::get_declaration_count(class);
+        let property_count = crate::utility_map::get_declaration_count(&sort_class);
 
         // extract numeric value for value-based sub-sorting
-        let numeric_value = extract_numeric_value(class);
+        let numeric_value = extract_numeric_value(&sort_class);
 
         // check if this is a negative value utility
-        let is_negative = is_negative_value(class);
+        let is_negative = is_negative_value(&sort_class);
 
         // use CompactString for memory efficiency (24 bytes inline storage)
         // most Tailwind classes fit within 24 bytes avoiding heap allocation entirely
-        let class_compact = compact_str::CompactString::new(class);
+        let class_compact = compact_str::CompactString::new(sort_class.as_ref());
 
         // check if this class contains bare group/peer variants (invalid in Tailwind)
         let is_unparseable = has_bare_group_or_peer(&variant_chain);

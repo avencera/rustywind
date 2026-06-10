@@ -48,6 +48,11 @@ impl HybridSorter {
         Self::with_cache_size(DEFAULT_CACHE_SIZE)
     }
 
+    /// Create a new hybrid sorter that understands a configured Tailwind prefix.
+    pub fn new_with_tailwind_prefix(tailwind_prefix: Option<&str>) -> Self {
+        Self::with_cache_size_and_tailwind_prefix(DEFAULT_CACHE_SIZE, tailwind_prefix)
+    }
+
     /// Create a new hybrid sorter with custom cache size
     ///
     /// # Arguments
@@ -63,8 +68,16 @@ impl HybridSorter {
     /// let sorter = HybridSorter::with_cache_size(25_000);
     /// ```
     pub fn with_cache_size(cache_size: usize) -> Self {
+        Self::with_cache_size_and_tailwind_prefix(cache_size, None)
+    }
+
+    /// Create a new hybrid sorter with custom cache size and Tailwind prefix.
+    pub fn with_cache_size_and_tailwind_prefix(
+        cache_size: usize,
+        tailwind_prefix: Option<&str>,
+    ) -> Self {
         Self {
-            pattern_sorter: PatternSorter::new(),
+            pattern_sorter: PatternSorter::new_with_tailwind_prefix(tailwind_prefix),
             cache: Arc::new(Cache::new(cache_size)),
         }
     }
@@ -105,7 +118,7 @@ impl HybridSorter {
         if let Some(sort_key) = self.pattern_sorter.get_sort_key(class) {
             // cache the computed result for future lookups
             // CompactString stores most classes inline (24 bytes) avoiding heap allocations
-            self.cache.insert(sort_key.class.clone(), sort_key.clone());
+            self.cache.insert(class_compact, sort_key.clone());
             return Some(sort_key);
         }
 

@@ -11,6 +11,7 @@ pub mod consts;
 pub mod defaults;
 pub mod parser;
 pub mod sorter;
+pub mod tailwind_prefix;
 
 // Pattern-based sorting modules
 pub mod class_parser;

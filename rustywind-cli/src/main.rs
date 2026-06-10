@@ -93,6 +93,9 @@ pub struct Cli {
     /// Specify how individual classes are wrapped.
     #[arg(long)]
     class_wrapping: Option<options::CliClassWrapping>,
+    /// Tailwind prefix used when sorting classes, e.g. tw for tw: or tw- classes.
+    #[arg(long)]
+    tailwind_prefix: Option<String>,
     /// Do not print log messages
     #[arg(long, default_value = "false", conflicts_with_all = &["dry_run"])]
     quiet: bool,
