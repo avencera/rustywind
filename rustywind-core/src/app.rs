@@ -83,9 +83,40 @@ impl RustyWind {
                 .or_else(|| caps.get(2))
                 .expect("class extractor regex must include a capture group")
                 .as_str();
-            let sorted_classes = self.sort_classes(classes);
+            let sorted_classes = self.sort_capture_classes(classes);
             caps[0].replace(classes, &sorted_classes)
         })
+    }
+
+    fn sort_capture_classes(&self, class_string: &str) -> String {
+        if matches!(self.regex, FinderRegex::CustomRegex(_)) {
+            return self.sort_classes_preserving_outer_whitespace(class_string);
+        }
+
+        self.sort_classes(class_string)
+    }
+
+    fn sort_classes_preserving_outer_whitespace(&self, class_string: &str) -> String {
+        let Some((start, _)) = class_string
+            .char_indices()
+            .find(|(_, character)| !character.is_ascii_whitespace())
+        else {
+            return class_string.to_string();
+        };
+
+        let end = class_string
+            .char_indices()
+            .rev()
+            .find(|(_, character)| !character.is_ascii_whitespace())
+            .map(|(index, character)| index + character.len_utf8())
+            .unwrap_or(start);
+
+        format!(
+            "{}{}{}",
+            &class_string[..start],
+            self.sort_classes(&class_string[start..end]),
+            &class_string[end..]
+        )
     }
 
     /// Given a [&str] of whitespace-separated classes, returns a [String] of sorted classes.
@@ -620,6 +651,19 @@ mod tests {
 
         // pattern-based sorting: margin(25) < display(35) < padding(252)
         assert_eq!(output, r#"<div class="m-4 flex p-4"></div>"#);
+    }
+
+    #[test]
+    fn test_custom_regex_preserves_ruby_interpolation_spacing() {
+        let app = RustyWind {
+            regex: FinderRegex::CustomRegex(
+                Regex::new(r#"class(?:=|:\s*)(?:'|")([^"']+?)(?:'|")"#).unwrap(),
+            ),
+            ..RUSTYWIND_DEFAULT
+        };
+        let input = r#"class: "box f-col #{reply.reply_id ? "ok" : ""}""#;
+
+        assert_eq!(app.sort_file_contents(input), input);
     }
 
     /// Test that arbitrary variant classes are matched by the regex (Issue #115)
