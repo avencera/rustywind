@@ -205,6 +205,7 @@ fn dist_tag_for_version(version: &str) -> Option<String> {
         .as_str()
         .split('.')
         .next()
+        .filter(|id| !id.is_empty())
         .map(|id| id.to_string())
 }
 
@@ -381,5 +382,20 @@ mod tests {
             "0.25.0-alpha.1"
         );
         assert!(npm_package_version("v0.25").is_err());
+    }
+
+    #[test]
+    fn stable_versions_use_default_npm_dist_tag() {
+        assert_eq!(dist_tag_for_version("0.25.0"), None);
+        assert_eq!(dist_tag_for_version("v0.25.0"), None);
+    }
+
+    #[test]
+    fn prerelease_versions_use_prerelease_identifier_as_dist_tag() {
+        assert_eq!(
+            dist_tag_for_version("0.25.0-alpha.1").as_deref(),
+            Some("alpha")
+        );
+        assert_eq!(dist_tag_for_version("v0.25.0-rc.1").as_deref(), Some("rc"));
     }
 }

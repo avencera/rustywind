@@ -1,4 +1,4 @@
-alias pn := publish-npm
+alias npm := npm-publish
 
 fmt:
     cargo fmt
@@ -6,5 +6,5 @@ fmt:
 clippy:
     cargo clippy -- -D warnings
 
-publish-npm:
+npm-publish:
     cargo xtask npm publish
