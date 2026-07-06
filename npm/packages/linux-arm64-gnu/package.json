@@ -1,6 +1,13 @@
 {
   "name": "rustywind-linux-arm64-gnu",
-  "version": "0.25.0-rc.1",
+  "version": "0.25.0",
+  "os": [
+    "linux"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
+  },
   "cpu": [
     "arm64"
   ],
@@ -8,13 +15,6 @@
   "files": [
     "rustywind"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avencera/rustywind.git"
-  },
   "license": "MIT",
-  "preferUnplugged": true,
-  "os": [
-    "linux"
-  ]
+  "preferUnplugged": true
 }
