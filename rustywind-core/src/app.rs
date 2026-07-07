@@ -95,6 +95,11 @@ impl RustyWind {
 
     /// Given a [&str] of whitespace-separated classes, returns a [String] of sorted classes.
     /// Does not preserve whitespace.
+    ///
+    /// Expects plain class names only: the template-syntax guard lives in
+    /// [`Self::sort_file_contents`], so passing a string containing embedded
+    /// template code (e.g. `<%= ... %>`) will split it on whitespace like any
+    /// other classes.
     pub fn sort_classes(&self, class_string: &str) -> String {
         let extracted_classes = self.unwrap_wrapped_classes(class_string);
 
@@ -291,6 +296,8 @@ fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
 /// Handlebars/Jinja/Liquid `{{ }}` and `{% %}`, Ruby string interpolation `#{ }`).
 /// Class strings containing embedded code can't be safely split on whitespace —
 /// sorting them would move tokens across code boundaries and corrupt the template.
+// TODO: instead of skipping the whole class string, tokenize template tags as
+// opaque units so the static classes around them can still be sorted.
 const TEMPLATE_DELIMITERS: [&str; 5] = ["<%", "<?", "{{", "{%", "#{"];
 
 fn contains_template_syntax(class_string: &str) -> bool {
