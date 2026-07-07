@@ -292,18 +292,47 @@ fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
     )
 }
 
-/// Opening delimiters of template-language tags (ERB/EJS `<% %>`, PHP `<? ?>`,
-/// Handlebars/Jinja/Liquid `{{ }}` and `{% %}`, Ruby string interpolation `#{ }`).
-/// Class strings containing embedded code can't be safely split on whitespace —
-/// sorting them would move tokens across code boundaries and corrupt the template.
+/// Delimiters of template-language tags (ERB/EJS `<% %>`, PHP `<? ?>`,
+/// Handlebars/Jinja/Liquid `{{ }}` and `{% %}`, Ruby string interpolation `#{ }`,
+/// JS template literals `${ }`). Class strings containing embedded code can't be
+/// safely split on whitespace — sorting them would move tokens across code
+/// boundaries and corrupt the template. Closing delimiters are included because
+/// a quote inside the template code can split the regex match, leaving a
+/// fragment that contains only the tail of a tag.
 // TODO: instead of skipping the whole class string, tokenize template tags as
 // opaque units so the static classes around them can still be sorted.
-const TEMPLATE_DELIMITERS: [&str; 5] = ["<%", "<?", "{{", "{%", "#{"];
+const TEMPLATE_DELIMITERS: [&str; 10] =
+    ["<%", "%>", "<?", "?>", "{{", "}}", "{%", "%}", "#{", "${"];
 
 fn contains_template_syntax(class_string: &str) -> bool {
     TEMPLATE_DELIMITERS
         .iter()
         .any(|delimiter| class_string.contains(delimiter))
+}
+
+#[cfg(test)]
+mod template_syntax_tests {
+    use super::contains_template_syntax;
+
+    #[test]
+    fn detects_closing_delimiter_fragments() {
+        // a quote inside template code can split the regex match, leaving a
+        // fragment with only the tail of a tag
+        assert!(contains_template_syntax("a' %> flex p-4"));
+        assert!(contains_template_syntax("arg'}} p-4"));
+        assert!(contains_template_syntax("x %} m-4"));
+        assert!(contains_template_syntax("y ?> m-4"));
+    }
+
+    #[test]
+    fn ignores_plain_class_strings() {
+        assert!(!contains_template_syntax(
+            "flex p-4 max-w-[min(100%, 500px)]"
+        ));
+        assert!(!contains_template_syntax(
+            "[&>*]:p-4 [@supports(display:grid)]:grid"
+        ));
+    }
 }
 
 fn split_class_tokens(class_string: &str) -> Vec<&str> {
@@ -574,6 +603,12 @@ mod tests {
         r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#,
         r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#
         ; "makes no change to class string with mustache style interpolation"
+    )]
+    #[test_case(
+        &RUSTYWIND_DEFAULT,
+        r#"html`<div class="p-4 m-4 ${active ? 'flex flex-col' : 'hidden'}">`"#,
+        r#"html`<div class="p-4 m-4 ${active ? 'flex flex-col' : 'hidden'}">`"#
+        ; "makes no change to class string with js template literal interpolation"
     )]
     fn test_sort_file_contents(app: &RustyWind, input: &str, output: &str) {
         assert_eq!(app.sort_file_contents(input), output);
