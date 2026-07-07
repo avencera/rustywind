@@ -83,6 +83,11 @@ impl RustyWind {
                 .or_else(|| caps.get(2))
                 .expect("class extractor regex must include a capture group")
                 .as_str();
+
+            if contains_template_syntax(classes) {
+                return caps[0].to_string();
+            }
+
             let sorted_classes = self.sort_classes(classes);
             caps[0].replace(classes, &sorted_classes)
         })
@@ -280,6 +285,18 @@ fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
                 )))
             }),
     )
+}
+
+/// Opening delimiters of template-language tags (ERB/EJS `<% %>`, PHP `<? ?>`,
+/// Handlebars/Jinja/Liquid `{{ }}` and `{% %}`, Ruby string interpolation `#{ }`).
+/// Class strings containing embedded code can't be safely split on whitespace —
+/// sorting them would move tokens across code boundaries and corrupt the template.
+const TEMPLATE_DELIMITERS: [&str; 5] = ["<%", "<?", "{{", "{%", "#{"];
+
+fn contains_template_syntax(class_string: &str) -> bool {
+    TEMPLATE_DELIMITERS
+        .iter()
+        .any(|delimiter| class_string.contains(delimiter))
 }
 
 fn split_class_tokens(class_string: &str) -> Vec<&str> {
@@ -520,6 +537,36 @@ mod tests {
         r#"<div><p><img height="100" width="250" /></p><p></p></div>"#,
         r#"<div><p><img height="100" width="250" /></p><p></p></div>"#
         ; "makes no change to elements without class string"
+    )]
+    #[test_case(
+        &RUSTYWIND_DEFAULT,
+        r#"<div class="<%= layout == :cards ? 'flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center' : 'sm:flex sm:items-center' %>">"#,
+        r#"<div class="<%= layout == :cards ? 'flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center' : 'sm:flex sm:items-center' %>">"#
+        ; "makes no change to class string that is a single erb ternary"
+    )]
+    #[test_case(
+        &RUSTYWIND_DEFAULT,
+        r#"<span class="inline-flex items-center <%= data["company"].present? ? 'h-auto py-2 px-3 gap-x-1.5' : 'h-8 py-1 px-2 gap-x-0.5' %> rounded-md">"#,
+        r#"<span class="inline-flex items-center <%= data["company"].present? ? 'h-auto py-2 px-3 gap-x-1.5' : 'h-8 py-1 px-2 gap-x-0.5' %> rounded-md">"#
+        ; "makes no change to class string with erb tag between static classes"
+    )]
+    #[test_case(
+        &RUSTYWIND_DEFAULT,
+        r#"<span class="flex h-8 w-8 items-center justify-center rounded-full <%= record.active? ? 'bg-brand-yellow text-gray-950' : 'border-2 border-gray-300 bg-white' %>">"#,
+        r#"<span class="flex h-8 w-8 items-center justify-center rounded-full <%= record.active? ? 'bg-brand-yellow text-gray-950' : 'border-2 border-gray-300 bg-white' %>">"#
+        ; "makes no change to class string with static classes before an erb ternary"
+    )]
+    #[test_case(
+        &RUSTYWIND_DEFAULT,
+        r##"<div class="box f-col #{reply.reply_id ? "ok" : ""}">"##,
+        r##"<div class="box f-col #{reply.reply_id ? "ok" : ""}">"##
+        ; "makes no change to class string with ruby string interpolation"
+    )]
+    #[test_case(
+        &RUSTYWIND_DEFAULT,
+        r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#,
+        r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#
+        ; "makes no change to class string with mustache style interpolation"
     )]
     fn test_sort_file_contents(app: &RustyWind, input: &str, output: &str) {
         assert_eq!(app.sort_file_contents(input), output);
