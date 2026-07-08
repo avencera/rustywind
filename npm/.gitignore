@@ -3,3 +3,4 @@ release.json
 /bin/
 packages/*/rustywind
 packages/*/rustywind.exe
+packages/.prepared-binaries.json
