@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-07-08
+
+### Fixed
+
+- Repackage npm release binaries so installed npm binaries report the matching
+  RustyWind version
+
 ## [0.25.1] - 2026-07-08
 
 ### Fixed
