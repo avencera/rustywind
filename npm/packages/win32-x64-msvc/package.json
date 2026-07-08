@@ -1,20 +1,20 @@
 {
   "name": "rustywind-win32-x64-msvc",
-  "version": "0.25.0",
+  "version": "0.25.1",
+  "preferUnplugged": true,
+  "files": [
+    "rustywind.exe"
+  ],
   "cpu": [
     "x64"
   ],
-  "license": "MIT",
+  "os": [
+    "win32"
+  ],
+  "description": "The Windows x64 binary for rustywind",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"
   },
-  "preferUnplugged": true,
-  "os": [
-    "win32"
-  ],
-  "files": [
-    "rustywind.exe"
-  ],
-  "description": "The Windows x64 binary for rustywind"
+  "license": "MIT"
 }

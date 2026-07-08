@@ -1,33 +1,22 @@
 {
   "name": "rustywind",
-  "version": "0.25.0",
+  "version": "0.25.1",
   "optionalDependencies": {
-    "rustywind-win32-x64-msvc": "0.25.0",
-    "rustywind-darwin-arm64": "0.25.0",
-    "rustywind-linux-arm-gnueabihf": "0.25.0",
-    "rustywind-linux-arm64-gnu": "0.25.0",
-    "rustywind-win32-ia32-msvc": "0.25.0",
-    "rustywind-linux-x64-musl": "0.25.0",
-    "rustywind-darwin-x64": "0.25.0",
-    "rustywind-linux-arm64-musl": "0.25.0"
+    "rustywind-darwin-arm64": "0.25.1",
+    "rustywind-linux-arm64-gnu": "0.25.1",
+    "rustywind-win32-x64-msvc": "0.25.1",
+    "rustywind-win32-ia32-msvc": "0.25.1",
+    "rustywind-linux-arm64-musl": "0.25.1",
+    "rustywind-darwin-x64": "0.25.1",
+    "rustywind-linux-x64-musl": "0.25.1",
+    "rustywind-linux-arm-gnueabihf": "0.25.1"
   },
+  "license": "MIT",
   "scripts": {
     "postinstall": "node postinstall.js"
   },
-  "author": "Praveen Perera",
-  "keywords": [
-    "tailwind",
-    "tailwind css",
-    "headwind",
-    "headwind cli"
-  ],
   "bugs": {
     "url": "https://github.com/avencera/rustywind/issues"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avencera/rustywind.git"
   },
   "homepage": "https://github.com/avencera/rustywind#readme",
   "files": [
@@ -35,9 +24,20 @@
     "postinstall.js",
     "get-exe.js"
   ],
+  "keywords": [
+    "tailwind",
+    "tailwind css",
+    "headwind",
+    "headwind cli"
+  ],
   "description": "CLI for organizing Tailwind CSS classes",
+  "author": "Praveen Perera",
   "bin": {
     "rustywind": "bin/rustywind"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avencera/rustywind.git"
   },
   "dependencies": {
     "detect-libc": "^2.0.3"

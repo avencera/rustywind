@@ -1,20 +1,20 @@
 {
   "name": "rustywind-win32-ia32-msvc",
-  "version": "0.25.0",
+  "version": "0.25.1",
+  "files": [
+    "rustywind.exe"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "os": [
+    "win32"
+  ],
+  "description": "The Windows ia32 binary for rustywind",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"
   },
-  "license": "MIT",
-  "cpu": [
-    "ia32"
-  ],
   "preferUnplugged": true,
-  "files": [
-    "rustywind.exe"
-  ],
-  "description": "The Windows ia32 binary for rustywind",
-  "os": [
-    "win32"
-  ]
+  "license": "MIT"
 }

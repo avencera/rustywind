@@ -1,23 +1,23 @@
 {
   "name": "rustywind-linux-arm64-musl",
-  "version": "0.25.0",
-  "preferUnplugged": true,
-  "libc": [
-    "musl"
-  ],
-  "description": "The Linux ARM64 (musl) binary for rustywind",
+  "version": "0.25.1",
   "cpu": [
     "arm64"
   ],
   "files": [
     "rustywind"
   ],
-  "os": [
-    "linux"
-  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avencera/rustywind.git"
-  }
+  },
+  "preferUnplugged": true,
+  "libc": [
+    "musl"
+  ],
+  "os": [
+    "linux"
+  ],
+  "description": "The Linux ARM64 (musl) binary for rustywind"
 }

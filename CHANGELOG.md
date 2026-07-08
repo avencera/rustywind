@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-07-08
+
+### Fixed
+
+- Skip class strings containing template syntax to avoid corrupting
+  template/interpolation class attributes, [#141](https://github.com/avencera/rustywind/pull/141), thanks [@brianfoshee](https://github.com/brianfoshee)
+
 ## [0.25.0] - 2026-07-06
 
 ### Added
