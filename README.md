@@ -69,11 +69,13 @@ Provide a filename when sorting standard input so RustyWind can infer its templa
 
 - `cat Component.svelte | rustywind --stdin --stdin-filename Component.svelte`
 
-Supported language profiles are HTML, Svelte, Django, Jinja, Twig, Liquid, Handlebars, ERB, EJS,
-PHP, Blade, Lit, and Ruby. Files with unrecognized extensions use conservative legacy-compatible
-extraction: simple static class attributes are sorted, while template-looking attributes remain
-unchanged. Because a plain `.html` extension does not identify its template engine, attributes with
-template syntax are left unchanged unless a profile such as `--language django` is selected.
+Supported language profiles are HTML, Svelte, Astro, Django, Jinja, Twig, Liquid, Handlebars, ERB,
+EJS, PHP, Blade, Lit, and Ruby. Astro frontmatter, expressions, dynamic class attributes, and
+`class:list` directives are preserved while static quoted class attributes are sorted. Files with
+unrecognized extensions use conservative legacy-compatible extraction: simple static class
+attributes are sorted, while template-looking attributes remain unchanged. Because a plain `.html`
+extension does not identify its template engine, attributes with template syntax are left unchanged
+unless a profile such as `--language django` is selected.
 
 Run in CI, exit with error if unsorted classes are found:
 
@@ -158,7 +160,7 @@ Options:
       --language <LANGUAGE>
           Source language to use for all inputs, overriding filename inference
 
-          [possible values: html, svelte, django, jinja, twig, liquid, handlebars, erb, ejs, php, blade, lit, ruby]
+          [possible values: html, svelte, astro, django, jinja, twig, liquid, handlebars, erb, ejs, php, blade, lit, ruby]
 
       --stdin-filename <PATH>
           Filename used to infer the source language of stdin

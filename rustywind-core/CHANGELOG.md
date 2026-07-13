@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add first-class Astro parsing for static quoted class attributes while preserving frontmatter,
+  expressions, `class:list`, raw content, and component semantics.
+
+### Changed
+
+- Parse known markup languages with Winnow and extract typed class-attribute spans directly instead
+  of scanning every regular-expression match against every tag.
+- Parse template expressions, arbitrary-value brackets, comments, strings, and regular expressions
+  with a shared fail-closed Winnow grammar.
+
+### Breaking changes
+
+- `SourceLanguage` now includes an `Astro` variant. Downstream exhaustive matches must handle it.
+- The default extractor for known markup languages only sorts actual quoted `class` and `className`
+  attributes. Class-looking text in comments, raw elements, non-markup program expressions, and
+  other attributes is no longer rewritten.
+
 ## [0.4.1] - 2026-07-08
 
 ### Fixed
