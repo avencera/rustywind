@@ -16,6 +16,7 @@ import * as prettier from "prettier";
 import * as astroPlugin from "prettier-plugin-astro";
 import * as sveltePlugin from "prettier-plugin-svelte";
 import * as tailwindPlugin from "prettier-plugin-tailwindcss";
+import { createSorter } from "prettier-plugin-tailwindcss/sorter";
 
 import {
   classifyDifference,
@@ -31,6 +32,7 @@ import {
 } from "./lib.mjs";
 
 const engineDirectory = dirname(fileURLToPath(import.meta.url));
+const rustywindTimeout = 30_000;
 const ignoredDirectories = new Set([
   ".git",
   ".svelte-kit",
@@ -169,6 +171,8 @@ function resolveConfiguration(arguments_) {
 function validateRustywind(configuration) {
   const result = spawnSync(configuration.rustywind, ["--version"], {
     encoding: "utf8",
+    killSignal: "SIGKILL",
+    timeout: rustywindTimeout,
   });
   if (result.error) {
     throw new Error(
@@ -249,7 +253,9 @@ function runRustywind(configuration, candidate) {
     {
       encoding: "utf8",
       input: candidate.scrambledSource,
+      killSignal: "SIGKILL",
       maxBuffer: 20 * 1024 * 1024,
+      timeout: rustywindTimeout,
     },
   );
   if (result.error) {
@@ -268,36 +274,39 @@ function unique(tokens) {
   return [...new Set(tokens)];
 }
 
-async function probeKnownClasses(tokens, stylesheet) {
-  const known = new Map(tokens.map((token) => [token, false]));
-  const eligible = unique(tokens).filter(
-    (token) =>
-      !token.includes("\n") && !(token.includes('"') && token.includes("'")),
-  );
-  if (eligible.length === 0) return known;
+export async function probeKnownClasses(tokens, stylesheet) {
+  const probes = unique(tokens).map((token, index) => {
+    let suffix = 0;
+    let left;
+    let right;
+    do {
+      // NUL makes markers invalid Tailwind candidates under any stylesheet
+      left = `\0__rustywind_unknown_${index}_${suffix}_a`;
+      right = `\0__rustywind_unknown_${index}_${suffix}_b`;
+      suffix += 1;
+    } while (token === left || token === right);
+    return { left, right, token };
+  });
+  if (probes.length === 0) return new Map();
 
-  const fixtures = eligible.map((token) => {
-    const quote = token.includes('"') ? "'" : '"';
-    return `<div class=${quote}__rustywind_unknown_a ${token} __rustywind_unknown_b${quote}></div>`;
+  const sorter = await createSorter({
+    preserveDuplicates: true,
+    stylesheetPath: stylesheet,
   });
-  const formatted = await prettier.format(fixtures.join("\n"), {
-    parser: "html",
-    plugins: [tailwindPlugin],
-    tailwindStylesheet: stylesheet,
-  });
-  const formattedAttributes =
-    extractAttributes(formatted).map(splitClassTokens);
-  for (const [index, token] of eligible.entries()) {
-    known.set(
-      token,
-      same(formattedAttributes[index] ?? [], [
-        "__rustywind_unknown_a",
-        "__rustywind_unknown_b",
-        token,
-      ]),
-    );
-  }
-  return known;
+  const results = sorter.sortClassLists(
+    probes.map(({ left, right, token }) => [left, token, right]),
+  );
+
+  return new Map(
+    probes.map(({ left, right, token }, index) => {
+      const result = results[index] ?? [];
+      if (same(result, [left, right, token])) return [token, true];
+      if (same(result, [left, token, right])) return [token, false];
+      throw new Error(
+        `Tailwind sorter returned an unexpected probe result for ${JSON.stringify(token)}`,
+      );
+    }),
+  );
 }
 
 async function validatePrettier(configuration) {
@@ -475,10 +484,7 @@ async function compareCandidates(configuration, candidates) {
   return { details: pending, failures, summary };
 }
 
-async function main() {
-  const configuration = resolveConfiguration(
-    parseArguments(process.argv.slice(2)),
-  );
+async function runComparison(configuration) {
   validateRustywind(configuration);
   await validatePrettier(configuration);
   const candidates = selectCandidates(configuration);
@@ -520,7 +526,23 @@ async function main() {
   process.stdout.write(`${JSON.stringify(result.summary)}\n`);
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error.message || error}\n`);
-  process.exitCode = 1;
-});
+async function main() {
+  const configuration = resolveConfiguration(
+    parseArguments(process.argv.slice(2)),
+  );
+  try {
+    await runComparison(configuration);
+  } catch (error) {
+    throw new Error(scrubError(error, configuration), { cause: error });
+  }
+}
+
+if (
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  main().catch((error) => {
+    process.stderr.write(`${error.message || error}\n`);
+    process.exitCode = 1;
+  });
+}

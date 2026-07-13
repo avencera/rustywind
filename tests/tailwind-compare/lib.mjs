@@ -104,12 +104,17 @@ export function classifyDifference(prettierTokens, rustywindTokens, known) {
   if (!sameMultiset(prettierTokens, rustywindTokens)) return "token-multiset";
   if (same(prettierTokens, rustywindTokens)) return "exact";
 
-  const prettierKnown = prettierTokens.filter(
-    (token) => known.get(token) === true,
-  );
-  const rustywindKnown = rustywindTokens.filter(
-    (token) => known.get(token) === true,
-  );
+  const isKnown = (token) => {
+    const value = known.get(token);
+    if (typeof value !== "boolean") {
+      throw new Error(
+        `missing Tailwind classification for token: ${JSON.stringify(token)}`,
+      );
+    }
+    return value;
+  };
+  const prettierKnown = prettierTokens.filter(isKnown);
+  const rustywindKnown = rustywindTokens.filter(isKnown);
   return same(prettierKnown, rustywindKnown) ? "custom-only" : "known-order";
 }
 

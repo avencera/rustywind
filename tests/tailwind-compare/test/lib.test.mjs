@@ -94,6 +94,18 @@ test("classifies exact, custom-only, known-order, and multiset differences", () 
   );
 });
 
+test("rejects order classification without a result for every token", () => {
+  assert.throws(
+    () =>
+      classifyDifference(
+        ["unclassified", "flex"],
+        ["flex", "unclassified"],
+        new Map([["flex", true]]),
+      ),
+    /missing Tailwind classification for token: "unclassified"/u,
+  );
+});
+
 test("fingerprints ordered path and scrambled source records with NUL separators", () => {
   const records = [
     { path: "a.tsx", scrambledSource: '<div class="p-4 flex" />' },

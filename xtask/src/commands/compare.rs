@@ -155,8 +155,44 @@ struct CompareRunner {
     harness: PathBuf,
     output_directory: PathBuf,
     repository_directory: PathBuf,
-    rustywind: PathBuf,
     offline: bool,
+}
+
+struct RustywindBinary(PathBuf);
+
+impl RustywindBinary {
+    fn build(workspace: &Path, offline: bool) -> Result<Self> {
+        let mut build = Command::new("cargo");
+        build.current_dir(workspace).args([
+            "build",
+            "--release",
+            "--package",
+            "rustywind",
+            "--bin",
+            "rustywind",
+            "--message-format=json-render-diagnostics",
+        ]);
+        if offline {
+            build.arg("--offline");
+        }
+
+        let output = build
+            .output()
+            .wrap_err("failed to build the RustyWind release binary")?;
+        let output = checked_output(output, "build the RustyWind release binary")?;
+        let binary = Self(resolve_rustywind_binary(&output.stdout)?);
+        if !binary.0.is_file() {
+            bail!(
+                "RustyWind release build reported a missing executable at {}",
+                binary.0.display()
+            );
+        }
+        Ok(binary)
+    }
+
+    fn path(&self) -> &Path {
+        &self.0
+    }
 }
 
 impl CompareRunner {
@@ -169,7 +205,6 @@ impl CompareRunner {
         let target = workspace.join("target/tailwind-compare");
 
         Ok(Self {
-            rustywind: workspace.join("target/release/rustywind"),
             repository_directory: target.join("repos"),
             output_directory: target.join("results"),
             workspace,
@@ -193,23 +228,26 @@ impl CompareRunner {
             )
         })?;
 
-        if let Err(error) = self.prepare_environment() {
-            eprintln!("Comparison setup failed: {error:#}");
-            let results = selected
-                .into_iter()
-                .map(|spec| CorpusRunResult::failed(spec, FailureReason::Setup))
-                .collect();
-            let summary = ComparisonSummary::new(results);
-            self.write_summary(&summary)?;
-            self.print_summary(&summary);
-            bail!(
-                "Tailwind comparison setup failed; see target/tailwind-compare/results/report.md"
-            );
-        }
+        let rustywind = match self.prepare_environment() {
+            Ok(rustywind) => rustywind,
+            Err(error) => {
+                eprintln!("Comparison setup failed: {error:#}");
+                let results = selected
+                    .into_iter()
+                    .map(|spec| CorpusRunResult::failed(spec, FailureReason::Setup))
+                    .collect();
+                let summary = ComparisonSummary::new(results);
+                self.write_summary(&summary)?;
+                self.print_summary(&summary);
+                bail!(
+                    "Tailwind comparison setup failed; see target/tailwind-compare/results/report.md"
+                );
+            }
+        };
 
         let results = selected
             .into_iter()
-            .map(|spec| self.run_corpus(spec))
+            .map(|spec| self.run_corpus(spec, &rustywind))
             .collect::<Vec<_>>();
         let summary = ComparisonSummary::new(results);
         self.write_summary(&summary)?;
@@ -222,18 +260,11 @@ impl CompareRunner {
         Ok(())
     }
 
-    fn prepare_environment(&self) -> Result<()> {
+    fn prepare_environment(&self) -> Result<RustywindBinary> {
         validate_prerequisites()?;
         validate_harness(&self.harness)?;
 
-        let mut build = Command::new("cargo");
-        build
-            .current_dir(&self.workspace)
-            .args(["build", "--release", "--package", "rustywind"]);
-        if self.offline {
-            build.arg("--offline");
-        }
-        let build_result = run_checked(&mut build, "build the RustyWind release binary");
+        let build_result = RustywindBinary::build(&self.workspace, self.offline);
 
         let mut npm = Command::new("npm");
         npm.current_dir(&self.harness).arg("ci");
@@ -252,17 +283,10 @@ impl CompareRunner {
             bail!("comparison environment preparation failed");
         }
 
-        if !self.rustywind.is_file() {
-            bail!(
-                "RustyWind release build did not produce {}",
-                self.rustywind.display()
-            );
-        }
-
-        Ok(())
+        build_result
     }
 
-    fn run_corpus(&self, spec: CorpusSpec) -> CorpusRunResult {
+    fn run_corpus(&self, spec: CorpusSpec, rustywind: &RustywindBinary) -> CorpusRunResult {
         println!("Comparing {} at {}", spec.name, spec.revision);
 
         let repository = match self.prepare_repository(spec) {
@@ -271,7 +295,7 @@ impl CompareRunner {
                 return failed_corpus(spec, FailureReason::RepositoryUnavailable, error);
             }
         };
-        let report = match self.invoke_comparison(spec, &repository) {
+        let report = match self.invoke_comparison(spec, &repository, rustywind) {
             Ok(report) => report,
             Err(error) => return failed_corpus(spec, FailureReason::InvocationFailed, error),
         };
@@ -369,7 +393,12 @@ impl CompareRunner {
         run_checked(&mut add_remote, "configure corpus remote")
     }
 
-    fn invoke_comparison(&self, spec: CorpusSpec, repository: &Path) -> Result<NodeReport> {
+    fn invoke_comparison(
+        &self,
+        spec: CorpusSpec,
+        repository: &Path,
+        rustywind: &RustywindBinary,
+    ) -> Result<NodeReport> {
         let output_path = self
             .output_directory
             .join(format!("{}.json", spec.name.as_str()));
@@ -390,7 +419,7 @@ impl CompareRunner {
             .args(["--kind", spec.kind.as_str()])
             .args(["--limit", &spec.limit.to_string()])
             .args(["--rustywind"])
-            .arg(&self.rustywind)
+            .arg(rustywind.path())
             .args(["--stylesheet"])
             .arg(self.harness.join("tailwind.css"))
             .args(["--output"])
@@ -514,6 +543,60 @@ fn validate_exact_revision(expected: &str, actual: &str) -> Result<()> {
         bail!("corpus revision mismatch: expected {expected}, found {actual}");
     }
     Ok(())
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "reason", rename_all = "kebab-case")]
+enum CargoBuildMessage {
+    CompilerArtifact {
+        target: CargoTarget,
+        executable: Option<PathBuf>,
+    },
+    #[serde(other)]
+    Other,
+}
+
+#[derive(Deserialize)]
+struct CargoTarget {
+    name: String,
+    kind: Vec<CargoTargetKind>,
+}
+
+#[derive(Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+enum CargoTargetKind {
+    Bin,
+    #[serde(other)]
+    Other,
+}
+
+fn resolve_rustywind_binary(build_output: &[u8]) -> Result<PathBuf> {
+    let build_output =
+        std::str::from_utf8(build_output).wrap_err("Cargo build output was not valid UTF-8")?;
+    let mut executables = build_output
+        .lines()
+        .map(serde_json::from_str::<CargoBuildMessage>)
+        .collect::<serde_json::Result<Vec<_>>>()?
+        .into_iter()
+        .filter_map(|message| match message {
+            CargoBuildMessage::CompilerArtifact { target, executable }
+                if target.name == "rustywind" && target.kind.contains(&CargoTargetKind::Bin) =>
+            {
+                executable
+            }
+            CargoBuildMessage::CompilerArtifact { .. } | CargoBuildMessage::Other => None,
+        });
+    let executable = executables
+        .next()
+        .ok_or_else(|| eyre!("Cargo did not report the RustyWind executable artifact"))?;
+    if let Some(other) = executables.next() {
+        bail!(
+            "Cargo reported multiple RustyWind executable artifacts: {} and {}",
+            executable.display(),
+            other.display()
+        );
+    }
+    Ok(executable)
 }
 
 fn command_stdout(command: &mut Command, description: &str) -> Result<String> {
@@ -1220,6 +1303,22 @@ mod tests {
     use super::*;
 
     const FINGERPRINT: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    #[test]
+    fn binary_resolution_uses_cargo_reported_executable() {
+        let expected = PathBuf::from(
+            "/custom-target/aarch64-unknown-linux-gnu/release/rustywind-custom-suffix",
+        );
+        let output = format!(
+            "{{\"reason\":\"compiler-artifact\",\"target\":{{\"name\":\"rustywind_core\",\"kind\":[\"lib\"]}},\"executable\":null}}\n{{\"reason\":\"compiler-artifact\",\"target\":{{\"name\":\"rustywind\",\"kind\":[\"bin\"]}},\"executable\":{}}}\n{{\"reason\":\"build-finished\",\"success\":true}}\n",
+            serde_json::to_string(&expected).unwrap()
+        );
+
+        assert_eq!(
+            resolve_rustywind_binary(output.as_bytes()).unwrap(),
+            expected
+        );
+    }
 
     #[test]
     fn empty_selection_uses_every_corpus_in_canonical_order() {
