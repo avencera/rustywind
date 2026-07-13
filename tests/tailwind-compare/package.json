@@ -1,0 +1,16 @@
+{
+  "name": "rustywind-tailwind-compare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "prettier": "3.9.5",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-svelte": "3.5.1",
+    "prettier-plugin-tailwindcss": "0.8.0",
+    "tailwindcss": "4.3.0"
+  }
+}
