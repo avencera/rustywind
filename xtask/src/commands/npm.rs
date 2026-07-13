@@ -4,8 +4,9 @@ use semver::{BuildMetadata, Prerelease, Version};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::fs;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -159,7 +160,7 @@ fn asset_name_for_target(tag: &str, target: &str) -> String {
 
 fn sha256_bytes(data: &[u8]) -> String {
     let digest = Sha256::digest(data);
-    format!("{digest:x}")
+    hex_digest(&digest)
 }
 
 fn sha256_file(path: &Path) -> Result<String> {
@@ -172,10 +173,18 @@ fn sha256_file(path: &Path) -> Result<String> {
         if count == 0 {
             break;
         }
-        hasher.write_all(&buffer[..count])?;
+        hasher.update(&buffer[..count]);
     }
 
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(hex_digest(&hasher.finalize()))
+}
+
+fn hex_digest(digest: &[u8]) -> String {
+    let mut output = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        write!(output, "{byte:02x}").expect("writing to a string should not fail");
+    }
+    output
 }
 
 fn read_package_json(path: &Path) -> Result<PackageJson> {
@@ -268,7 +277,7 @@ pub fn prepare_binaries(version: &str, token: Option<&str>) -> Result<()> {
         // Download the asset
         let mut request = ureq::get(&download_url);
         if let Some(t) = token {
-            request = request.set("Authorization", &format!("token {}", t));
+            request = request.header("Authorization", format!("token {t}"));
         }
 
         let response = request
@@ -276,7 +285,11 @@ pub fn prepare_binaries(version: &str, token: Option<&str>) -> Result<()> {
             .wrap_err_with(|| format!("Failed to download {} from {}", asset_name, download_url))?;
 
         let mut data = Vec::new();
-        response.into_reader().read_to_end(&mut data)?;
+        response
+            .into_parts()
+            .1
+            .into_reader()
+            .read_to_end(&mut data)?;
         let archive_sha256 = sha256_bytes(&data);
 
         // Extract the binary

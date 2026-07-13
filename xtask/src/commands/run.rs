@@ -220,13 +220,9 @@ pub fn run(num_rounds: usize, workers: Option<usize>, seed: Option<String>) -> R
 
     // generate or use provided seed
     let base_seed = seed.unwrap_or_else(|| {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        // generate a random 8-character alphanumeric seed
-        std::iter::repeat_with(|| rng.sample(rand::distributions::Alphanumeric))
-            .map(char::from)
-            .take(8)
-            .collect()
+        use rand::distr::{Alphanumeric, SampleString as _};
+
+        Alphanumeric.sample_string(&mut rand::rng(), 8)
     });
 
     println!(

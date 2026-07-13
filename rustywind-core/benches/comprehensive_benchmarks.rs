@@ -9,11 +9,12 @@
 //! Run specific benchmark: cargo bench --bench comprehensive_benchmarks
 
 use ahash::AHashMap;
-use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 use rustywind_core::{
     PlainClassList, app::RustyWind, hybrid_sorter::HybridSorter, pattern_sorter::sort_classes,
     sorter::Sorter,
 };
+use std::hint::black_box;
 
 /// Generate realistic Tailwind class lists
 fn generate_realistic_classes(count: usize) -> Vec<String> {
