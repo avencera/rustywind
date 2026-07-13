@@ -1,18 +1,22 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt, ops::Range};
 
 use crate::{
     class_wrapping::ClassWrapping,
     consts::{VARIANT_SEARCHER, VARIANTS},
     hybrid_sorter::HybridSorter,
+    markup_parser::{ClassAttribute, class_attributes, is_attribute_name_character},
     sorter::{FinderRegex, Sorter},
+    source::{
+        ClassValueAnalysis, SourceDocument, StaticRuns, analyze_class_value, is_plain_class_list,
+    },
     tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value},
 };
 use ahash::{AHashMap as HashMap, AHashSet as HashSet};
 use aho_corasick::{Anchored, Input};
-use regex::Captures;
+use regex::{Captures, Match, Regex};
 use std::sync::{Arc, LazyLock, RwLock};
 
-/// Global instance of the HybridSorter for pattern-based sorting.
+/// Global instance of the HybridSorter for pattern-based sorting
 static PATTERN_SORTER: LazyLock<HybridSorter> = LazyLock::new(HybridSorter::new);
 static PREFIXED_PATTERN_SORTERS: LazyLock<RwLock<HashMap<String, Arc<HybridSorter>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
@@ -22,13 +26,133 @@ struct SortCandidate<'a> {
     lookup: Cow<'a, str>,
 }
 
-/// The options to pass to the sorter.
+struct SortableCapture<'a> {
+    full_match: Match<'a>,
+    classes_match: Match<'a>,
+    value: SortableClassValue<'a>,
+}
+
+enum SortableClassValue<'a> {
+    Static(StaticRuns),
+    Wrapped(WrappedClassList<'a>),
+}
+
+/// A validated comma-separated list of quoted static class tokens
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WrappedClassList<'a> {
+    quote: WrappedQuote,
+    classes: Vec<&'a str>,
+}
+
+impl<'a> WrappedClassList<'a> {
+    fn parse(value: &'a str, wrapping: ClassWrapping) -> Option<Self> {
+        let quote = WrappedQuote::from_wrapping(wrapping)?;
+        let mut cursor = skip_ascii_whitespace(value, 0);
+        let mut classes = Vec::new();
+
+        loop {
+            let (class, next) = parse_wrapped_class(value, cursor, quote.as_char())?;
+            classes.push(class);
+            cursor = skip_ascii_whitespace(value, next);
+
+            if cursor == value.len() {
+                return Some(Self { quote, classes });
+            }
+            if value.as_bytes().get(cursor) != Some(&b',') {
+                return None;
+            }
+
+            cursor = skip_ascii_whitespace(value, cursor + 1);
+            if cursor == value.len() {
+                return None;
+            }
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &'a str> + '_ {
+        self.classes.iter().copied()
+    }
+
+    fn render(&self, classes: &[&str]) -> String {
+        let quote = self.quote.as_char();
+        classes
+            .iter()
+            .map(|class| format!("{quote}{class}{quote}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WrappedQuote {
+    Single,
+    Double,
+}
+
+impl WrappedQuote {
+    fn from_wrapping(wrapping: ClassWrapping) -> Option<Self> {
+        match wrapping {
+            ClassWrapping::NoWrapping => None,
+            ClassWrapping::CommaSingleQuotes => Some(Self::Single),
+            ClassWrapping::CommaDoubleQuotes => Some(Self::Double),
+        }
+    }
+
+    const fn as_char(self) -> char {
+        match self {
+            Self::Single => '\'',
+            Self::Double => '"',
+        }
+    }
+}
+
+/// A validated whitespace-separated list containing only static class tokens
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlainClassList<'a>(&'a str);
+
+impl<'a> PlainClassList<'a> {
+    /// Parses a static whitespace-separated class list
+    ///
+    /// Template delimiters outside Tailwind arbitrary-value brackets are
+    /// rejected so program source cannot enter the direct class-list sorter
+    pub fn parse(value: &'a str) -> Result<Self, InvalidClassList> {
+        if is_plain_class_list(value) {
+            Ok(Self(value))
+        } else {
+            Err(InvalidClassList)
+        }
+    }
+
+    /// Returns the validated class-list source
+    pub fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
+/// Error returned when a direct class list contains source-language syntax
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InvalidClassList;
+
+impl fmt::Display for InvalidClassList {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("class list contains template syntax or unbalanced brackets")
+    }
+}
+
+impl std::error::Error for InvalidClassList {}
+
+/// The options to pass to the sorter
 #[derive(Debug, Clone)]
 pub struct RustyWind {
+    /// Attribute extractor used to find candidate class values
     pub regex: FinderRegex,
+    /// Class ordering strategy
     pub sorter: Sorter,
+    /// Whether repeated classes are retained within a static run
     pub allow_duplicates: bool,
+    /// Encoding used by custom extracted class lists
     pub class_wrapping: ClassWrapping,
+    /// Tailwind prefix normalized while computing sort order
     pub tailwind_prefix: Option<String>,
 }
 
@@ -45,6 +169,7 @@ impl Default for RustyWind {
 }
 
 impl RustyWind {
+    /// Creates a sorter without a Tailwind prefix
     pub fn new(
         regex: FinderRegex,
         sorter: Sorter,
@@ -54,6 +179,7 @@ impl RustyWind {
         Self::new_with_tailwind_prefix(regex, sorter, allow_duplicates, class_wrapping, None)
     }
 
+    /// Creates a sorter with an optional Tailwind prefix
     pub fn new_with_tailwind_prefix(
         regex: FinderRegex,
         sorter: Sorter,
@@ -70,78 +196,196 @@ impl RustyWind {
         }
     }
 
-    /// Checks if the file contents have any classes.
-    pub fn has_classes(&self, file_contents: &str) -> bool {
-        self.regex.is_match(file_contents)
+    /// Checks whether a source document contains a sortable static class run
+    pub fn has_classes(&self, document: SourceDocument<'_>) -> bool {
+        if matches!(self.regex, FinderRegex::DefaultRegex)
+            && document.language().markup_profile().is_some()
+        {
+            return class_attributes(document).is_some_and(|attributes| {
+                attributes
+                    .iter()
+                    .any(|attribute| self.sortable_attribute(attribute, document).is_some())
+            });
+        }
+
+        self.extraction_regex()
+            .captures_iter(document.text())
+            .any(|captures| self.sortable_capture(&captures, document).is_some())
     }
 
-    /// Sorts the classes in the file contents.
-    pub fn sort_file_contents<'a>(&self, file_contents: &'a str) -> Cow<'a, str> {
-        self.regex.replace_all(file_contents, |caps: &Captures| {
-            let classes = caps
-                .get(1)
-                .or_else(|| caps.get(2))
-                .expect("class extractor regex must include a capture group")
-                .as_str();
+    /// Sorts proven-static class runs in a language-aware source document
+    ///
+    /// Embedded expressions are preserved byte-for-byte, and sorting or
+    /// deduplication never crosses an expression boundary
+    pub fn sort_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
+        if matches!(self.regex, FinderRegex::DefaultRegex)
+            && document.language().markup_profile().is_some()
+        {
+            return self.sort_structured_document(document);
+        }
 
-            if contains_template_syntax(classes) {
-                return caps[0].to_string();
+        self.extraction_regex()
+            .replace_all(document.text(), |captures: &Captures| {
+                let Some(capture) = self.sortable_capture(captures, document) else {
+                    return captures[0].to_string();
+                };
+
+                let sorted_classes =
+                    self.sort_source_value(capture.classes_match.as_str(), &capture.value);
+                splice_capture(
+                    capture.full_match.as_str(),
+                    &capture.full_match,
+                    &capture.classes_match,
+                    &sorted_classes,
+                )
+            })
+    }
+
+    /// Sorts a validated static class list and normalizes its whitespace
+    pub fn sort_class_list(&self, class_list: PlainClassList<'_>) -> String {
+        self.sort_class_run(class_list.as_str())
+    }
+
+    fn extraction_regex(&self) -> &Regex {
+        &self.regex
+    }
+
+    fn sortable_capture<'a>(
+        &self,
+        captures: &'a Captures<'a>,
+        document: SourceDocument<'a>,
+    ) -> Option<SortableCapture<'a>> {
+        let full_match = captures.get(0)?;
+
+        if matches!(self.regex, FinderRegex::DefaultRegex)
+            && has_attribute_name_prefix(document.text(), full_match.start())
+        {
+            return None;
+        }
+
+        let classes_match = match &self.regex {
+            FinderRegex::DefaultRegex => captures.get(1).or_else(|| captures.get(2))?,
+            FinderRegex::CustomRegex(extractor) => extractor.classes(captures)?,
+        };
+
+        let value = if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
+            match analyze_class_value(classes_match.as_str(), document.language()) {
+                ClassValueAnalysis::Sortable(runs) => SortableClassValue::Static(runs),
+                ClassValueAnalysis::Opaque => return None,
             }
+        } else {
+            SortableClassValue::Wrapped(WrappedClassList::parse(
+                classes_match.as_str(),
+                self.class_wrapping,
+            )?)
+        };
 
-            let sorted_classes = self.sort_classes(classes);
-            caps[0].replace(classes, &sorted_classes)
+        Some(SortableCapture {
+            full_match,
+            classes_match,
+            value,
         })
     }
 
-    /// Given a [&str] of whitespace-separated classes, returns a [String] of sorted classes.
-    /// Does not preserve whitespace.
-    ///
-    /// Expects plain class names only: the template-syntax guard lives in
-    /// [`Self::sort_file_contents`], so passing a string containing embedded
-    /// template code (e.g. `<%= ... %>`) will split it on whitespace like any
-    /// other classes.
-    pub fn sort_classes(&self, class_string: &str) -> String {
-        let extracted_classes = self.unwrap_wrapped_classes(class_string);
+    fn sortable_attribute<'a>(
+        &self,
+        attribute: &ClassAttribute,
+        document: SourceDocument<'a>,
+    ) -> Option<(Range<usize>, SortableClassValue<'a>)> {
+        let range = attribute.value_range();
+        let value = if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
+            match analyze_class_value(&document.text()[range.clone()], document.language()) {
+                ClassValueAnalysis::Sortable(runs) => SortableClassValue::Static(runs),
+                ClassValueAnalysis::Opaque => return None,
+            }
+        } else {
+            SortableClassValue::Wrapped(WrappedClassList::parse(
+                &document.text()[range.clone()],
+                self.class_wrapping,
+            )?)
+        };
 
-        let mut sorted = self.sort_classes_vec(extracted_classes.into_iter());
+        Some((range, value))
+    }
+
+    fn sort_structured_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
+        let Some(attributes) = class_attributes(document) else {
+            return Cow::Borrowed(document.text());
+        };
+        let sortable = attributes
+            .iter()
+            .filter_map(|attribute| self.sortable_attribute(attribute, document))
+            .collect::<Vec<_>>();
+        if sortable.is_empty() {
+            return Cow::Borrowed(document.text());
+        }
+
+        let mut output = document.text().to_string();
+        let mut changed = false;
+        for (range, value) in sortable.into_iter().rev() {
+            let original = &document.text()[range.clone()];
+            let sorted = self.sort_source_value(original, &value);
+            if sorted != original {
+                output.replace_range(range, &sorted);
+                changed = true;
+            }
+        }
+
+        if changed {
+            Cow::Owned(output)
+        } else {
+            Cow::Borrowed(document.text())
+        }
+    }
+
+    fn sort_source_value<'a>(
+        &self,
+        value: &'a str,
+        class_value: &SortableClassValue<'a>,
+    ) -> Cow<'a, str> {
+        let runs = match class_value {
+            SortableClassValue::Static(runs) => runs,
+            SortableClassValue::Wrapped(classes) => {
+                return Cow::Owned(self.sort_wrapped_classes(classes));
+            }
+        };
+
+        let mut sorted_value = value.to_string();
+        let mut changed = false;
+
+        for span in runs.iter().rev() {
+            let original_run = &value[span.clone()];
+            let sorted_run = self.sort_class_run(original_run);
+            if sorted_run != original_run {
+                sorted_value.replace_range(span.clone(), &sorted_run);
+                changed = true;
+            }
+        }
+
+        if changed {
+            Cow::Owned(sorted_value)
+        } else {
+            Cow::Borrowed(value)
+        }
+    }
+
+    fn sort_class_run(&self, class_string: &str) -> String {
+        let mut sorted = self.sort_classes_vec(split_class_tokens(class_string).into_iter());
 
         if !self.allow_duplicates {
             deduplicate_classes(&mut sorted);
         }
 
-        self.rewrap_wrapped_classes(sorted)
+        sorted.join(" ")
     }
 
-    fn unwrap_wrapped_classes<'a>(&self, class_string: &'a str) -> Vec<&'a str> {
-        match self.class_wrapping {
-            ClassWrapping::NoWrapping => split_class_tokens(class_string),
-            ClassWrapping::CommaSingleQuotes => class_string
-                .split(',')
-                .flat_map(split_class_tokens)
-                .map(|class| class.trim_matches('\''))
-                .collect(),
-            ClassWrapping::CommaDoubleQuotes => class_string
-                .split(',')
-                .flat_map(split_class_tokens)
-                .map(|class| class.trim_matches('"'))
-                .collect(),
+    fn sort_wrapped_classes(&self, class_list: &WrappedClassList<'_>) -> String {
+        let mut sorted = self.sort_classes_vec(class_list.iter());
+        if !self.allow_duplicates {
+            deduplicate_classes(&mut sorted);
         }
-    }
 
-    fn rewrap_wrapped_classes(&self, classes: Vec<&str>) -> String {
-        match self.class_wrapping {
-            ClassWrapping::NoWrapping => classes.join(" "),
-            ClassWrapping::CommaSingleQuotes => classes
-                .iter()
-                .map(|class| format!("'{}'", class))
-                .collect::<Vec<String>>()
-                .join(", "),
-            ClassWrapping::CommaDoubleQuotes => classes
-                .iter()
-                .map(|class| format!("\"{}\"", class))
-                .collect::<Vec<String>>()
-                .join(", "),
-        }
+        class_list.render(&sorted)
     }
 
     fn sort_classes_vec<'a>(&self, classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
@@ -176,8 +420,11 @@ impl RustyWind {
             {
                 Some(size) => tailwind_classes.push((candidate.original, size)),
                 None => {
-                    let input = Input::new(candidate.lookup.as_ref()).anchored(Anchored::Yes);
-                    match VARIANT_SEARCHER.find(input) {
+                    let lookup = candidate.lookup.as_ref();
+                    let input = Input::new(lookup).anchored(Anchored::Yes);
+                    match VARIANT_SEARCHER.find(input).filter(|prefix_match| {
+                        lookup.as_bytes().get(prefix_match.end()) == Some(&b':')
+                    }) {
                         Some(prefix_match) => {
                             let prefix = VARIANTS[prefix_match.pattern()];
                             variants.entry(prefix).or_default().push(candidate)
@@ -292,59 +539,97 @@ fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
     )
 }
 
-/// Delimiters of template-language tags (ERB/EJS `<% %>`, PHP `<? ?>`,
-/// Handlebars/Jinja/Liquid `{{ }}` and `{% %}`, Ruby string interpolation `#{ }`,
-/// JS template literals `${ }`). Class strings containing embedded code can't be
-/// safely split on whitespace — sorting them would move tokens across code
-/// boundaries and corrupt the template. Closing delimiters are included because
-/// a quote inside the template code can split the regex match, leaving a
-/// fragment that contains only the tail of a tag.
-// TODO: instead of skipping the whole class string, tokenize template tags as
-// opaque units so the static classes around them can still be sorted.
-const TEMPLATE_DELIMITERS: [&str; 10] =
-    ["<%", "%>", "<?", "?>", "{{", "}}", "{%", "%}", "#{", "${"];
-
-fn contains_template_syntax(class_string: &str) -> bool {
-    TEMPLATE_DELIMITERS
-        .iter()
-        .any(|delimiter| class_string.contains(delimiter))
+fn has_attribute_name_prefix(source: &str, match_start: usize) -> bool {
+    source[..match_start]
+        .chars()
+        .next_back()
+        .is_some_and(is_attribute_name_character)
 }
 
-#[cfg(test)]
-mod template_syntax_tests {
-    use super::contains_template_syntax;
-
-    #[test]
-    fn detects_closing_delimiter_fragments() {
-        // a quote inside template code can split the regex match, leaving a
-        // fragment with only the tail of a tag
-        assert!(contains_template_syntax("a' %> flex p-4"));
-        assert!(contains_template_syntax("arg'}} p-4"));
-        assert!(contains_template_syntax("x %} m-4"));
-        assert!(contains_template_syntax("y ?> m-4"));
+fn parse_wrapped_class(value: &str, start: usize, quote: char) -> Option<(&str, usize)> {
+    if value[start..].chars().next()? != quote {
+        return None;
     }
 
-    #[test]
-    fn ignores_plain_class_strings() {
-        assert!(!contains_template_syntax(
-            "flex p-4 max-w-[min(100%, 500px)]"
-        ));
-        assert!(!contains_template_syntax(
-            "[&>*]:p-4 [@supports(display:grid)]:grid"
-        ));
+    let class_start = start + quote.len_utf8();
+    let mut escaped = false;
+    for (relative, character) in value[class_start..].char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if character == '\\' {
+            escaped = true;
+            continue;
+        }
+        if character != quote {
+            continue;
+        }
+
+        let class_end = class_start + relative;
+        let class = &value[class_start..class_end];
+        if !is_plain_class_list(class) || split_class_tokens(class).as_slice() != [class] {
+            return None;
+        }
+        return Some((class, class_end + quote.len_utf8()));
     }
+
+    None
+}
+
+fn skip_ascii_whitespace(value: &str, mut cursor: usize) -> usize {
+    while value
+        .as_bytes()
+        .get(cursor)
+        .is_some_and(u8::is_ascii_whitespace)
+    {
+        cursor += 1;
+    }
+    cursor
+}
+
+fn splice_capture(
+    full_source: &str,
+    full_match: &regex::Match<'_>,
+    classes_match: &regex::Match<'_>,
+    replacement: &str,
+) -> String {
+    let class_start = classes_match.start() - full_match.start();
+    let class_end = classes_match.end() - full_match.start();
+    let mut output =
+        String::with_capacity(full_source.len() - classes_match.as_str().len() + replacement.len());
+    output.push_str(&full_source[..class_start]);
+    output.push_str(replacement);
+    output.push_str(&full_source[class_end..]);
+    output
 }
 
 fn split_class_tokens(class_string: &str) -> Vec<&str> {
     let mut tokens = Vec::new();
     let mut start = None;
     let mut bracket_depth: u32 = 0;
+    let mut bracket_quote = None;
+    let mut escaped = false;
 
     for (index, character) in class_string.char_indices() {
-        match character {
-            '[' => bracket_depth += 1,
-            ']' => bracket_depth = bracket_depth.saturating_sub(1),
-            _ => {}
+        if bracket_depth > 0 {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if let Some(active_quote) = bracket_quote {
+                if character == active_quote {
+                    bracket_quote = None;
+                }
+            } else if matches!(character, '\'' | '"' | '`') {
+                bracket_quote = Some(character);
+            } else if character == '[' {
+                bracket_depth += 1;
+            } else if character == ']' {
+                bracket_depth -= 1;
+            }
+        } else if character == '[' {
+            bracket_depth = 1;
         }
 
         if character.is_ascii_whitespace() && bracket_depth == 0 {
@@ -375,6 +660,7 @@ fn is_ellipsis_placeholder(class: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source::SourceLanguage;
     use pretty_assertions::assert_eq;
     use regex::Regex;
     use test_case::test_case;
@@ -386,6 +672,21 @@ mod tests {
         tailwind_prefix: None,
     };
 
+    trait TestRustyWindExt {
+        fn sort_file_contents<'a>(&self, input: &'a str) -> Cow<'a, str>;
+        fn sort_classes(&self, input: &str) -> String;
+    }
+
+    impl TestRustyWindExt for RustyWind {
+        fn sort_file_contents<'a>(&self, input: &'a str) -> Cow<'a, str> {
+            self.sort_document(SourceDocument::new(input, SourceLanguage::Html))
+        }
+
+        fn sort_classes(&self, input: &str) -> String {
+            self.sort_class_list(PlainClassList::parse(input).unwrap())
+        }
+    }
+
     // HAS_CLASSES --------------------------------------------------------------------------------
     #[test_case( r#"<div class="flex-col inline flex"></div>"#, true ; "div tag with class")]
     #[test_case( r#"<body class="unknown-class"></body>"#, true ; "body tag with unknown class")]
@@ -394,7 +695,65 @@ mod tests {
     #[test_case( r#"<div><p></p><p></p></div>"#, false ; "nested tags, no class")]
     #[test_case( r#"<div><p><span className="inline"></span></p><p></p></div>"#, true ; "nested tags, class in child")]
     fn test_has_classes(input: &str, output: bool) {
-        assert_eq!(RUSTYWIND_DEFAULT.has_classes(input), output);
+        assert_eq!(
+            RUSTYWIND_DEFAULT.has_classes(SourceDocument::new(input, SourceLanguage::Html)),
+            output
+        );
+    }
+
+    #[test]
+    fn sorts_every_attribute_in_a_document_with_many_tags() {
+        let source = (0..2_000)
+            .map(|_| r#"<div class="p-4 m-4 flex"></div>"#)
+            .collect::<String>();
+        let result = RUSTYWIND_DEFAULT
+            .sort_document(SourceDocument::new(&source, SourceLanguage::Html))
+            .into_owned();
+
+        assert_eq!(result.matches(r#"class="m-4 flex p-4""#).count(), 2_000);
+    }
+
+    #[test]
+    fn legacy_positional_custom_regex_still_sorts_classes() {
+        let extractor =
+            crate::sorter::CustomClassExtractor::new(Regex::new(r#"class="([^"]+)""#).unwrap())
+                .unwrap();
+        let app = RustyWind {
+            regex: FinderRegex::CustomRegex(extractor),
+            ..RUSTYWIND_DEFAULT
+        };
+        let source = r#"<div class="p-4 m-4 flex"></div>"#;
+
+        assert_eq!(
+            app.sort_document(SourceDocument::new(source, SourceLanguage::Unknown)),
+            r#"<div class="m-4 flex p-4"></div>"#
+        );
+    }
+
+    #[test_case("data-class" ; "data attribute")]
+    #[test_case("x-class" ; "x attribute")]
+    #[test_case(":class" ; "colon directive")]
+    #[test_case(".class" ; "dot directive")]
+    #[test_case("@class" ; "event directive")]
+    #[test_case("[class]" ; "bracket binding")]
+    fn default_regex_rejects_class_suffixes_in_attribute_names(attribute_name: &str) {
+        let source = format!(r#"<div {attribute_name}="p-4 m-4"></div>"#);
+        let document = SourceDocument::new(&source, SourceLanguage::Unknown);
+
+        assert!(!RUSTYWIND_DEFAULT.has_classes(document));
+        assert_eq!(RUSTYWIND_DEFAULT.sort_document(document), source);
+    }
+
+    #[test]
+    fn default_regex_accepts_a_standalone_class_attribute() {
+        let source = r#"<div class="p-4 m-4">"#;
+        let document = SourceDocument::new(source, SourceLanguage::Unknown);
+
+        assert!(RUSTYWIND_DEFAULT.has_classes(document));
+        assert_eq!(
+            RUSTYWIND_DEFAULT.sort_document(document),
+            r#"<div class="m-4 p-4">"#
+        );
     }
 
     // SORT_CLASSES_VEC ---------------------------------------------------------------------------
@@ -565,67 +924,71 @@ mod tests {
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"This is to represent any other normal file."#,
-        r#"This is to represent any other normal file."#
+        r#"This is to represent any other normal file."#,
+        SourceLanguage::Html
         ; "makes no change to files without class string"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"<div><p><img height="100" width="250" /></p><p></p></div>"#,
-        r#"<div><p><img height="100" width="250" /></p><p></p></div>"#
+        r#"<div><p><img height="100" width="250" /></p><p></p></div>"#,
+        SourceLanguage::Html
         ; "makes no change to elements without class string"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"<div class="<%= layout == :cards ? 'flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center' : 'sm:flex sm:items-center' %>">"#,
-        r#"<div class="<%= layout == :cards ? 'flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center' : 'sm:flex sm:items-center' %>">"#
+        r#"<div class="<%= layout == :cards ? 'flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center' : 'sm:flex sm:items-center' %>">"#,
+        SourceLanguage::Erb
         ; "makes no change to class string that is a single erb ternary"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"<span class="inline-flex items-center <%= data["company"].present? ? 'h-auto py-2 px-3 gap-x-1.5' : 'h-8 py-1 px-2 gap-x-0.5' %> rounded-md">"#,
-        r#"<span class="inline-flex items-center <%= data["company"].present? ? 'h-auto py-2 px-3 gap-x-1.5' : 'h-8 py-1 px-2 gap-x-0.5' %> rounded-md">"#
+        r#"<span class="inline-flex items-center <%= data["company"].present? ? 'h-auto py-2 px-3 gap-x-1.5' : 'h-8 py-1 px-2 gap-x-0.5' %> rounded-md">"#,
+        SourceLanguage::Erb
         ; "makes no change to class string with erb tag between static classes"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"<span class="flex h-8 w-8 items-center justify-center rounded-full <%= record.active? ? 'bg-brand-yellow text-gray-950' : 'border-2 border-gray-300 bg-white' %>">"#,
-        r#"<span class="flex h-8 w-8 items-center justify-center rounded-full <%= record.active? ? 'bg-brand-yellow text-gray-950' : 'border-2 border-gray-300 bg-white' %>">"#
+        r#"<span class="flex h-8 w-8 items-center justify-center rounded-full <%= record.active? ? 'bg-brand-yellow text-gray-950' : 'border-2 border-gray-300 bg-white' %>">"#,
+        SourceLanguage::Erb
         ; "makes no change to class string with static classes before an erb ternary"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r##"<div class="box f-col #{reply.reply_id ? "ok" : ""}">"##,
-        r##"<div class="box f-col #{reply.reply_id ? "ok" : ""}">"##
+        r##"<div class="box f-col #{reply.reply_id ? "ok" : ""}">"##,
+        SourceLanguage::Ruby
         ; "makes no change to class string with ruby string interpolation"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#,
-        r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#
+        r#"<div class="p-4 {{ active ? 'flex flex-col' : 'hidden' }}">"#,
+        SourceLanguage::Handlebars
         ; "makes no change to class string with mustache style interpolation"
     )]
     #[test_case(
         &RUSTYWIND_DEFAULT,
         r#"html`<div class="p-4 m-4 ${active ? 'flex flex-col' : 'hidden'}">`"#,
-        r#"html`<div class="p-4 m-4 ${active ? 'flex flex-col' : 'hidden'}">`"#
+        r#"html`<div class="m-4 p-4 ${active ? 'flex flex-col' : 'hidden'}">`"#,
+        SourceLanguage::Lit
         ; "makes no change to class string with js template literal interpolation"
     )]
-    fn test_sort_file_contents(app: &RustyWind, input: &str, output: &str) {
-        assert_eq!(app.sort_file_contents(input), output);
+    fn test_sort_file_contents(
+        app: &RustyWind,
+        input: &str,
+        output: &str,
+        language: SourceLanguage,
+    ) {
+        assert_eq!(
+            app.sort_document(SourceDocument::new(input, language)),
+            output
+        );
     }
     // CLASS WRAPPING
-    #[test_case(
-        r#"flex-col inline flex"#,
-        ClassWrapping::NoWrapping,
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
-        ; "no wrapping"
-    )]
-    #[test_case(
-        r#"max-w-[min(100%, 500px)] my-6"#,
-        ClassWrapping::NoWrapping,
-        vec![r#"max-w-[min(100%, 500px)]"#, r#"my-6"#]
-        ; "arbitrary value with whitespace"
-    )]
     #[test_case(
         r#"'flex-col', 'inline', 'flex'"#,
         ClassWrapping::CommaSingleQuotes,
@@ -638,40 +1001,66 @@ mod tests {
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "comma double quotes"
     )]
-    fn test_unwrap_wrapped_classes(input: &str, wrapping: ClassWrapping, output: Vec<&str>) {
-        let app = RustyWind {
-            class_wrapping: wrapping,
-            ..RUSTYWIND_DEFAULT
-        };
+    #[test_case(
+        r#"  'grid-cols-[1fr,2fr]' , 'before:content-[\'foo\']'  "#,
+        ClassWrapping::CommaSingleQuotes,
+        vec![r#"grid-cols-[1fr,2fr]"#, r#"before:content-[\'foo\']"#]
+        ; "payload commas and escaped quotes"
+    )]
+    fn parses_valid_wrapped_class_lists(input: &str, wrapping: ClassWrapping, expected: Vec<&str>) {
+        let parsed = WrappedClassList::parse(input, wrapping).unwrap();
 
-        assert_eq!(app.unwrap_wrapped_classes(input), output)
+        assert_eq!(parsed.iter().collect::<Vec<_>>(), expected);
     }
 
-    #[test_case(
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        ClassWrapping::NoWrapping,
-        r#"flex-col inline flex"#
-        ; "no wrapping"
-    )]
-    #[test_case(
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        ClassWrapping::CommaSingleQuotes,
-        r#"'flex-col', 'inline', 'flex'"#
-        ; "comma single quotes"
-    )]
-    #[test_case(
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        ClassWrapping::CommaDoubleQuotes,
-        r#""flex-col", "inline", "flex""#
-        ; "comma double quotes"
-    )]
-    fn test_rewrap_wrapped_classes(input: Vec<&str>, wrapping: ClassWrapping, output: &str) {
+    #[test_case("", ClassWrapping::CommaSingleQuotes ; "empty list")]
+    #[test_case("   ", ClassWrapping::CommaSingleQuotes ; "whitespace only")]
+    #[test_case("flex", ClassWrapping::CommaSingleQuotes ; "unquoted entry")]
+    #[test_case(r#"'flex', "p-4""#, ClassWrapping::CommaSingleQuotes ; "mixed quote modes")]
+    #[test_case("'flex", ClassWrapping::CommaSingleQuotes ; "unterminated entry")]
+    #[test_case(r#"'flex\'"#, ClassWrapping::CommaSingleQuotes ; "escaped closing quote")]
+    #[test_case("''", ClassWrapping::CommaSingleQuotes ; "empty entry")]
+    #[test_case("'flex p-4'", ClassWrapping::CommaSingleQuotes ; "multiple class tokens")]
+    #[test_case("' flex'", ClassWrapping::CommaSingleQuotes ; "leading payload whitespace")]
+    #[test_case("'flex',", ClassWrapping::CommaSingleQuotes ; "trailing empty entry")]
+    #[test_case("'flex', , 'p-4'", ClassWrapping::CommaSingleQuotes ; "middle empty entry")]
+    #[test_case("'flex' + active", ClassWrapping::CommaSingleQuotes ; "expression syntax")]
+    #[test_case("'{{ flex }}'", ClassWrapping::CommaSingleQuotes ; "template syntax")]
+    #[test_case(r#"'flex'"#, ClassWrapping::CommaDoubleQuotes ; "wrong configured quote")]
+    fn rejects_invalid_wrapped_class_lists(input: &str, wrapping: ClassWrapping) {
+        assert_eq!(WrappedClassList::parse(input, wrapping), None);
+    }
+
+    #[test_case(SourceLanguage::Html ; "structured markup parser")]
+    #[test_case(SourceLanguage::Unknown ; "regex capture parser")]
+    fn invalid_wrapped_values_fail_closed(language: SourceLanguage) {
         let app = RustyWind {
-            class_wrapping: wrapping,
+            class_wrapping: ClassWrapping::CommaSingleQuotes,
             ..RUSTYWIND_DEFAULT
         };
+        let source = r#"<div class="'p-4', active, 'm-4'"></div>"#;
+        let document = SourceDocument::new(source, language);
 
-        assert_eq!(app.rewrap_wrapped_classes(input), output)
+        assert!(!app.has_classes(document));
+        assert_eq!(app.sort_document(document), source);
+    }
+
+    #[test]
+    fn valid_wrapped_values_sort_and_canonicalize_separators() {
+        let app = RustyWind {
+            sorter: Sorter::new(HashMap::from([
+                ("grid-cols-[1fr,2fr]".to_string(), 1),
+                ("flex".to_string(), 0),
+            ])),
+            class_wrapping: ClassWrapping::CommaSingleQuotes,
+            ..RUSTYWIND_DEFAULT
+        };
+        let source = r#"<div class="  'grid-cols-[1fr,2fr]' , 'flex'  "></div>"#;
+
+        assert_eq!(
+            app.sort_document(SourceDocument::new(source, SourceLanguage::Html)),
+            r#"<div class="'flex', 'grid-cols-[1fr,2fr]'"></div>"#
+        );
     }
 
     #[test]
@@ -718,7 +1107,10 @@ mod tests {
 
         // test element state selectors
         let input = r#"<div class="[&.htmx-request]:h-0 flex p-4"></div>"#;
-        assert!(app.has_classes(input), "Should match [&.class] syntax");
+        assert!(
+            app.has_classes(SourceDocument::new(input, SourceLanguage::Html)),
+            "Should match [&.class] syntax"
+        );
 
         let sorted = app.sort_file_contents(input);
         assert!(
@@ -728,22 +1120,31 @@ mod tests {
 
         // test child/sibling selectors
         let input2 = r#"<div class="[&>*]:p-4 [&+*]:mt-4 block"></div>"#;
-        assert!(app.has_classes(input2), "Should match combinator syntax");
+        assert!(
+            app.has_classes(SourceDocument::new(input2, SourceLanguage::Html)),
+            "Should match combinator syntax"
+        );
 
         // test attribute selectors
         let input3 = r#"<div class="[&[data-state=open]]:bg-gray-100 flex"></div>"#;
         assert!(
-            app.has_classes(input3),
+            app.has_classes(SourceDocument::new(input3, SourceLanguage::Html)),
             "Should match attribute selector syntax"
         );
 
         // test at-rule variants
         let input4 = r#"<div class="[@supports(display:grid)]:grid flex"></div>"#;
-        assert!(app.has_classes(input4), "Should match @-rule syntax");
+        assert!(
+            app.has_classes(SourceDocument::new(input4, SourceLanguage::Html)),
+            "Should match @-rule syntax"
+        );
 
         // test calc with percentage
         let input5 = r#"<div class="w-[calc(100%+20px)] flex"></div>"#;
-        assert!(app.has_classes(input5), "Should match calc with percentage");
+        assert!(
+            app.has_classes(SourceDocument::new(input5, SourceLanguage::Html)),
+            "Should match calc with percentage"
+        );
     }
 
     #[test_case(
@@ -754,14 +1155,14 @@ mod tests {
         ; "normal HTML use case"
     )]
     #[test_case(
-        Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
+        Some(r#"(?:\[)(?P<classes>[_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
         ClassWrapping::CommaSingleQuotes,
         r#"classes = ['flex-col', 'inline', 'flex']"#,
         r#"classes = ['flex', 'inline', 'flex-col']"#
         ; "array with single quotes"
     )]
     #[test_case(
-        Some(r#"(?:\[)([_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
+        Some(r#"(?:\[)(?P<classes>[_a-zA-Z0-9\.,\-'"\s]+)(?:\])"#),
         ClassWrapping::CommaDoubleQuotes,
         r#"classes = ["flex-col", "inline", "flex"]"#,
         r#"classes = ["flex", "inline", "flex-col"]"#
@@ -774,7 +1175,9 @@ mod tests {
         output: &str,
     ) {
         let regex = match regex_overwrite {
-            Some(re) => FinderRegex::CustomRegex(Regex::new(re).unwrap()),
+            Some(re) => FinderRegex::CustomRegex(
+                crate::sorter::CustomClassExtractor::new(Regex::new(re).unwrap()).unwrap(),
+            ),
             None => FinderRegex::DefaultRegex,
         };
 
@@ -787,5 +1190,22 @@ mod tests {
         };
 
         assert_eq!(app.sort_file_contents(input), output);
+    }
+
+    #[test]
+    fn custom_sorter_only_recognizes_variants_followed_by_a_colon() {
+        let app = RustyWind {
+            regex: FinderRegex::DefaultRegex,
+            sorter: Sorter::new(HashMap::from([("flex".to_string(), 0)])),
+            allow_duplicates: false,
+            class_wrapping: ClassWrapping::NoWrapping,
+            tailwind_prefix: None,
+        };
+        let input = "even-columns empty-state hovercraft event.status status_color even:flex";
+
+        assert_eq!(
+            app.sort_classes(input),
+            "even:flex even-columns empty-state hovercraft event.status status_color"
+        );
     }
 }

@@ -3,8 +3,9 @@ use color_eyre::Help;
 use eyre::{Context, Result};
 use ignore::WalkBuilder;
 use regex::Regex;
-use rustywind_core::RustyWind;
 use rustywind_core::class_wrapping::ClassWrapping;
+use rustywind_core::sorter::{CustomClassExtractor, FinderRegex, Sorter};
+use rustywind_core::{RustyWind, SourceLanguage};
 use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
 use std::fs;
@@ -16,7 +17,6 @@ use ahash::AHashMap as HashMap;
 use ahash::AHashSet as HashSet;
 
 use crate::Cli;
-use crate::sorter::{FinderRegex, Sorter};
 
 #[derive(Debug)]
 pub enum WriteMode {
@@ -51,9 +51,51 @@ impl ValueEnum for CliClassWrapping {
     }
 }
 
+// Wrapper to keep Clap-specific parsing out of the core crate
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub enum CliSourceLanguage {
+    Html,
+    Svelte,
+    Astro,
+    Django,
+    Jinja,
+    Twig,
+    Liquid,
+    Handlebars,
+    Erb,
+    Ejs,
+    Php,
+    Blade,
+    Lit,
+    Ruby,
+}
+
+impl From<CliSourceLanguage> for SourceLanguage {
+    fn from(language: CliSourceLanguage) -> Self {
+        match language {
+            CliSourceLanguage::Html => Self::Html,
+            CliSourceLanguage::Svelte => Self::Svelte,
+            CliSourceLanguage::Astro => Self::Astro,
+            CliSourceLanguage::Django => Self::Django,
+            CliSourceLanguage::Jinja => Self::Jinja,
+            CliSourceLanguage::Twig => Self::Twig,
+            CliSourceLanguage::Liquid => Self::Liquid,
+            CliSourceLanguage::Handlebars => Self::Handlebars,
+            CliSourceLanguage::Erb => Self::Erb,
+            CliSourceLanguage::Ejs => Self::Ejs,
+            CliSourceLanguage::Php => Self::Php,
+            CliSourceLanguage::Blade => Self::Blade,
+            CliSourceLanguage::Lit => Self::Lit,
+            CliSourceLanguage::Ruby => Self::Ruby,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Options {
     pub stdin: Option<String>,
+    pub language: Option<SourceLanguage>,
+    pub stdin_filename: Option<PathBuf>,
     pub rustywind: RustyWind,
     pub write_mode: WriteMode,
     pub starting_paths: Vec<PathBuf>,
@@ -86,6 +128,8 @@ impl Options {
 
         Ok(Options {
             stdin,
+            language: cli.language.map(Into::into),
+            stdin_filename: cli.stdin_filename.clone(),
             rustywind,
             starting_paths,
             search_paths,
@@ -94,6 +138,23 @@ impl Options {
             quiet: cli.quiet,
         })
     }
+
+    pub fn source_language_for_path(&self, path: &Path) -> SourceLanguage {
+        resolve_source_language(self.language, Some(path))
+    }
+
+    pub fn stdin_source_language(&self) -> SourceLanguage {
+        resolve_source_language(self.language, self.stdin_filename.as_deref())
+    }
+}
+
+fn resolve_source_language(
+    language: Option<SourceLanguage>,
+    path: Option<&Path>,
+) -> SourceLanguage {
+    language
+        .or_else(|| path.map(SourceLanguage::from_path))
+        .unwrap_or(SourceLanguage::Unknown)
 }
 
 fn get_sorter_from_cli(cli: &Cli) -> Result<Sorter> {
@@ -134,12 +195,10 @@ fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {
     match &cli.custom_regex {
         Some(regex_string) => {
             let regex = Regex::new(regex_string).wrap_err("Unable to parse custom regex")?;
+            let extractor = CustomClassExtractor::new(regex)
+                .wrap_err("Custom regex requires at least one capture group")?;
 
-            if regex.captures_len() < 2 {
-                eyre::bail!("custom regex error, requires at-least 2 capture groups");
-            }
-
-            Ok(FinderRegex::CustomRegex(regex))
+            Ok(FinderRegex::CustomRegex(extractor))
         }
         None => Ok(FinderRegex::DefaultRegex),
     }
@@ -205,4 +264,30 @@ fn parse_custom_sorter(contents: Vec<String>) -> HashMap<String, usize> {
         .enumerate()
         .map(|(index, class)| (class, index))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use rustywind_core::SourceLanguage;
+
+    use super::resolve_source_language;
+
+    #[test]
+    fn explicit_language_overrides_filename_inference() {
+        assert_eq!(
+            resolve_source_language(Some(SourceLanguage::Svelte), Some(Path::new("view.html"))),
+            SourceLanguage::Svelte
+        );
+    }
+
+    #[test]
+    fn language_falls_back_to_filename_then_unknown() {
+        assert_eq!(
+            resolve_source_language(None, Some(Path::new("view.blade.php"))),
+            SourceLanguage::Blade
+        );
+        assert_eq!(resolve_source_language(None, None), SourceLanguage::Unknown);
+    }
 }

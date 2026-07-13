@@ -11,7 +11,7 @@ use options::WriteMode;
 use rayon::ThreadPoolBuilder;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator;
-use rustywind_core::sorter;
+use rustywind_core::SourceDocument;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -86,16 +86,27 @@ pub struct Cli {
     /// When set, RustyWind will ignore this list of files
     #[arg(long)]
     ignored_files: Option<Vec<String>>,
-    /// Uses a custom regex instead of default one. Should have a single capture group that
-    /// includes only the classes.
+    /// Uses a custom regex whose `classes` or first capture contains the class list
     #[arg(long)]
     custom_regex: Option<String>,
-    /// Specify how individual classes are wrapped.
+    /// Specifies how individual classes are wrapped
     #[arg(long)]
     class_wrapping: Option<options::CliClassWrapping>,
-    /// Tailwind prefix used when sorting classes, e.g. tw for tw: or tw- classes.
-    #[arg(long)]
+    /// Tailwind prefix used when sorting classes, e.g. tw for tw: or tw- classes
+    #[arg(short = 'p', long)]
     tailwind_prefix: Option<String>,
+    /// Source language to use for all inputs, overriding filename inference
+    #[arg(short = 'l', long, value_name = "LANGUAGE")]
+    language: Option<options::CliSourceLanguage>,
+    /// Filename used to infer the source language of stdin
+    #[arg(
+        short = 'f',
+        long,
+        value_name = "PATH",
+        requires = "stdin",
+        conflicts_with = "file_or_dir"
+    )]
+    stdin_filename: Option<PathBuf>,
     /// Do not print log messages
     #[arg(long, default_value = "false", conflicts_with_all = &["dry_run"])]
     quiet: bool,
@@ -135,9 +146,10 @@ fn main() -> Result<()> {
 
     if let WriteMode::ToStdOut = &options.write_mode {
         let contents = options.stdin.clone().unwrap_or_default();
+        let language = options.stdin_source_language();
 
-        if rustywind.has_classes(&contents) {
-            let sorted_content = rustywind.sort_file_contents(&contents);
+        if rustywind.has_classes(SourceDocument::new(&contents, language)) {
+            let sorted_content = rustywind.sort_document(SourceDocument::new(&contents, language));
             print!("{sorted_content}");
         } else {
             print!("{contents}");
@@ -182,8 +194,11 @@ pub fn run_on_file_path(file_path: &Path, options: &Options) {
     let rustywind = &options.rustywind;
     match std::fs::read_to_string(file_path) {
         Ok(contents) => {
-            if rustywind.has_classes(&contents) {
-                let sorted_content = rustywind.sort_file_contents(&contents);
+            let language = options.source_language_for_path(file_path);
+
+            if rustywind.has_classes(SourceDocument::new(&contents, language)) {
+                let sorted_content =
+                    rustywind.sort_document(SourceDocument::new(&contents, language));
                 let contents_changed = sorted_content != contents;
 
                 match (contents_changed, &options.write_mode) {
@@ -287,9 +302,54 @@ fn print_file_contents(file_contents: &str) {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
+    use clap::{CommandFactory, Parser};
+
+    use super::{Cli, options::CliSourceLanguage};
+
     #[test]
     fn verify_cli() {
-        use clap::CommandFactory;
-        super::Cli::command().debug_assert();
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn parses_explicit_source_language() {
+        let cli = Cli::try_parse_from(["rustywind", "-l", "svelte", "index.html"])
+            .expect("explicit language should parse");
+
+        assert!(matches!(cli.language, Some(CliSourceLanguage::Svelte)));
+    }
+
+    #[test]
+    fn parses_stdin_filename_for_language_inference() {
+        let cli = Cli::try_parse_from(["rustywind", "--stdin", "-f", "components/card.blade.php"])
+            .expect("stdin filename should parse with stdin mode");
+
+        assert_eq!(
+            cli.stdin_filename,
+            Some(PathBuf::from("components/card.blade.php"))
+        );
+    }
+
+    #[test]
+    fn rejects_stdin_filename_without_stdin_mode() {
+        assert!(
+            Cli::try_parse_from(["rustywind", "--stdin-filename", "input.erb", "input.html"])
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_source_language() {
+        assert!(Cli::try_parse_from(["rustywind", "--language", "unknown", "input.html"]).is_err());
+    }
+
+    #[test]
+    fn parses_tailwind_prefix_short_option() {
+        let cli = Cli::try_parse_from(["rustywind", "-p", "tw", "index.html"])
+            .expect("tailwind prefix should parse");
+
+        assert_eq!(cli.tailwind_prefix.as_deref(), Some("tw"));
     }
 }

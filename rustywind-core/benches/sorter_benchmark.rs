@@ -1,5 +1,6 @@
-use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use rustywind_core::hybrid_sorter::HybridSorter;
+use std::hint::black_box;
 
 // Sample Tailwind classes for benchmarking
 const SMALL_CLASS_SET: &[&str] = &[

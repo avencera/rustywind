@@ -21,25 +21,25 @@ regex = { workspace = true }
 rayon = "1.10"
 
 # command execution
-duct = "0.13"
+duct = "1.1"
 
 # progress bars
-indicatif = "0.17"
+indicatif = "0.18"
 
 # binary checking
-which = "6"
+which = "8"
 
 # CPU count detection
 num_cpus = "1"
 
 # random seed generation
-rand = "0.8"
+rand = "0.10"
 
 # JSON serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 semver = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 
 # timestamp generation
 chrono = "0.4"
@@ -47,5 +47,5 @@ chrono = "0.4"
 # npm binary handling
 flate2 = "1"
 tar = "0.4"
-zip = "2"
-ureq = "2"
+zip = "8"
+ureq = "3"
