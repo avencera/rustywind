@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add language-aware class extraction for HTML, Svelte, Django, Jinja, Twig,
+  Liquid, Handlebars, ERB, EJS, PHP, Blade, Lit, and Ruby
+- Add `--language` to override source-language inference and
+  `--stdin-filename` to infer the language of standard input
+- Preserve template expressions as opaque boundaries while independently
+  sorting adjacent static class runs
+
+### Fixed
+
+- Preserve Django and Jinja output expressions and control tags, including
+  expressions attached to class names, [#138](https://github.com/avencera/rustywind/issues/138)
+- Prevent ERB ternaries and quoted expressions from being corrupted,
+  [#140](https://github.com/avencera/rustywind/issues/140)
+- Prevent Svelte inline conditionals from being reordered as static classes,
+  [#142](https://github.com/avencera/rustywind/issues/142)
+- Keep ambiguous template expressions in plain `.html` files unchanged unless
+  an explicit template-language profile is selected
+- Sort valid Tailwind punctuation and quoted arbitrary values in files with
+  unrecognized extensions while continuing to reject template expressions
+- Preserve nested class attributes inside capitalized Svelte components
+- Continue accepting the first positional capture in `--custom-regex`, as in
+  RustyWind 0.24 and earlier, while also supporting a named `classes` capture
+
+### Performance
+
+- Index markup tag spans so class extraction no longer scans every tag for
+  every class attribute in large documents
+
+### Breaking changes
+
+- `RustyWind::has_classes` now accepts a `SourceDocument`,
+  `RustyWind::sort_file_contents` is replaced by `sort_document`, and
+  `RustyWind::sort_classes` is replaced by `sort_class_list`, which requires a
+  validated `PlainClassList`
+- `FinderRegex::CustomRegex` now contains a `CustomClassExtractor`; library
+  callers constructing this variant must validate their `Regex` with
+  `CustomClassExtractor::new`
+- Recognized markup languages only sort literal `class` and `className`
+  attributes in actual tags. Class-like text in comments, raw-text elements,
+  program strings, and dynamic or namespaced attributes is no longer rewritten
+
 ## [0.25.2] - 2026-07-08
 
 ### Fixed

@@ -72,7 +72,8 @@ Provide a filename when sorting standard input so RustyWind can infer its templa
 Supported language profiles are HTML, Svelte, Django, Jinja, Twig, Liquid, Handlebars, ERB, EJS,
 PHP, Blade, Lit, and Ruby. Files with unrecognized extensions use conservative legacy-compatible
 extraction: simple static class attributes are sorted, while template-looking attributes remain
-unchanged.
+unchanged. Because a plain `.html` extension does not identify its template engine, attributes with
+template syntax are left unchanged unless a profile such as `--language django` is selected.
 
 Run in CI, exit with error if unsorted classes are found:
 
@@ -144,7 +145,7 @@ Options:
           When set, RustyWind will ignore this list of files
 
       --custom-regex <CUSTOM_REGEX>
-          Uses a custom regex instead of the default extractor. The regex must have one named `classes` capture containing only the classes
+          Uses a custom regex whose `classes` or first capture contains the class list
 
       --class-wrapping <CLASS_WRAPPING>
           Specifies how individual classes are wrapped
