@@ -199,7 +199,7 @@ impl RustyWind {
     /// Checks whether a source document contains a sortable static class run
     pub fn has_classes(&self, document: SourceDocument<'_>) -> bool {
         if matches!(self.regex, FinderRegex::DefaultRegex)
-            && document.language().markup_dialect().is_some()
+            && document.language().markup_profile().is_some()
         {
             return class_attributes(document).is_some_and(|attributes| {
                 attributes
@@ -219,7 +219,7 @@ impl RustyWind {
     /// deduplication never crosses an expression boundary
     pub fn sort_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
         if matches!(self.regex, FinderRegex::DefaultRegex)
-            && document.language().markup_dialect().is_some()
+            && document.language().markup_profile().is_some()
         {
             return self.sort_structured_document(document);
         }

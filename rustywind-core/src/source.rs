@@ -107,7 +107,7 @@ impl SourceLanguage {
         }
     }
 
-    pub(crate) const fn markup_dialect(self) -> Option<MarkupDialect> {
+    pub(crate) const fn markup_profile(self) -> Option<MarkupProfile> {
         SourceProfile::new(self).markup
     }
 }
@@ -115,16 +115,72 @@ impl SourceLanguage {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct SourceProfile {
     class_values: ClassValueSyntax,
-    markup: Option<MarkupDialect>,
+    markup: Option<MarkupProfile>,
 }
 
 impl SourceProfile {
     const fn new(language: SourceLanguage) -> Self {
         let markup = match language {
             SourceLanguage::Unknown => None,
-            SourceLanguage::Svelte => Some(MarkupDialect::Svelte),
-            SourceLanguage::Astro => Some(MarkupDialect::Astro),
-            _ => Some(MarkupDialect::Html),
+            SourceLanguage::Html => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::None),
+            )),
+            SourceLanguage::Svelte => Some(MarkupProfile::new(
+                MarkupDialect::Svelte,
+                TemplateIslandSyntax::Svelte,
+            )),
+            SourceLanguage::Astro => Some(MarkupProfile::new(
+                MarkupDialect::Astro,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Balanced {
+                    opener: "{",
+                    expression: ExpressionSyntax::JavaScript,
+                }),
+            )),
+            SourceLanguage::Django | SourceLanguage::Jinja | SourceLanguage::Twig => {
+                Some(MarkupProfile::new(
+                    MarkupDialect::Html,
+                    TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Delimited(
+                        DJANGO_PROFILE,
+                    )),
+                ))
+            }
+            SourceLanguage::Liquid => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Delimited(LIQUID_PROFILE)),
+            )),
+            SourceLanguage::Handlebars => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Delimited(
+                    HANDLEBARS_PROFILE,
+                )),
+            )),
+            SourceLanguage::Erb | SourceLanguage::Ejs => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Delimited(ERB_PROFILE)),
+            )),
+            SourceLanguage::Php => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Delimited(PHP_PROFILE)),
+            )),
+            SourceLanguage::Blade => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Blade),
+            )),
+            SourceLanguage::Lit => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Balanced {
+                    opener: "${",
+                    expression: ExpressionSyntax::JavaScript,
+                }),
+            )),
+            SourceLanguage::Ruby => Some(MarkupProfile::new(
+                MarkupDialect::Html,
+                TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::Balanced {
+                    opener: "#{",
+                    expression: ExpressionSyntax::Ruby,
+                }),
+            )),
         };
         let class_values = match language {
             SourceLanguage::Html | SourceLanguage::Astro | SourceLanguage::Unknown => {
@@ -175,6 +231,35 @@ pub(crate) enum MarkupDialect {
     Html,
     Svelte,
     Astro,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MarkupProfile {
+    pub(crate) dialect: MarkupDialect,
+    pub(crate) islands: TemplateIslandSyntax,
+}
+
+impl MarkupProfile {
+    const fn new(dialect: MarkupDialect, islands: TemplateIslandSyntax) -> Self {
+        Self { dialect, islands }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TemplateIslandSyntax {
+    Stateless(StatelessTemplateSyntax),
+    Svelte,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StatelessTemplateSyntax {
+    None,
+    Balanced {
+        opener: &'static str,
+        expression: ExpressionSyntax,
+    },
+    Delimited(DelimitedTemplateProfile<'static>),
+    Blade,
 }
 
 /// Source text paired with the language profile used to interpret it
@@ -266,7 +351,7 @@ pub(crate) enum TemplateIslandEnd {
 pub(crate) fn template_island_end_at(
     value: &str,
     cursor: usize,
-    language: SourceLanguage,
+    syntax: StatelessTemplateSyntax,
 ) -> TemplateIslandEnd {
     if !value
         .as_bytes()
@@ -285,17 +370,17 @@ pub(crate) fn template_island_end_at(
             .map_or(TemplateIslandEnd::Malformed, TemplateIslandEnd::Closed)
     };
 
-    match SourceProfile::new(language).class_values {
-        ClassValueSyntax::Unspecified => TemplateIslandEnd::NotAnOpener,
-        ClassValueSyntax::Balanced { opener, expression } => balanced(opener, expression),
-        ClassValueSyntax::Delimited(profile) => {
+    match syntax {
+        StatelessTemplateSyntax::None => TemplateIslandEnd::NotAnOpener,
+        StatelessTemplateSyntax::Balanced { opener, expression } => balanced(opener, expression),
+        StatelessTemplateSyntax::Delimited(profile) => {
             match delimited_island_end_at(value, cursor, profile) {
                 None => TemplateIslandEnd::NotAnOpener,
                 Some(Some(end)) => TemplateIslandEnd::Closed(end),
                 Some(None) => TemplateIslandEnd::Malformed,
             }
         }
-        ClassValueSyntax::Blade => match blade_island_end_at(value, cursor) {
+        StatelessTemplateSyntax::Blade => match blade_island_end_at(value, cursor) {
             None => TemplateIslandEnd::NotAnOpener,
             Some(Some(end)) => TemplateIslandEnd::Closed(end),
             Some(None) => TemplateIslandEnd::Malformed,
@@ -375,8 +460,8 @@ fn is_static_unspecified_class_value(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        ClassValueAnalysis, SourceDocument, SourceLanguage, TemplateIslandEnd, analyze_class_value,
-        template_island_end_at,
+        ClassValueAnalysis, SourceDocument, SourceLanguage, SourceProfile, TemplateIslandEnd,
+        TemplateIslandSyntax, analyze_class_value, template_island_end_at,
     };
     use std::{ops::Range, path::Path};
 
@@ -389,6 +474,16 @@ mod tests {
 
     fn span_texts<'a>(value: &'a str, spans: &[Range<usize>]) -> Vec<&'a str> {
         spans.iter().map(|span| &value[span.clone()]).collect()
+    }
+
+    fn template_end(value: &str, language: SourceLanguage) -> TemplateIslandEnd {
+        let profile = SourceProfile::new(language)
+            .markup
+            .expect("tested source language has markup");
+        let TemplateIslandSyntax::Stateless(syntax) = profile.islands else {
+            panic!("tested source language uses stateless template islands");
+        };
+        template_island_end_at(value, 0, syntax)
     }
 
     #[test]
@@ -510,7 +605,7 @@ mod tests {
     fn php_line_comment_closers_keep_first_closer_behavior() {
         for value in ["<?php // ?> later ?>", "<?php # ?> later ?>"] {
             assert_eq!(
-                template_island_end_at(value, 0, SourceLanguage::Php),
+                template_end(value, SourceLanguage::Php),
                 TemplateIslandEnd::Closed(value.find(" later").unwrap())
             );
         }
@@ -522,11 +617,11 @@ mod tests {
         let unshielded_comment = "<% /* %> tail";
 
         assert_eq!(
-            template_island_end_at(quoted, 0, SourceLanguage::Erb),
+            template_end(quoted, SourceLanguage::Erb),
             TemplateIslandEnd::Closed(quoted.find(" tail").unwrap())
         );
         assert_eq!(
-            template_island_end_at(unshielded_comment, 0, SourceLanguage::Ejs),
+            template_end(unshielded_comment, SourceLanguage::Ejs),
             TemplateIslandEnd::Closed(unshielded_comment.find(" tail").unwrap())
         );
     }

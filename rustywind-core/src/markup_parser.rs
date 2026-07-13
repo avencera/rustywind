@@ -8,9 +8,13 @@ use winnow::{
 };
 
 use crate::source::{
-    MarkupDialect, SourceDocument, SourceLanguage, TemplateIslandEnd, template_island_end_at,
+    MarkupDialect, MarkupProfile, SourceDocument, StatelessTemplateSyntax, TemplateIslandEnd,
+    TemplateIslandSyntax, template_island_end_at,
 };
-use crate::template_parser::{ExpressionSyntax, balanced_end, javascript_expression};
+use crate::template_parser::{
+    ExpressionSyntax, SvelteBlockKind, SvelteBraceContext, SvelteBraceEvent, SvelteBraceScan,
+    SvelteBranchKind, balanced_end, javascript_expression, scan_svelte_brace,
+};
 
 type Input<'a> = LocatingSlice<&'a str>;
 
@@ -24,23 +28,23 @@ impl ClassAttribute {
 }
 
 pub(crate) fn class_attributes(document: SourceDocument<'_>) -> Option<Vec<ClassAttribute>> {
-    let dialect = document.language().markup_dialect()?;
-    MarkupParser::new(document, dialect).parse()
+    let profile = document.language().markup_profile()?;
+    MarkupParser::new(document.text(), profile).parse()
 }
 
 struct MarkupParser<'a> {
     source: &'a str,
-    language: SourceLanguage,
     dialect: MarkupDialect,
+    template: MarkupTemplateState,
     attributes: Vec<ClassAttribute>,
 }
 
 impl<'a> MarkupParser<'a> {
-    fn new(document: SourceDocument<'a>, dialect: MarkupDialect) -> Self {
+    fn new(source: &'a str, profile: MarkupProfile) -> Self {
         Self {
-            source: document.text(),
-            language: document.language(),
-            dialect,
+            source,
+            dialect: profile.dialect,
+            template: MarkupTemplateState::new(profile.islands),
             attributes: Vec::new(),
         }
     }
@@ -72,7 +76,7 @@ impl<'a> MarkupParser<'a> {
                 if remaining(&input).is_empty() {
                     break;
                 }
-                if self.consume_template_island(&mut input)? {
+                if self.consume_template_island(&mut input, SvelteBraceContext::Fragment)? {
                     continue;
                 }
                 if !remaining(&input).starts_with('<') {
@@ -100,6 +104,9 @@ impl<'a> MarkupParser<'a> {
             let checkpoint = input.checkpoint();
             let attribute_count = self.attributes.len();
             let Some(tag) = self.parse_tag(&mut input) else {
+                if self.template.is_malformed() {
+                    return None;
+                }
                 self.attributes.truncate(attribute_count);
                 input.reset(&checkpoint);
                 consume_slice(&mut input, "<")?;
@@ -110,6 +117,7 @@ impl<'a> MarkupParser<'a> {
             }
         }
 
+        self.template.finish()?;
         Some(self.attributes)
     }
 
@@ -201,7 +209,7 @@ impl<'a> MarkupParser<'a> {
                 return Some(ParsedTag { raw_text });
             }
 
-            if self.consume_template_island(input)? {
+            if self.consume_template_island(input, SvelteBraceContext::StartTag)? {
                 continue;
             }
 
@@ -232,7 +240,7 @@ impl<'a> MarkupParser<'a> {
             .ok()
     }
 
-    fn parse_attribute(&self, input: &mut Input<'a>) -> Option<Option<ParsedAttribute<'a>>> {
+    fn parse_attribute(&mut self, input: &mut Input<'a>) -> Option<Option<ParsedAttribute<'a>>> {
         let Some(first) = remaining(input).chars().next() else {
             return Some(None);
         };
@@ -297,7 +305,7 @@ impl<'a> MarkupParser<'a> {
                 }));
             }
             if !matches!(self.dialect, MarkupDialect::Astro)
-                && self.consume_template_island(input)?
+                && self.consume_template_island(input, SvelteBraceContext::AttributeValue)?
             {
                 continue;
             }
@@ -308,8 +316,8 @@ impl<'a> MarkupParser<'a> {
         }
     }
 
-    fn parse_unquoted_value(&self, input: &mut Input<'a>) -> Option<()> {
-        if self.consume_template_island(input)? {
+    fn parse_unquoted_value(&mut self, input: &mut Input<'a>) -> Option<()> {
+        if self.consume_template_island(input, SvelteBraceContext::AttributeValue)? {
             return Some(());
         }
 
@@ -321,7 +329,11 @@ impl<'a> MarkupParser<'a> {
         .ok()
     }
 
-    fn consume_template_island(&self, input: &mut Input<'a>) -> Option<bool> {
+    fn consume_template_island(
+        &mut self,
+        input: &mut Input<'a>,
+        context: SvelteBraceContext,
+    ) -> Option<bool> {
         let cursor = input.current_token_start();
         if matches!(self.dialect, MarkupDialect::Astro) && remaining(input).starts_with('{') {
             let end = balanced_end(self.source, cursor, '{', '}', ExpressionSyntax::JavaScript)?;
@@ -329,10 +341,28 @@ impl<'a> MarkupParser<'a> {
             return Some(true);
         }
 
-        let end = match template_island_end_at(self.source, cursor, self.language) {
+        let island = match &mut self.template {
+            MarkupTemplateState::Svelte(state) => {
+                match scan_svelte_brace(self.source, cursor, context) {
+                    SvelteBraceScan::NotAnOpener => TemplateIslandEnd::NotAnOpener,
+                    SvelteBraceScan::Closed(event) => state
+                        .apply(event)
+                        .map_or(TemplateIslandEnd::Malformed, TemplateIslandEnd::Closed),
+                    SvelteBraceScan::Malformed => TemplateIslandEnd::Malformed,
+                }
+            }
+            MarkupTemplateState::Stateless(syntax) => {
+                template_island_end_at(self.source, cursor, *syntax)
+            }
+            MarkupTemplateState::Malformed => return None,
+        };
+        let end = match island {
             TemplateIslandEnd::NotAnOpener => return Some(false),
             TemplateIslandEnd::Closed(end) => end,
-            TemplateIslandEnd::Malformed => return None,
+            TemplateIslandEnd::Malformed => {
+                self.template = MarkupTemplateState::Malformed;
+                return None;
+            }
         };
 
         consume_slice(input, &self.source[cursor..end])?;
@@ -354,6 +384,9 @@ impl<'a> MarkupParser<'a> {
             let checkpoint = tag_input.checkpoint();
             let attribute_count = self.attributes.len();
             let Some(tag) = self.parse_tag(&mut tag_input) else {
+                if self.template.is_malformed() {
+                    return None;
+                }
                 self.attributes.truncate(attribute_count);
                 tag_input.reset(&checkpoint);
                 continue;
@@ -378,6 +411,74 @@ impl<'a> MarkupParser<'a> {
             MarkupDialect::Html => NameMatching::AsciiInsensitive,
             MarkupDialect::Svelte | MarkupDialect::Astro => NameMatching::Exact,
         }
+    }
+}
+
+enum MarkupTemplateState {
+    Stateless(StatelessTemplateSyntax),
+    Svelte(SvelteMarkupState),
+    Malformed,
+}
+
+impl MarkupTemplateState {
+    const fn new(syntax: TemplateIslandSyntax) -> Self {
+        match syntax {
+            TemplateIslandSyntax::Stateless(syntax) => Self::Stateless(syntax),
+            TemplateIslandSyntax::Svelte => Self::Svelte(SvelteMarkupState::new()),
+        }
+    }
+
+    fn finish(&self) -> Option<()> {
+        match self {
+            Self::Svelte(state) if !state.blocks.is_empty() => None,
+            Self::Malformed => None,
+            _ => Some(()),
+        }
+    }
+
+    const fn is_malformed(&self) -> bool {
+        matches!(self, Self::Malformed)
+    }
+}
+
+struct SvelteMarkupState {
+    blocks: Vec<SvelteBlockKind>,
+}
+
+impl SvelteMarkupState {
+    const fn new() -> Self {
+        Self { blocks: Vec::new() }
+    }
+
+    fn apply(&mut self, event: SvelteBraceEvent) -> Option<usize> {
+        let end = event.end();
+        match event {
+            SvelteBraceEvent::Expression { .. } | SvelteBraceEvent::Special { .. } => {}
+            SvelteBraceEvent::Open { kind, .. } => self.blocks.push(kind),
+            SvelteBraceEvent::Branch { kind, .. } => {
+                let block = self.blocks.last().copied()?;
+                let valid = match kind {
+                    SvelteBranchKind::Else => {
+                        matches!(block, SvelteBlockKind::If | SvelteBlockKind::Each)
+                    }
+                    SvelteBranchKind::ElseIf => {
+                        matches!(block, SvelteBlockKind::If)
+                    }
+                    SvelteBranchKind::Then | SvelteBranchKind::Catch => {
+                        matches!(block, SvelteBlockKind::Await)
+                    }
+                };
+                if !valid {
+                    return None;
+                }
+            }
+            SvelteBraceEvent::Close { kind, .. } => {
+                if self.blocks.pop()? != kind {
+                    return None;
+                }
+            }
+        }
+        Some(end)
     }
 }
 
@@ -541,6 +642,39 @@ mod tests {
             values(source, SourceLanguage::Astro),
             Some(vec!["one", "two"])
         );
+    }
+
+    #[test]
+    fn extracts_classes_across_nested_svelte_blocks() {
+        let source = r#"<div class="before"></div>{#if visible}<div class="inside-if"></div>{#each items as item}<div class="inside-each"></div>{:else}<div class="inside-else"></div>{/each}{/if}<div class="after"></div>"#;
+
+        assert_eq!(
+            values(source, SourceLanguage::Svelte),
+            Some(vec![
+                "before",
+                "inside-if",
+                "inside-each",
+                "inside-else",
+                "after"
+            ])
+        );
+    }
+
+    #[test]
+    fn svelte_structure_controls_whether_class_extraction_is_safe() {
+        let attached = r#"<div {@attach setup} class="sortable"></div>"#;
+        assert_eq!(
+            values(attached, SourceLanguage::Svelte),
+            Some(vec!["sortable"])
+        );
+
+        for malformed in [
+            r#"{#if visible}<div class="unsafe"></div>{/each}"#,
+            r#"{#if visible}<div class="unsafe"></div>"#,
+            r#"<div class="{#if visible} unsafe {/if}"></div>"#,
+        ] {
+            assert_eq!(values(malformed, SourceLanguage::Svelte), None);
+        }
     }
 
     #[test]

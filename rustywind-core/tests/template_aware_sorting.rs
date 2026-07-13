@@ -307,6 +307,89 @@ fn svelte_component_names_do_not_hide_nested_markup() {
 }
 
 #[test]
+fn svelte_block_tags_do_not_disable_sorting_for_the_document() {
+    let source = r#"<div class="p-4 m-4"></div>
+{#if visible}
+  <span class="grid block"></span>
+{:else}
+  <span class="p-4 m-4"></span>
+{/if}
+<div class="grid block"></div>"#;
+    let expected = r#"<div class="m-4 p-4"></div>
+{#if visible}
+  <span class="block grid"></span>
+{:else}
+  <span class="m-4 p-4"></span>
+{/if}
+<div class="block grid"></div>"#;
+
+    assert_eq!(sort(source, SourceLanguage::Svelte), expected);
+}
+
+#[test]
+fn nested_svelte_block_kinds_preserve_structure_while_sorting_markup() {
+    let source = r#"{#if visible}
+  {#each items as item (item.id)}
+    <div class="p-4 m-4"></div>
+  {:else}
+    <div class="grid block"></div>
+  {/each}
+{/if}
+{#await promise}
+  <div class="p-4 m-4"></div>
+{:then value}
+  <div class="grid block"></div>
+{:catch error}
+  <div class="p-4 m-4"></div>
+{/await}
+{#key version}<div class="grid block"></div>{/key}
+{#snippet row(item)}<div class="p-4 m-4"></div>{/snippet}"#;
+    let expected = r#"{#if visible}
+  {#each items as item (item.id)}
+    <div class="m-4 p-4"></div>
+  {:else}
+    <div class="block grid"></div>
+  {/each}
+{/if}
+{#await promise}
+  <div class="m-4 p-4"></div>
+{:then value}
+  <div class="block grid"></div>
+{:catch error}
+  <div class="m-4 p-4"></div>
+{/await}
+{#key version}<div class="block grid"></div>{/key}
+{#snippet row(item)}<div class="m-4 p-4"></div>{/snippet}"#;
+
+    assert_eq!(sort(source, SourceLanguage::Svelte), expected);
+}
+
+#[test]
+fn malformed_svelte_block_structure_leaves_the_whole_document_unchanged() {
+    for source in [
+        r#"<div class="p-4 m-4"></div>{/if}"#,
+        r#"{#if visible}<div class="p-4 m-4"></div>{/each}"#,
+        r#"{#if visible}<div class="p-4 m-4"></div>"#,
+        r#"{:else}<div class="p-4 m-4"></div>"#,
+        r#"{#unknown value}<div class="p-4 m-4"></div>{/unknown}"#,
+    ] {
+        assert_eq!(sort(source, SourceLanguage::Svelte), source);
+    }
+}
+
+#[test]
+fn svelte_brace_context_rejects_blocks_in_values_and_accepts_attach_attributes() {
+    let invalid = r#"<div class="p-4 m-4 {#if active} grid block {/if}"></div>"#;
+    let attach = r#"<div {@attach setup} class="p-4 m-4"></div>"#;
+
+    assert_eq!(sort(invalid, SourceLanguage::Svelte), invalid);
+    assert_eq!(
+        sort(attach, SourceLanguage::Svelte),
+        r#"<div {@attach setup} class="m-4 p-4"></div>"#
+    );
+}
+
+#[test]
 fn native_raw_text_elements_keep_their_language_specific_case_semantics() {
     let lowercase = r#"<title><div class="p-4 m-4"></div></title><textarea><div class="p-4 m-4"></div></textarea><script><div class="p-4 m-4"></div></script>"#;
     let uppercase = r#"<TITLE><div class="p-4 m-4"></div></TITLE>"#;
