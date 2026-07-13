@@ -1,7 +1,7 @@
-use rustywind_core::RustyWind;
 use rustywind_core::hybrid_sorter::HybridSorter;
 use rustywind_core::sorter::{FinderRegex, Sorter};
 use rustywind_core::tailwind_prefix::normalize_tailwind_prefix;
+use rustywind_core::{PlainClassList, RustyWind, SourceDocument, SourceLanguage};
 
 fn normalize_all(classes: Vec<&str>, prefix: &str) -> Vec<String> {
     classes
@@ -96,7 +96,7 @@ fn rustywind_flag_preserves_original_prefixed_classes_in_output() {
     };
 
     let input = r#"<div class="tw:p-4 tw:bg-white tw:md:text-xl tw:hover:-mr-4"></div>"#;
-    let sorted = app.sort_file_contents(input);
+    let sorted = app.sort_document(SourceDocument::new(input, SourceLanguage::Html));
 
     assert!(sorted.contains("tw:p-4"));
     assert!(sorted.contains("tw:bg-white"));
@@ -119,8 +119,14 @@ fn custom_sorter_uses_normalized_prefixed_fallback_after_exact_lookup() {
         tailwind_prefix: Some("tw".to_string()),
     };
 
-    assert_eq!(app.sort_classes("tw-p-4 tw-bg-white"), "tw-bg-white tw-p-4");
-    assert_eq!(app.sort_classes("tw:p-4 tw:bg-white"), "tw:bg-white tw:p-4");
+    assert_eq!(
+        app.sort_class_list(PlainClassList::parse("tw-p-4 tw-bg-white").unwrap()),
+        "tw-bg-white tw-p-4"
+    );
+    assert_eq!(
+        app.sort_class_list(PlainClassList::parse("tw:p-4 tw:bg-white").unwrap()),
+        "tw:bg-white tw:p-4"
+    );
 }
 
 #[test]
@@ -138,7 +144,7 @@ fn custom_sorter_variant_fallback_keeps_v3_prefixed_exact_order() {
     };
 
     assert_eq!(
-        app.sort_classes("md:tw-p-4 md:tw-bg-white"),
+        app.sort_class_list(PlainClassList::parse("md:tw-p-4 md:tw-bg-white").unwrap()),
         "md:tw-bg-white md:tw-p-4"
     );
 }
@@ -158,7 +164,7 @@ fn custom_sorter_variant_fallback_keeps_v4_prefixed_exact_order() {
     };
 
     assert_eq!(
-        app.sort_classes("tw:md:p-4 tw:md:bg-white"),
+        app.sort_class_list(PlainClassList::parse("tw:md:p-4 tw:md:bg-white").unwrap()),
         "tw:md:bg-white tw:md:p-4"
     );
 }

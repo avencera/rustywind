@@ -1,5 +1,6 @@
 //! The module that sorts the classes in the file contents.
 use std::collections::hash_map::Entry;
+use std::fmt;
 use std::fs::File;
 use std::io::{BufRead as _, BufReader, Read};
 use std::ops::Deref;
@@ -15,11 +16,57 @@ use eyre::Result;
 pub(crate) static SORTER_EXTRACTOR_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*(\.[^\s]+)[ ]").unwrap());
 
-/// Use either our default regex in [crate::defaults::RE] or a custom regex.
+/// A custom class extractor with one unambiguous `classes` capture
+#[derive(Debug, Clone)]
+pub struct CustomClassExtractor(Regex);
+
+impl CustomClassExtractor {
+    /// Creates an extractor whose regex contains a named `classes` capture
+    pub fn new(regex: Regex) -> std::result::Result<Self, InvalidCustomClassExtractor> {
+        if regex
+            .capture_names()
+            .flatten()
+            .any(|name| name == "classes")
+        {
+            Ok(Self(regex))
+        } else {
+            Err(InvalidCustomClassExtractor)
+        }
+    }
+
+    /// Returns the configured extraction regex
+    pub fn regex(&self) -> &Regex {
+        &self.0
+    }
+}
+
+impl Deref for CustomClassExtractor {
+    type Target = Regex;
+
+    fn deref(&self) -> &Self::Target {
+        self.regex()
+    }
+}
+
+/// Error returned when a custom extractor lacks a named `classes` capture
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InvalidCustomClassExtractor;
+
+impl fmt::Display for InvalidCustomClassExtractor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("custom extractor requires a named `classes` capture")
+    }
+}
+
+impl std::error::Error for InvalidCustomClassExtractor {}
+
+/// Selects the default source extractor or an explicit custom extractor
 #[derive(Debug, Clone)]
 pub enum FinderRegex {
+    /// Uses RustyWind's language-aware default extraction
     DefaultRegex,
-    CustomRegex(Regex),
+    /// Uses an explicit regex with a named `classes` capture
+    CustomRegex(CustomClassExtractor),
 }
 
 impl Deref for FinderRegex {
@@ -28,12 +75,12 @@ impl Deref for FinderRegex {
     fn deref(&self) -> &Self::Target {
         match &self {
             Self::DefaultRegex => &RE,
-            Self::CustomRegex(re) => re,
+            Self::CustomRegex(extractor) => extractor.regex(),
         }
     }
 }
 
-/// Use either pattern-based sorting or a custom sorter from a CSS file.
+/// Uses either pattern-based sorting or a custom sorter from a CSS file
 #[derive(Debug, Clone)]
 pub enum Sorter {
     /// Pattern-based sorting matching Tailwind CSS v4's canonical algorithm
@@ -56,17 +103,18 @@ impl Deref for Sorter {
 }
 
 impl Sorter {
+    /// Creates a custom sorter from class positions
     pub fn new(sorter: HashMap<String, usize>) -> Self {
         Self::CustomSorter(sorter)
     }
 
-    /// Create the sorter from a [File]
+    /// Creates the sorter from a [File]
     pub fn new_from_file(css_file: File) -> Result<Self> {
         let css_reader = BufReader::new(css_file);
         Self::new_from_reader(css_reader)
     }
 
-    /// Create the sorter from any [BufReader]
+    /// Creates the sorter from any [BufReader]
     pub fn new_from_reader<T: Read>(css_file: BufReader<T>) -> Result<Self> {
         let css_reader = BufReader::new(css_file);
         let mut classes: HashMap<String, usize> = HashMap::new();
@@ -92,6 +140,18 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
     use std::io::BufReader;
+
+    #[test]
+    fn custom_extractor_requires_the_named_classes_capture() {
+        let named = Regex::new(r#"class=["'](?P<classes>[^"']*)["']"#).unwrap();
+        let unnamed = Regex::new(r#"class=["']([^"']*)["']"#).unwrap();
+
+        assert!(CustomClassExtractor::new(named).is_ok());
+        assert_eq!(
+            CustomClassExtractor::new(unnamed).unwrap_err(),
+            InvalidCustomClassExtractor
+        );
+    }
 
     #[test]
     fn extracts_all_classes() {

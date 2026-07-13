@@ -60,6 +60,20 @@ Run rustywind on your STDIN:
 
 - `echo "<FILE CONTENTS>" | rustywind --stdin`
 
+RustyWind infers template syntax from file extensions. Override it when a file uses a different
+language:
+
+- `rustywind --language svelte Component.html`
+
+Provide a filename when sorting standard input so RustyWind can infer its template syntax:
+
+- `cat Component.svelte | rustywind --stdin --stdin-filename Component.svelte`
+
+Supported language profiles are HTML, Svelte, Django, Jinja, Twig, Liquid, Handlebars, ERB, EJS,
+PHP, Blade, Lit, and Ruby. Files with unrecognized extensions use conservative legacy-compatible
+extraction: simple static class attributes are sorted, while template-looking attributes remain
+unchanged.
+
 Run in CI, exit with error if unsorted classes are found:
 
 - `rustywind --check-formatted .`
@@ -130,7 +144,23 @@ Options:
           When set, RustyWind will ignore this list of files
 
       --custom-regex <CUSTOM_REGEX>
-          Uses a custom regex instead of default one
+          Uses a custom regex instead of the default extractor. The regex must have one named `classes` capture containing only the classes
+
+      --class-wrapping <CLASS_WRAPPING>
+          Specifies how individual classes are wrapped
+
+          [possible values: no-wrapping, comma-single-quotes, comma-double-quotes]
+
+      --tailwind-prefix <TAILWIND_PREFIX>
+          Tailwind prefix used when sorting classes, e.g. tw for tw: or tw- classes
+
+      --language <LANGUAGE>
+          Source language to use for all inputs, overriding filename inference
+
+          [possible values: html, svelte, django, jinja, twig, liquid, handlebars, erb, ejs, php, blade, lit, ruby]
+
+      --stdin-filename <PATH>
+          Filename used to infer the source language of stdin
 
       --quiet
           Do not print log messages
