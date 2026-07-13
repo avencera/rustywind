@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 
-const attributePattern = /(^|[\s<])(class(?:Name)?\s*=\s*)(["'])([\s\S]*?)\3/gm;
+import { parse as parseAstro } from "@astrojs/compiler/sync";
+import { parsers as typescriptParsers } from "prettier/plugins/typescript";
+import { parse as parseSvelte } from "svelte/compiler";
 
 export const kinds = Object.freeze({
   astro: { extension: ".astro", parser: "astro" },
@@ -12,10 +14,116 @@ export function isStaticCandidate(value) {
   return !/[{}]/u.test(value) && !value.includes("<%") && !value.includes("<?");
 }
 
-export function extractAttributes(source) {
-  return [...source.matchAll(attributePattern)]
-    .map((match) => match[4])
-    .filter(isStaticCandidate);
+function walk(root, visit) {
+  const pending = [root];
+  const seen = new WeakSet();
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (value === null || typeof value !== "object" || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    visit(value);
+    for (const child of Object.values(value)) {
+      if (child !== null && typeof child === "object") pending.push(child);
+    }
+  }
+}
+
+function isClassAttributeName(name) {
+  return name === "class" || name === "className";
+}
+
+function findTsxAttributes(source) {
+  const ast = typescriptParsers.typescript.parse(source, {
+    filepath: "source.tsx",
+  });
+  const attributes = [];
+  walk(ast, (node) => {
+    if (
+      node.type !== "JSXAttribute" ||
+      !isClassAttributeName(node.name?.name) ||
+      node.value?.type !== "Literal" ||
+      typeof node.value.value !== "string"
+    ) {
+      return;
+    }
+    const [start, end] = node.value.range;
+    const quote = source[start];
+    if ((quote !== '"' && quote !== "'") || source[end - 1] !== quote) return;
+    attributes.push({ end: end - 1, start: start + 1 });
+  });
+  return attributes;
+}
+
+function findSvelteAttributes(source) {
+  const ast = parseSvelte(source, { modern: true });
+  const attributes = [];
+  walk(ast.fragment, (node) => {
+    if (
+      node.type !== "Attribute" ||
+      !isClassAttributeName(node.name) ||
+      node.value?.length !== 1 ||
+      node.value[0].type !== "Text"
+    ) {
+      return;
+    }
+    const { start, end } = node.value[0];
+    const quote = source[start - 1];
+    if ((quote !== '"' && quote !== "'") || source[end] !== quote) return;
+    attributes.push({ end, start });
+  });
+  return attributes;
+}
+
+function findAstroAttributes(source) {
+  const { ast } = parseAstro(source, { position: true });
+  const attributes = [];
+  walk(ast, (node) => {
+    if (
+      node.type !== "attribute" ||
+      node.kind !== "quoted" ||
+      !isClassAttributeName(node.name)
+    ) {
+      return;
+    }
+    const quote = node.raw[0];
+    if ((quote !== '"' && quote !== "'") || node.raw.at(-1) !== quote) {
+      return;
+    }
+    const rawStart = source.indexOf(
+      node.raw,
+      node.position.start.offset + node.name.length,
+    );
+    if (rawStart === -1) return;
+    attributes.push({
+      end: rawStart + node.raw.length - 1,
+      start: rawStart + 1,
+    });
+  });
+  return attributes;
+}
+
+function findStaticAttributes(source, kind) {
+  let attributes;
+  if (kind === "tsx") {
+    attributes = findTsxAttributes(source);
+  } else if (kind === "svelte") {
+    attributes = findSvelteAttributes(source);
+  } else if (kind === "astro") {
+    attributes = findAstroAttributes(source);
+  } else {
+    throw new Error(`Unsupported source kind: ${kind}`);
+  }
+  return attributes
+    .filter(({ start, end }) => isStaticCandidate(source.slice(start, end)))
+    .sort((left, right) => left.start - right.start);
+}
+
+export function extractAttributes(source, kind) {
+  return findStaticAttributes(source, kind).map(({ start, end }) =>
+    source.slice(start, end),
+  );
 }
 
 export function splitClassTokens(value) {
@@ -62,16 +170,15 @@ export function splitClassTokens(value) {
   return tokens;
 }
 
-export function scrambleAttributes(source) {
-  return source.replace(
-    attributePattern,
-    (match, prefix, assignment, quote, value) => {
-      if (!isStaticCandidate(value)) return match;
-      const tokens = splitClassTokens(value);
-      if (tokens.length < 2) return match;
-      return `${prefix}${assignment}${quote}${tokens.reverse().join(" ")}${quote}`;
-    },
-  );
+export function scrambleAttributes(source, kind) {
+  let scrambled = source;
+  const attributes = findStaticAttributes(source, kind);
+  for (const { start, end } of attributes.reverse()) {
+    const tokens = splitClassTokens(source.slice(start, end));
+    if (tokens.length < 2) continue;
+    scrambled = `${scrambled.slice(0, start)}${tokens.reverse().join(" ")}${scrambled.slice(end)}`;
+  }
+  return scrambled;
 }
 
 export function same(left, right) {

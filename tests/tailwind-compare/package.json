@@ -7,10 +7,12 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
+    "@astrojs/compiler": "2.13.1",
     "prettier": "3.9.5",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-svelte": "3.5.1",
     "prettier-plugin-tailwindcss": "0.8.0",
+    "svelte": "5.56.4",
     "tailwindcss": "4.3.0"
   }
 }

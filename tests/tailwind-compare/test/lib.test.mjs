@@ -24,7 +24,52 @@ test("extracts only static quoted class attributes", () => {
     <div data-class="ignored"></div>
   `;
 
-  assert.deepEqual(extractAttributes(source), ["flex p-4", "grid gap-2"]);
+  assert.deepEqual(extractAttributes(source, "astro"), [
+    "flex p-4",
+    "grid gap-2",
+  ]);
+});
+
+test("ignores markup text in source comments and string literals", () => {
+  const fixtures = [
+    {
+      kind: "tsx",
+      source: `
+        const sample = '<div class="fake string">';
+        // <div className="fake comment" />
+        export const view = <div className="real p-4" />;
+      `,
+    },
+    {
+      kind: "svelte",
+      source: `
+        <script>
+          const sample = '<div class="fake string">';
+          // <div class="fake comment">
+        </script>
+        <!-- <div class="fake markup-comment"> -->
+        <div class="real p-4"></div>
+      `,
+    },
+    {
+      kind: "astro",
+      source: `---
+const sample = '<div class="fake string">';
+// <div class="fake comment">
+---
+<!-- <div class="fake markup-comment"> -->
+<div class="real p-4"></div>
+`,
+    },
+  ];
+
+  for (const { kind, source } of fixtures) {
+    assert.deepEqual(extractAttributes(source, kind), ["real p-4"]);
+    const scrambled = scrambleAttributes(source, kind);
+    assert.match(scrambled, /class(?:Name)?="p-4 real"/u);
+    assert.match(scrambled, /class="fake string"/u);
+    assert.match(scrambled, /class(?:Name)?="fake comment"/u);
+  }
 });
 
 test("splits whitespace outside arbitrary-value brackets", () => {
@@ -50,7 +95,7 @@ test("scrambles eligible attributes without touching dynamic attributes", () => 
   const source = `<div class="flex  p-4\tmt-2" className={value}><span class='block'></span></div>`;
 
   assert.equal(
-    scrambleAttributes(source),
+    scrambleAttributes(source, "tsx"),
     `<div class="mt-2 p-4 flex" className={value}><span class='block'></span></div>`,
   );
 });
@@ -173,7 +218,7 @@ test("classifies nonconvergent Prettier output before RustyWind ordering", () =>
 test("pins per-attribute Svelte each-else Prettier convergence", async () => {
   const source =
     '{#each items as item}<div class="flex p-4">{item}</div>{:else}<div class="grid m-2">empty</div>{/each}';
-  const scrambledSource = scrambleAttributes(source);
+  const scrambledSource = scrambleAttributes(source, "svelte");
   const options = {
     filepath: "regression.svelte",
     parser: "svelte",
@@ -185,9 +230,11 @@ test("pins per-attribute Svelte each-else Prettier convergence", async () => {
 
   const prettierOriginal = extractAttributes(
     await prettier.format(source, options),
+    "svelte",
   ).map(splitClassTokens);
   const prettierScrambled = extractAttributes(
     await prettier.format(scrambledSource, options),
+    "svelte",
   ).map(splitClassTokens);
 
   assert.deepEqual(prettierOriginal, [

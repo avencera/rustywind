@@ -213,11 +213,11 @@ function selectCandidates(configuration) {
     const source = readFileSync(file, "utf8");
     const path = normalizeRelativePath(relative(configuration.repo, file));
     return {
-      attributes: extractAttributes(source).length,
+      attributes: extractAttributes(source, configuration.kind).length,
       file,
       path,
       source,
-      scrambledSource: scrambleAttributes(source),
+      scrambledSource: scrambleAttributes(source, configuration.kind),
     };
   });
   return orderCandidates(candidates, configuration.limit);
@@ -442,15 +442,26 @@ async function compareCandidates(configuration, candidates) {
       continue;
     }
 
-    const originalAttributes = extractAttributes(candidate.source);
-    const scrambledAttributes = extractAttributes(candidate.scrambledSource);
+    const originalAttributes = extractAttributes(
+      candidate.source,
+      configuration.kind,
+    );
+    const scrambledAttributes = extractAttributes(
+      candidate.scrambledSource,
+      configuration.kind,
+    );
     const prettierOriginalAttributes = extractAttributes(
       prettierOriginalOutput,
+      configuration.kind,
     );
     const prettierScrambledAttributes = extractAttributes(
       prettierScrambledOutput,
+      configuration.kind,
     );
-    const rustywindAttributes = extractAttributes(rustywindOutput);
+    const rustywindAttributes = extractAttributes(
+      rustywindOutput,
+      configuration.kind,
+    );
     if (
       originalAttributes.length !== candidate.attributes ||
       scrambledAttributes.length !== candidate.attributes ||
