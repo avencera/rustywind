@@ -745,16 +745,9 @@ fn test_container_names_do_not_precede_same_breakpoint_tiebreakers() {
 }
 
 #[test]
-fn test_custom_container_query_names_and_lengths_remain_unknown() {
+fn test_custom_container_query_names_remain_unknown() {
     let sorter = HybridSorter::new();
-    let classes = vec![
-        "@tablet:m-4",
-        "@[30rem]:m-4",
-        "@min-tablet:m-4",
-        "@max-[30rem]:m-4",
-        "print:m-4",
-        "@7xl:m-4",
-    ];
+    let classes = vec!["@tablet:m-4", "@min-tablet:m-4", "print:m-4", "@7xl:m-4"];
     let sorted = sorter.sort_classes(&classes);
     let print_pos = sorted
         .iter()
@@ -766,18 +759,35 @@ fn test_custom_container_query_names_and_lengths_remain_unknown() {
         .unwrap();
 
     assert!(known_container_pos < print_pos);
-    for class in [
-        "@tablet:m-4",
-        "@[30rem]:m-4",
-        "@min-tablet:m-4",
-        "@max-[30rem]:m-4",
-    ] {
+    for class in ["@tablet:m-4", "@min-tablet:m-4"] {
         let custom_pos = sorted
             .iter()
             .position(|candidate| *candidate == class)
             .unwrap();
         assert!(print_pos < custom_pos, "{class}");
     }
+}
+
+#[test]
+fn test_arbitrary_container_query_breakpoints_follow_variant_order() {
+    let sorter = HybridSorter::new();
+
+    assert_eq!(
+        sorter.sort_classes(&["portrait:flex", "@[30rem]:block", "@sm:grid"]),
+        vec!["@sm:grid", "@[30rem]:block", "portrait:flex"]
+    );
+    assert_eq!(
+        sorter.sort_classes(&[
+            "@max-[20rem]:block",
+            "@max-[40rem]:block",
+            "@max-[30rem]:block",
+        ]),
+        vec![
+            "@max-[40rem]:block",
+            "@max-[30rem]:block",
+            "@max-[20rem]:block",
+        ]
+    );
 }
 
 #[test]
