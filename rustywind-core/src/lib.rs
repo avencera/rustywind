@@ -10,10 +10,12 @@ pub mod parser;
 pub mod sorter;
 mod source;
 pub mod tailwind_prefix;
+mod template_parser;
 
 // Pattern-based sorting modules
 pub mod class_parser;
 pub mod hybrid_sorter;
+mod markup_parser;
 pub mod pattern_sorter;
 pub mod property_order;
 pub mod utility_map;

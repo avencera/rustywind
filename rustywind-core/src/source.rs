@@ -1,5 +1,11 @@
 use std::{ops::Range, path::Path};
 
+use crate::template_parser::{
+    ClassValueValidation, ExpressionSyntax, balanced_end,
+    balanced_islands as balanced_brace_islands, blade_island_end_at, blade_islands,
+    delimited_island_end_at, delimited_islands, validate_class_value,
+};
+
 const DJANGO_DELIMITERS: &[(&str, &str)] = &[("{{", "}}"), ("{%", "%}"), ("{#", "#}")];
 const LIQUID_DELIMITERS: &[(&str, &str)] = &[("{{", "}}"), ("{%", "%}")];
 const HANDLEBARS_DELIMITERS: &[(&str, &str)] = &[("{{{", "}}}"), ("{{", "}}")];
@@ -13,6 +19,8 @@ pub enum SourceLanguage {
     Html,
     /// Svelte markup
     Svelte,
+    /// Astro components
+    Astro,
     /// Django templates
     Django,
     /// Jinja templates
@@ -70,6 +78,7 @@ impl SourceLanguage {
         {
             Some("html" | "htm") => Self::Html,
             Some("svelte") => Self::Svelte,
+            Some("astro") => Self::Astro,
             Some("django" | "djhtml") => Self::Django,
             Some("jinja" | "jinja2" | "j2") => Self::Jinja,
             Some("twig") => Self::Twig,
@@ -101,10 +110,13 @@ impl SourceProfile {
         let markup = match language {
             SourceLanguage::Unknown => None,
             SourceLanguage::Svelte => Some(MarkupDialect::Svelte),
+            SourceLanguage::Astro => Some(MarkupDialect::Astro),
             _ => Some(MarkupDialect::Html),
         };
         let class_values = match language {
-            SourceLanguage::Html | SourceLanguage::Unknown => ClassValueSyntax::Unspecified,
+            SourceLanguage::Html | SourceLanguage::Astro | SourceLanguage::Unknown => {
+                ClassValueSyntax::Unspecified
+            }
             SourceLanguage::Svelte => ClassValueSyntax::Balanced {
                 opener: "{",
                 expression: ExpressionSyntax::JavaScript,
@@ -151,6 +163,7 @@ enum ClassValueSyntax {
 pub(crate) enum MarkupDialect {
     Html,
     Svelte,
+    Astro,
 }
 
 /// Source text paired with the language profile used to interpret it
@@ -257,7 +270,7 @@ pub(crate) fn template_island_end_at(
         if !remaining.starts_with(opener) {
             return TemplateIslandEnd::NotAnOpener;
         }
-        balanced_end(value, cursor + opener.len() - 1, b'{', b'}', syntax)
+        balanced_end(value, cursor + opener.len() - 1, '{', '}', syntax)
             .map_or(TemplateIslandEnd::Malformed, TemplateIslandEnd::Closed)
     };
 
@@ -265,450 +278,18 @@ pub(crate) fn template_island_end_at(
         ClassValueSyntax::Unspecified => TemplateIslandEnd::NotAnOpener,
         ClassValueSyntax::Balanced { opener, expression } => balanced(opener, expression),
         ClassValueSyntax::Delimited(delimiters) => {
-            delimited_island_end_at(value, cursor, delimiters)
-        }
-        ClassValueSyntax::Blade => {
-            let mustache = delimited_island_end_at(
-                value,
-                cursor,
-                &[("{{--", "--}}"), ("{!!", "!!}"), ("{{", "}}")],
-            );
-            if !matches!(mustache, TemplateIslandEnd::NotAnOpener) {
-                return mustache;
-            }
-
-            match next_blade_directive(value, cursor) {
-                Some((start, identifier_end, parenthesis)) if start == cursor => parenthesis
-                    .map(|parenthesis| {
-                        balanced_end(value, parenthesis, b'(', b')', ExpressionSyntax::Php)
-                            .map_or(TemplateIslandEnd::Malformed, TemplateIslandEnd::Closed)
-                    })
-                    .unwrap_or(TemplateIslandEnd::Closed(identifier_end)),
-                _ => TemplateIslandEnd::NotAnOpener,
+            match delimited_island_end_at(value, cursor, delimiters) {
+                None => TemplateIslandEnd::NotAnOpener,
+                Some(Some(end)) => TemplateIslandEnd::Closed(end),
+                Some(None) => TemplateIslandEnd::Malformed,
             }
         }
+        ClassValueSyntax::Blade => match blade_island_end_at(value, cursor) {
+            None => TemplateIslandEnd::NotAnOpener,
+            Some(Some(end)) => TemplateIslandEnd::Closed(end),
+            Some(None) => TemplateIslandEnd::Malformed,
+        },
     }
-}
-
-fn delimited_island_end_at(
-    value: &str,
-    cursor: usize,
-    delimiters: &[(&str, &str)],
-) -> TemplateIslandEnd {
-    for &(opener, closer) in delimiters {
-        if value[cursor..].starts_with(opener) {
-            return delimited_end(value, cursor + opener.len(), closer)
-                .map_or(TemplateIslandEnd::Malformed, TemplateIslandEnd::Closed);
-        }
-    }
-
-    TemplateIslandEnd::NotAnOpener
-}
-
-fn delimited_islands(value: &str, delimiters: &[(&str, &str)]) -> Option<Vec<Range<usize>>> {
-    let mut islands = Vec::new();
-    let mut cursor = 0;
-
-    while cursor < value.len() {
-        let Some((start, opener, closer)) = next_delimiter(value, cursor, delimiters) else {
-            break;
-        };
-        let content_start = start + opener.len();
-        let end = delimited_end(value, content_start, closer)?;
-        islands.push(start..end);
-        cursor = end;
-    }
-
-    Some(islands)
-}
-
-fn delimited_end(value: &str, mut cursor: usize, closer: &str) -> Option<usize> {
-    let bytes = value.as_bytes();
-    let closer = closer.as_bytes();
-    let mut quote = None;
-    let mut escaped = false;
-
-    while cursor < bytes.len() {
-        let byte = bytes[cursor];
-        if let Some(active_quote) = quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == active_quote {
-                quote = None;
-            }
-        } else if matches!(byte, b'\'' | b'"' | b'`') {
-            quote = Some(byte);
-        } else if bytes[cursor..].starts_with(closer) {
-            return Some(cursor + closer.len());
-        }
-        cursor += 1;
-    }
-
-    None
-}
-
-fn next_delimiter<'a>(
-    value: &str,
-    cursor: usize,
-    delimiters: &'a [(&'a str, &'a str)],
-) -> Option<(usize, &'a str, &'a str)> {
-    delimiters
-        .iter()
-        .filter_map(|&(opener, closer)| {
-            value[cursor..]
-                .find(opener)
-                .map(|relative_start| (cursor + relative_start, opener, closer))
-        })
-        .min_by_key(|(start, opener, _)| (*start, std::cmp::Reverse(opener.len())))
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ExpressionSyntax {
-    JavaScript,
-    Php,
-    Ruby,
-}
-
-fn balanced_brace_islands(
-    value: &str,
-    opener: &str,
-    syntax: ExpressionSyntax,
-) -> Option<Vec<Range<usize>>> {
-    let mut islands = Vec::new();
-    let mut cursor = 0;
-
-    while let Some(relative_start) = value[cursor..].find(opener) {
-        let start = cursor + relative_start;
-        let brace_start = start + opener.len() - 1;
-        let end = balanced_end(value, brace_start, b'{', b'}', syntax)?;
-        islands.push(start..end);
-        cursor = end;
-    }
-
-    Some(islands)
-}
-
-fn balanced_end(
-    value: &str,
-    opening_index: usize,
-    opening: u8,
-    closing: u8,
-    syntax: ExpressionSyntax,
-) -> Option<usize> {
-    let bytes = value.as_bytes();
-    let mut cursor = opening_index;
-    let mut depth = 0;
-    let mut can_start_regex = true;
-
-    while cursor < bytes.len() {
-        let byte = bytes[cursor];
-
-        if matches!(syntax, ExpressionSyntax::JavaScript | ExpressionSyntax::Php)
-            && bytes[cursor..].starts_with(b"//")
-        {
-            cursor = line_end(bytes, cursor + 2);
-            continue;
-        }
-        if matches!(syntax, ExpressionSyntax::JavaScript | ExpressionSyntax::Php)
-            && bytes[cursor..].starts_with(b"/*")
-        {
-            cursor = block_comment_end(bytes, cursor + 2)?;
-            continue;
-        }
-        if matches!(syntax, ExpressionSyntax::Ruby | ExpressionSyntax::Php) && byte == b'#' {
-            cursor = line_end(bytes, cursor + 1);
-            continue;
-        }
-
-        if matches!(syntax, ExpressionSyntax::Ruby) && byte == b'`' {
-            return None;
-        }
-
-        if matches!(byte, b'\'' | b'"')
-            || byte == b'`'
-                && matches!(syntax, ExpressionSyntax::JavaScript | ExpressionSyntax::Php)
-        {
-            let rejected_opener = match (syntax, byte) {
-                (ExpressionSyntax::JavaScript, b'`') => Some(b"${".as_slice()),
-                (ExpressionSyntax::Ruby, b'"') => Some(b"#{".as_slice()),
-                _ => None,
-            };
-            cursor = quoted_end(bytes, cursor, byte, rejected_opener)?;
-            can_start_regex = false;
-            continue;
-        }
-
-        if matches!(syntax, ExpressionSyntax::Ruby)
-            && byte == b'%'
-            && bytes
-                .get(cursor + 1)
-                .is_some_and(|kind| matches!(kind, b'q' | b'Q' | b'r' | b'w' | b'W' | b'x'))
-        {
-            return None;
-        }
-
-        if byte == b'/'
-            && matches!(
-                syntax,
-                ExpressionSyntax::JavaScript | ExpressionSyntax::Ruby
-            )
-        {
-            if can_start_regex {
-                cursor = regex_end(bytes, cursor)?;
-                can_start_regex = false;
-            } else {
-                cursor += 1;
-                can_start_regex = true;
-            }
-            continue;
-        }
-
-        if byte == opening {
-            depth += 1;
-            can_start_regex = true;
-        } else if byte == closing {
-            depth -= 1;
-            if depth == 0 {
-                return Some(cursor + 1);
-            }
-            can_start_regex = false;
-        } else if byte.is_ascii_alphabetic() || matches!(byte, b'_' | b'$') {
-            let start = cursor;
-            cursor += 1;
-            while cursor < bytes.len()
-                && (bytes[cursor].is_ascii_alphanumeric() || matches!(bytes[cursor], b'_' | b'$'))
-            {
-                cursor += 1;
-            }
-            can_start_regex = expression_keyword_allows_regex(&value[start..cursor]);
-            continue;
-        } else if byte.is_ascii_digit() || matches!(byte, b')' | b']') {
-            can_start_regex = false;
-        } else if !byte.is_ascii_whitespace() {
-            can_start_regex = true;
-        }
-        cursor += 1;
-    }
-
-    None
-}
-
-fn line_end(bytes: &[u8], cursor: usize) -> usize {
-    bytes[cursor..]
-        .iter()
-        .position(|byte| matches!(byte, b'\n' | b'\r'))
-        .map_or(bytes.len(), |offset| cursor + offset + 1)
-}
-
-fn block_comment_end(bytes: &[u8], cursor: usize) -> Option<usize> {
-    bytes[cursor..]
-        .windows(2)
-        .position(|window| window == b"*/")
-        .map(|offset| cursor + offset + 2)
-}
-
-fn quoted_end(
-    bytes: &[u8],
-    start: usize,
-    quote: u8,
-    rejected_opener: Option<&[u8]>,
-) -> Option<usize> {
-    let mut cursor = start + 1;
-    let mut escaped = false;
-
-    while cursor < bytes.len() {
-        let byte = bytes[cursor];
-        if escaped {
-            escaped = false;
-        } else if byte == b'\\' {
-            escaped = true;
-        } else if rejected_opener.is_some_and(|opener| bytes[cursor..].starts_with(opener)) {
-            return None;
-        } else if byte == quote {
-            return Some(cursor + 1);
-        }
-        cursor += 1;
-    }
-
-    None
-}
-
-fn regex_end(bytes: &[u8], start: usize) -> Option<usize> {
-    let mut cursor = start + 1;
-    let mut escaped = false;
-    let mut character_class = false;
-
-    while cursor < bytes.len() {
-        let byte = bytes[cursor];
-        if escaped {
-            escaped = false;
-        } else if byte == b'\\' {
-            escaped = true;
-        } else if byte == b'[' {
-            character_class = true;
-        } else if byte == b']' {
-            character_class = false;
-        } else if byte == b'/' && !character_class {
-            cursor += 1;
-            while cursor < bytes.len() && bytes[cursor].is_ascii_alphabetic() {
-                cursor += 1;
-            }
-            return Some(cursor);
-        } else if matches!(byte, b'\n' | b'\r') {
-            return None;
-        }
-        cursor += 1;
-    }
-
-    None
-}
-
-fn expression_keyword_allows_regex(identifier: &str) -> bool {
-    matches!(
-        identifier,
-        "await"
-            | "and"
-            | "case"
-            | "delete"
-            | "do"
-            | "else"
-            | "if"
-            | "in"
-            | "instanceof"
-            | "new"
-            | "not"
-            | "of"
-            | "or"
-            | "return"
-            | "then"
-            | "throw"
-            | "typeof"
-            | "unless"
-            | "until"
-            | "void"
-            | "when"
-            | "while"
-            | "yield"
-    )
-}
-
-fn blade_islands(value: &str) -> Option<Vec<Range<usize>>> {
-    const MUSTACHES: &[(&str, &str)] = &[("{{--", "--}}"), ("{!!", "!!}"), ("{{", "}}")];
-
-    let mut islands = Vec::new();
-    let mut cursor = 0;
-
-    while let Some(island) = next_blade_island(value, cursor, MUSTACHES) {
-        match island {
-            BladeIsland::Delimited {
-                start,
-                opener,
-                closer,
-            } => {
-                let content_start = start + opener.len();
-                let end = delimited_end(value, content_start, closer)?;
-                islands.push(start..end);
-                cursor = end;
-            }
-            BladeIsland::Directive {
-                start,
-                identifier_end,
-                parenthesis,
-            } => {
-                let end = if let Some(parenthesis) = parenthesis {
-                    balanced_end(value, parenthesis, b'(', b')', ExpressionSyntax::Php)?
-                } else {
-                    identifier_end
-                };
-                islands.push(start..end);
-                cursor = end;
-            }
-        }
-    }
-
-    Some(islands)
-}
-
-enum BladeIsland<'a> {
-    Delimited {
-        start: usize,
-        opener: &'a str,
-        closer: &'a str,
-    },
-    Directive {
-        start: usize,
-        identifier_end: usize,
-        parenthesis: Option<usize>,
-    },
-}
-
-fn next_blade_island<'a>(
-    value: &str,
-    cursor: usize,
-    mustaches: &'a [(&'a str, &'a str)],
-) -> Option<BladeIsland<'a>> {
-    let mustache = next_delimiter(value, cursor, mustaches);
-    let directive = next_blade_directive(value, cursor);
-
-    match (mustache, directive) {
-        (None, None) => None,
-        (Some((start, opener, closer)), None) => Some(BladeIsland::Delimited {
-            start,
-            opener,
-            closer,
-        }),
-        (None, Some((start, identifier_end, parenthesis))) => Some(BladeIsland::Directive {
-            start,
-            identifier_end,
-            parenthesis,
-        }),
-        (Some((start, opener, closer)), Some((directive_start, _, _)))
-            if start <= directive_start =>
-        {
-            Some(BladeIsland::Delimited {
-                start,
-                opener,
-                closer,
-            })
-        }
-        (_, Some((start, identifier_end, parenthesis))) => Some(BladeIsland::Directive {
-            start,
-            identifier_end,
-            parenthesis,
-        }),
-    }
-}
-
-fn next_blade_directive(value: &str, cursor: usize) -> Option<(usize, usize, Option<usize>)> {
-    let bytes = value.as_bytes();
-    let mut search = cursor;
-
-    while let Some(relative_start) = value[search..].find('@') {
-        let start = search + relative_start;
-        let mut index = start + 1;
-        if index == bytes.len() || !(bytes[index].is_ascii_alphabetic() || bytes[index] == b'_') {
-            search = index;
-            continue;
-        }
-        index += 1;
-        while index < bytes.len() && (bytes[index].is_ascii_alphanumeric() || bytes[index] == b'_')
-        {
-            index += 1;
-        }
-        let identifier_end = index;
-        while index < bytes.len() && bytes[index].is_ascii_whitespace() {
-            index += 1;
-        }
-        return Some((
-            start,
-            identifier_end,
-            (index < bytes.len() && bytes[index] == b'(').then_some(index),
-        ));
-    }
-
-    None
 }
 
 fn static_spans(value: &str, islands: Vec<Range<usize>>) -> Vec<Range<usize>> {
@@ -780,124 +361,6 @@ fn is_static_unspecified_class_value(value: &str) -> bool {
     validate_class_value(value, ClassValueValidation::Unspecified)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ClassValueValidation {
-    Direct,
-    Unspecified,
-}
-
-fn validate_class_value(value: &str, validation: ClassValueValidation) -> bool {
-    if value.trim().is_empty() {
-        return false;
-    }
-
-    let mut bracket_depth = 0_u32;
-    let mut bracket_quote = None;
-    let mut escaped = false;
-
-    for (index, character) in value.char_indices() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        if character == '\\' {
-            escaped = true;
-            continue;
-        }
-
-        if let Some(active_quote) = bracket_quote {
-            if character == active_quote {
-                bracket_quote = None;
-            }
-            continue;
-        }
-
-        if bracket_depth > 0 && matches!(character, '\'' | '"' | '`') {
-            bracket_quote = Some(character);
-            continue;
-        }
-
-        match character {
-            '[' => bracket_depth += 1,
-            ']' if bracket_depth == 0 => return false,
-            ']' => bracket_depth -= 1,
-            '{' | '}' if bracket_depth == 0 => return false,
-            '<' if bracket_depth == 0
-                && (matches!(validation, ClassValueValidation::Direct)
-                    || value[index..].starts_with("<%")
-                    || value[index..].starts_with("<?")) =>
-            {
-                return false;
-            }
-            '\'' | '"' | '`' if bracket_depth == 0 => return false,
-            '>' | '$'
-                if bracket_depth == 0 && matches!(validation, ClassValueValidation::Direct) =>
-            {
-                return false;
-            }
-            '%' if bracket_depth == 0 && value[index..].starts_with("%>") => return false,
-            '?' if bracket_depth == 0 && value[index..].starts_with("?>") => return false,
-            '@' if bracket_depth == 0 && is_blade_directive_at(value, index) => return false,
-            character if character.is_control() && !character.is_ascii_whitespace() => {
-                return false;
-            }
-            _ => {}
-        }
-    }
-
-    bracket_depth == 0 && bracket_quote.is_none()
-}
-
-fn is_blade_directive_at(value: &str, start: usize) -> bool {
-    let bytes = value.as_bytes();
-    let mut end = start + 1;
-    while bytes
-        .get(end)
-        .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
-    {
-        end += 1;
-    }
-
-    matches!(
-        &value[start + 1..end],
-        "auth"
-            | "break"
-            | "case"
-            | "class"
-            | "continue"
-            | "default"
-            | "else"
-            | "elseif"
-            | "empty"
-            | "endauth"
-            | "endempty"
-            | "endenvironment"
-            | "enderror"
-            | "endfor"
-            | "endforelse"
-            | "endforeach"
-            | "endguest"
-            | "endif"
-            | "endisset"
-            | "endproduction"
-            | "endswitch"
-            | "endunless"
-            | "endwhile"
-            | "env"
-            | "error"
-            | "for"
-            | "forelse"
-            | "foreach"
-            | "guest"
-            | "if"
-            | "isset"
-            | "production"
-            | "switch"
-            | "unless"
-            | "while"
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use super::{ClassValueAnalysis, SourceDocument, SourceLanguage, analyze_class_value};
@@ -919,6 +382,7 @@ mod tests {
         let cases = [
             ("index.HTML", SourceLanguage::Html),
             ("component.svelte", SourceLanguage::Svelte),
+            ("component.astro", SourceLanguage::Astro),
             ("page.django.html", SourceLanguage::Django),
             ("page.jinja2", SourceLanguage::Jinja),
             ("page.twig", SourceLanguage::Twig),

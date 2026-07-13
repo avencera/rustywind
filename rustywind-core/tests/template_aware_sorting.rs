@@ -155,7 +155,6 @@ fn unknown_extensions_sort_static_tailwind_punctuation() {
         "Component.jsx",
         "Component.tsx",
         "Component.vue",
-        "Component.astro",
         "Component.mdx",
     ] {
         assert_eq!(sort_path(source, path), expected, "path: {path}");
@@ -182,6 +181,120 @@ fn unknown_extensions_sort_static_tailwind_punctuation() {
         ),
         r#"<div class="content-['[ spaced ]'] m-4 p-4"></div>"#
     );
+}
+
+#[test]
+fn astro_frontmatter_and_dynamic_attributes_are_opaque() {
+    let source = r#"---
+const markup = '<div class="p-4 m-4"></div>';
+const classes = `p-4 ${size} m-4`;
+---
+<!-- <div class="p-4 m-4"></div> -->
+<Card class="p-4 m-4" class:list={["p-4", active && "m-4"]} />
+<div title="literal { text" class={active ? "p-4" : "m-4"} class="p-4 m-4"></div>"#;
+    let expected = r#"---
+const markup = '<div class="p-4 m-4"></div>';
+const classes = `p-4 ${size} m-4`;
+---
+<!-- <div class="p-4 m-4"></div> -->
+<Card class="m-4 p-4" class:list={["p-4", active && "m-4"]} />
+<div title="literal { text" class={active ? "p-4" : "m-4"} class="m-4 p-4"></div>"#;
+
+    assert_eq!(sort_path(source, "Card.astro"), expected);
+}
+
+#[test]
+fn malformed_astro_frontmatter_fails_closed() {
+    let source = "---\nconst markup = '<div class=\"p-4 m-4\"></div>';\n";
+    assert_eq!(sort_path(source, "Card.astro"), source);
+}
+
+#[test]
+fn astro_frontmatter_after_a_byte_order_mark_is_opaque() {
+    let source = "\u{feff}---\nconst markup = '<div class=\"p-4 m-4\"></div>';\n---\n<div class=\"p-4 m-4\"></div>";
+    let expected = "\u{feff}---\nconst markup = '<div class=\"p-4 m-4\"></div>';\n---\n<div class=\"m-4 p-4\"></div>";
+
+    assert_eq!(sort_path(source, "Card.astro"), expected);
+}
+
+#[test]
+fn astro_expressions_distinguish_program_strings_from_nested_markup() {
+    let source = r#"<p>π</p>
+{
+  html === '<div class="p-4 m-4"></div>' &&
+  /}/.test(value) &&
+  `value ${nested({ value: "}" })}` &&
+  items.map((item) => <li class="p-4 m-4">{item}</li>)
+}
+<div class="p-4 m-4"></div>"#;
+    let expected = r#"<p>π</p>
+{
+  html === '<div class="p-4 m-4"></div>' &&
+  /}/.test(value) &&
+  `value ${nested({ value: "}" })}` &&
+  items.map((item) => <li class="m-4 p-4">{item}</li>)
+}
+<div class="m-4 p-4"></div>"#;
+
+    assert_eq!(sort_path(source, "List.astro"), expected);
+}
+
+#[test]
+fn relational_expressions_are_not_treated_as_markup() {
+    let astro = r#"{a<b && className="p-4 m-4" > c}<div class="p-4 m-4"></div>"#;
+    assert_eq!(
+        sort(astro, SourceLanguage::Astro),
+        r#"{a<b && className="p-4 m-4" > c}<div class="m-4 p-4"></div>"#
+    );
+
+    let lit = r#"const comparison = a<b && className="p-4 m-4" > c;
+const view = html`<div class="p-4 m-4"></div>`;"#;
+    assert_eq!(
+        sort(lit, SourceLanguage::Lit),
+        r#"const comparison = a<b && className="p-4 m-4" > c;
+const view = html`<div class="m-4 p-4"></div>`;"#
+    );
+
+    let ruby = r#"comparison = a<b && className="p-4 m-4" > c
+markup = '<div class="p-4 m-4"></div>'"#;
+    assert_eq!(
+        sort(ruby, SourceLanguage::Ruby),
+        r#"comparison = a<b && className="p-4 m-4" > c
+markup = '<div class="m-4 p-4"></div>'"#
+    );
+}
+
+#[test]
+fn lit_html_and_ruby_heredocs_remain_sortable() {
+    assert_eq!(
+        sort_path(
+            r#"<div class="p-4 m-4 ${classesFor(user)} grid block"></div>"#,
+            "card.lit.html",
+        ),
+        r#"<div class="m-4 p-4 ${classesFor(user)} block grid"></div>"#,
+    );
+
+    let ruby = r#"markup = <<~HTML
+  <div class="p-4 m-4 #{classes_for(user)} grid block"></div>
+HTML"#;
+    let expected = r#"markup = <<~HTML
+  <div class="m-4 p-4 #{classes_for(user)} block grid"></div>
+HTML"#;
+    assert_eq!(sort(ruby, SourceLanguage::Ruby), expected);
+}
+
+#[test]
+fn astro_raw_content_and_component_names_have_distinct_semantics() {
+    let source = r#"<script>const markup = '<div class="p-4 m-4"></div>';</script>
+<Title><div class="p-4 m-4"></div></Title>
+<section is:raw><div class="p-4 m-4"></div></section>
+<div class="p-4 m-4"></div>"#;
+    let expected = r#"<script>const markup = '<div class="p-4 m-4"></div>';</script>
+<Title><div class="m-4 p-4"></div></Title>
+<section is:raw><div class="p-4 m-4"></div></section>
+<div class="m-4 p-4"></div>"#;
+
+    assert_eq!(sort_path(source, "Page.astro"), expected);
 }
 
 #[test]
@@ -360,6 +473,14 @@ fn class_like_text_outside_markup_attributes_is_not_rewritten() {
     let expected = r#"<script>const example = '<div class="p-4 m-4"></div>'</script><textarea><div class="p-4 m-4"></div></textarea><!-- <div class="p-4 m-4"></div> --><div class="m-4 p-4"></div>"#;
 
     assert_eq!(sort(source, SourceLanguage::Html), expected);
+}
+
+#[test]
+fn svelte_expression_strings_are_not_parsed_as_markup() {
+    let source = r#"{value === '<div class="p-4 m-4"></div>'}<div class="p-4 m-4"></div>"#;
+    let expected = r#"{value === '<div class="p-4 m-4"></div>'}<div class="m-4 p-4"></div>"#;
+
+    assert_eq!(sort(source, SourceLanguage::Svelte), expected);
 }
 
 #[test]

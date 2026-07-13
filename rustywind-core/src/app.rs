@@ -4,10 +4,10 @@ use crate::{
     class_wrapping::ClassWrapping,
     consts::{VARIANT_SEARCHER, VARIANTS},
     hybrid_sorter::HybridSorter,
+    markup_parser::{ClassAttribute, class_attributes},
     sorter::{FinderRegex, Sorter},
     source::{
-        ClassValueAnalysis, MarkupDialect, SourceDocument, SourceLanguage, StaticRuns,
-        TemplateIslandEnd, analyze_class_value, is_plain_class_list, template_island_end_at,
+        ClassValueAnalysis, SourceDocument, StaticRuns, analyze_class_value, is_plain_class_list,
     },
     tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value},
 };
@@ -35,29 +35,6 @@ struct SortableCapture<'a> {
 enum SortableClassValue {
     Static(StaticRuns),
     Wrapped,
-}
-
-struct MarkupIndex(Vec<Range<usize>>);
-
-impl MarkupIndex {
-    fn new(spans: Vec<Range<usize>>) -> Self {
-        debug_assert!(spans.windows(2).all(|pair| pair[0].end <= pair[1].start));
-        Self(spans)
-    }
-
-    fn containing_tag(&self, match_range: Range<usize>) -> Option<&Range<usize>> {
-        let index = self
-            .0
-            .partition_point(|span| span.start <= match_range.start);
-        let span = self.0.get(index.checked_sub(1)?)?;
-
-        (match_range.end <= span.end).then_some(span)
-    }
-
-    fn contains_attribute(&self, source: &str, match_range: Range<usize>) -> bool {
-        self.containing_tag(match_range.clone())
-            .is_some_and(|tag| is_markup_attribute(source, match_range.start, match_range.end, tag))
-    }
 }
 
 /// A validated whitespace-separated list containing only static class tokens
@@ -152,13 +129,19 @@ impl RustyWind {
 
     /// Checks whether a source document contains a sortable static class run
     pub fn has_classes(&self, document: SourceDocument<'_>) -> bool {
-        let markup_index = self.markup_index(document);
+        if matches!(self.regex, FinderRegex::DefaultRegex)
+            && document.language().markup_dialect().is_some()
+        {
+            return class_attributes(document).is_some_and(|attributes| {
+                attributes
+                    .iter()
+                    .any(|attribute| self.sortable_attribute(attribute, document).is_some())
+            });
+        }
+
         self.extraction_regex()
             .captures_iter(document.text())
-            .any(|captures| {
-                self.sortable_capture(&captures, document, markup_index.as_ref())
-                    .is_some()
-            })
+            .any(|captures| self.sortable_capture(&captures, document).is_some())
     }
 
     /// Sorts proven-static class runs in a language-aware source document
@@ -166,12 +149,15 @@ impl RustyWind {
     /// Embedded expressions are preserved byte-for-byte, and sorting or
     /// deduplication never crosses an expression boundary
     pub fn sort_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
-        let markup_index = self.markup_index(document);
+        if matches!(self.regex, FinderRegex::DefaultRegex)
+            && document.language().markup_dialect().is_some()
+        {
+            return self.sort_structured_document(document);
+        }
+
         self.extraction_regex()
             .replace_all(document.text(), |captures: &Captures| {
-                let Some(capture) =
-                    self.sortable_capture(captures, document, markup_index.as_ref())
-                else {
+                let Some(capture) = self.sortable_capture(captures, document) else {
                     return captures[0].to_string();
                 };
 
@@ -199,15 +185,8 @@ impl RustyWind {
         &self,
         captures: &'a Captures<'a>,
         document: SourceDocument<'a>,
-        markup_index: Option<&MarkupIndex>,
     ) -> Option<SortableCapture<'a>> {
         let full_match = captures.get(0)?;
-
-        if markup_index.is_some_and(|index| {
-            !index.contains_attribute(document.text(), full_match.start()..full_match.end())
-        }) {
-            return None;
-        }
 
         if matches!(self.regex, FinderRegex::DefaultRegex)
             && has_dynamic_attribute_prefix(document.text(), full_match.start())
@@ -236,17 +215,52 @@ impl RustyWind {
         })
     }
 
-    fn markup_index(&self, document: SourceDocument<'_>) -> Option<MarkupIndex> {
-        if !matches!(self.regex, FinderRegex::DefaultRegex) {
-            return None;
-        }
-        let dialect = document.language().markup_dialect()?;
+    fn sortable_attribute(
+        &self,
+        attribute: &ClassAttribute,
+        document: SourceDocument<'_>,
+    ) -> Option<(Range<usize>, SortableClassValue)> {
+        let range = attribute.value_range();
+        let value = if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
+            match analyze_class_value(&document.text()[range.clone()], document.language()) {
+                ClassValueAnalysis::Sortable(runs) => SortableClassValue::Static(runs),
+                ClassValueAnalysis::Opaque => return None,
+            }
+        } else {
+            SortableClassValue::Wrapped
+        };
 
-        Some(MarkupIndex::new(markup_tag_spans(
-            document.text(),
-            document.language(),
-            dialect,
-        )))
+        Some((range, value))
+    }
+
+    fn sort_structured_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
+        let Some(attributes) = class_attributes(document) else {
+            return Cow::Borrowed(document.text());
+        };
+        let sortable = attributes
+            .iter()
+            .filter_map(|attribute| self.sortable_attribute(attribute, document))
+            .collect::<Vec<_>>();
+        if sortable.is_empty() {
+            return Cow::Borrowed(document.text());
+        }
+
+        let mut output = document.text().to_string();
+        let mut changed = false;
+        for (range, value) in sortable.into_iter().rev() {
+            let original = &document.text()[range.clone()];
+            let sorted = self.sort_source_value(original, &value);
+            if sorted != original {
+                output.replace_range(range, &sorted);
+                changed = true;
+            }
+        }
+
+        if changed {
+            Cow::Owned(output)
+        } else {
+            Cow::Borrowed(document.text())
+        }
     }
 
     fn sort_source_value<'a>(
@@ -479,202 +493,6 @@ fn has_dynamic_attribute_prefix(source: &str, match_start: usize) -> bool {
         .is_some_and(|character| matches!(character, ':' | '.' | '@' | '['))
 }
 
-fn is_markup_attribute(
-    source: &str,
-    match_start: usize,
-    match_end: usize,
-    tag: &Range<usize>,
-) -> bool {
-    if match_start < tag.start || tag.end < match_end {
-        return false;
-    }
-
-    if !source[..match_start]
-        .chars()
-        .next_back()
-        .is_some_and(|character| character.is_ascii_whitespace())
-    {
-        return false;
-    }
-
-    let mut quote = None;
-    let mut escaped = false;
-    for byte in source.as_bytes()[tag.start..match_start].iter().copied() {
-        if let Some(active_quote) = quote {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == active_quote {
-                quote = None;
-            }
-        } else if matches!(byte, b'\'' | b'"' | b'`') {
-            quote = Some(byte);
-        }
-    }
-
-    quote.is_none()
-}
-
-fn markup_tag_spans(
-    source: &str,
-    language: SourceLanguage,
-    dialect: MarkupDialect,
-) -> Vec<Range<usize>> {
-    let bytes = source.as_bytes();
-    let mut spans = Vec::new();
-    let mut cursor = 0;
-
-    while cursor < bytes.len() {
-        if bytes[cursor..].starts_with(b"<!--") {
-            cursor += 4;
-            if let Some(end) = bytes[cursor..]
-                .windows(3)
-                .position(|window| window == b"-->")
-            {
-                cursor += end + 3;
-            } else {
-                break;
-            }
-            continue;
-        }
-
-        if bytes[cursor] != b'<' {
-            cursor += 1;
-            continue;
-        }
-
-        if !is_markup_tag_start(&bytes[cursor..]) {
-            cursor += 1;
-            continue;
-        }
-
-        let start = cursor;
-        cursor += 1;
-        let mut quote = None;
-        let mut escaped = false;
-
-        while cursor < bytes.len() {
-            let byte = bytes[cursor];
-            if let Some(active_quote) = quote {
-                if escaped {
-                    escaped = false;
-                } else if byte == b'\\' {
-                    escaped = true;
-                } else if byte == active_quote {
-                    quote = None;
-                }
-            } else if matches!(byte, b'\'' | b'"') {
-                quote = Some(byte);
-            } else {
-                match template_island_end_at(source, cursor, language) {
-                    TemplateIslandEnd::Closed(end) => {
-                        cursor = end;
-                        continue;
-                    }
-                    TemplateIslandEnd::Malformed => return spans,
-                    TemplateIslandEnd::NotAnOpener if byte == b'>' => {
-                        let end = cursor + 1;
-                        spans.push(start..end);
-                        cursor += 1;
-
-                        if let Some(element) = raw_text_element(&source[start..end], dialect) {
-                            cursor =
-                                find_closing_tag(source, cursor, element).unwrap_or(source.len());
-                        }
-                        break;
-                    }
-                    TemplateIslandEnd::NotAnOpener => {}
-                }
-            }
-            cursor += 1;
-        }
-    }
-
-    spans
-}
-
-fn is_markup_tag_start(source: &[u8]) -> bool {
-    match source.get(1).copied() {
-        Some(first) if first.is_ascii_alphabetic() || matches!(first, b'!' | b'?') => true,
-        Some(b'/') => source.get(2).is_some_and(u8::is_ascii_alphabetic),
-        _ => false,
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum NameMatching {
-    Exact,
-    AsciiInsensitive,
-}
-
-impl NameMatching {
-    fn matches(self, left: &str, right: &str) -> bool {
-        match self {
-            Self::Exact => left == right,
-            Self::AsciiInsensitive => left.eq_ignore_ascii_case(right),
-        }
-    }
-
-    fn matches_bytes(self, left: &[u8], right: &[u8]) -> bool {
-        match self {
-            Self::Exact => left == right,
-            Self::AsciiInsensitive => left.eq_ignore_ascii_case(right),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct RawTextElement<'a> {
-    name: &'a str,
-    matching: NameMatching,
-}
-
-fn raw_text_element(tag: &str, dialect: MarkupDialect) -> Option<RawTextElement<'_>> {
-    let content = tag.strip_prefix('<')?;
-    if content
-        .as_bytes()
-        .first()
-        .is_some_and(|first| matches!(first, b'/' | b'!' | b'?'))
-        || content.trim_end().ends_with("/>")
-    {
-        return None;
-    }
-
-    let name_end = content
-        .find(|character: char| character.is_ascii_whitespace() || matches!(character, '/' | '>'))
-        .unwrap_or(content.len());
-    let name = &content[..name_end];
-    let matching = match dialect {
-        MarkupDialect::Html => NameMatching::AsciiInsensitive,
-        MarkupDialect::Svelte => NameMatching::Exact,
-    };
-
-    [
-        "script", "style", "textarea", "title", "xmp", "iframe", "noembed", "noframes",
-    ]
-    .into_iter()
-    .any(|raw_name| matching.matches(name, raw_name))
-    .then_some(RawTextElement { name, matching })
-}
-
-fn find_closing_tag(source: &str, start: usize, element: RawTextElement<'_>) -> Option<usize> {
-    let source = source.as_bytes();
-    let name = element.name.as_bytes();
-    let needle_len = name.len() + 2;
-
-    source[start..]
-        .windows(needle_len)
-        .enumerate()
-        .find_map(|(offset, candidate)| {
-            let boundary = source.get(start + offset + needle_len);
-            (candidate.starts_with(b"</")
-                && element.matching.matches_bytes(&candidate[2..], name)
-                && boundary.is_none_or(|byte| byte.is_ascii_whitespace() || *byte == b'>'))
-            .then_some(start + offset)
-        })
-}
-
 fn splice_capture(
     full_source: &str,
     full_match: &regex::Match<'_>,
@@ -747,6 +565,7 @@ fn is_ellipsis_placeholder(class: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source::SourceLanguage;
     use pretty_assertions::assert_eq;
     use regex::Regex;
     use test_case::test_case;
@@ -785,18 +604,6 @@ mod tests {
             RUSTYWIND_DEFAULT.has_classes(SourceDocument::new(input, SourceLanguage::Html)),
             output
         );
-    }
-
-    #[test]
-    fn markup_index_finds_only_the_single_containing_tag() {
-        let index = MarkupIndex::new(vec![0..10, 20..30, 40..50]);
-
-        assert_eq!(index.containing_tag(0..5), Some(&(0..10)));
-        assert_eq!(index.containing_tag(9..10), Some(&(0..10)));
-        assert_eq!(index.containing_tag(20..30), Some(&(20..30)));
-        assert_eq!(index.containing_tag(10..11), None);
-        assert_eq!(index.containing_tag(19..21), None);
-        assert_eq!(index.containing_tag(50..51), None);
     }
 
     #[test]

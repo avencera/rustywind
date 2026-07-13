@@ -56,6 +56,7 @@ impl ValueEnum for CliClassWrapping {
 pub enum CliSourceLanguage {
     Html,
     Svelte,
+    Astro,
     Django,
     Jinja,
     Twig,
@@ -74,6 +75,7 @@ impl From<CliSourceLanguage> for SourceLanguage {
         match language {
             CliSourceLanguage::Html => Self::Html,
             CliSourceLanguage::Svelte => Self::Svelte,
+            CliSourceLanguage::Astro => Self::Astro,
             CliSourceLanguage::Django => Self::Django,
             CliSourceLanguage::Jinja => Self::Jinja,
             CliSourceLanguage::Twig => Self::Twig,
