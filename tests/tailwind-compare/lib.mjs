@@ -100,9 +100,27 @@ export function orderCandidates(candidates, limit) {
     .slice(0, limit);
 }
 
-export function classifyDifference(prettierTokens, rustywindTokens, known) {
-  if (!sameMultiset(prettierTokens, rustywindTokens)) return "token-multiset";
-  if (same(prettierTokens, rustywindTokens)) return "exact";
+export function classifyDifference(comparison, known) {
+  const {
+    original,
+    scrambled,
+    prettierOriginal,
+    prettierScrambled,
+    rustywind,
+  } = comparison;
+  if (
+    !sameMultiset(original, scrambled) ||
+    ![prettierScrambled, rustywind].every((tokens) =>
+      sameMultiset(prettierOriginal, tokens),
+    )
+  ) {
+    return "token-multiset";
+  }
+  if (!same(prettierOriginal, prettierScrambled)) {
+    return "prettier-nonconvergent";
+  }
+  if (same(prettierScrambled, rustywind)) return "exact";
+  if (known === undefined) return "order-difference";
 
   const isKnown = (token) => {
     const value = known.get(token);
@@ -113,8 +131,8 @@ export function classifyDifference(prettierTokens, rustywindTokens, known) {
     }
     return value;
   };
-  const prettierKnown = prettierTokens.filter(isKnown);
-  const rustywindKnown = rustywindTokens.filter(isKnown);
+  const prettierKnown = prettierScrambled.filter(isKnown);
+  const rustywindKnown = rustywind.filter(isKnown);
   return same(prettierKnown, rustywindKnown) ? "custom-only" : "known-order";
 }
 

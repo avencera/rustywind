@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
+
+import * as prettier from "prettier";
+import * as sveltePlugin from "prettier-plugin-svelte";
+import * as tailwindPlugin from "prettier-plugin-tailwindcss";
 
 import {
   classifyDifference,
@@ -65,7 +70,7 @@ test("orders candidates by attribute count then UTF-8 path bytes", () => {
   );
 });
 
-test("classifies exact, custom-only, known-order, and multiset differences", () => {
+test("classifies convergent exact, custom-only, and known-order differences", () => {
   const known = new Map([
     ["flex", true],
     ["p-4", true],
@@ -73,23 +78,52 @@ test("classifies exact, custom-only, known-order, and multiset differences", () 
   ]);
 
   assert.equal(
-    classifyDifference(["flex", "p-4"], ["flex", "p-4"], known),
+    classifyDifference(
+      comparison({
+        original: ["flex", "p-4"],
+        scrambled: ["p-4", "flex"],
+        prettier: ["flex", "p-4"],
+        rustywind: ["flex", "p-4"],
+      }),
+      known,
+    ),
     "exact",
   );
   assert.equal(
     classifyDifference(
-      ["brand-card", "flex", "p-4"],
-      ["flex", "p-4", "brand-card"],
+      comparison({
+        original: ["brand-card", "flex", "p-4"],
+        scrambled: ["p-4", "flex", "brand-card"],
+        prettier: ["brand-card", "flex", "p-4"],
+        rustywind: ["flex", "p-4", "brand-card"],
+      }),
       known,
     ),
     "custom-only",
   );
   assert.equal(
-    classifyDifference(["p-4", "flex"], ["flex", "p-4"], known),
+    classifyDifference(
+      comparison({
+        original: ["p-4", "flex"],
+        scrambled: ["flex", "p-4"],
+        prettier: ["p-4", "flex"],
+        rustywind: ["flex", "p-4"],
+      }),
+      known,
+    ),
     "known-order",
   );
+});
+
+test("classifies token extraction before Prettier convergence", () => {
   assert.equal(
-    classifyDifference(["flex", "p-4"], ["flex", "flex"], known),
+    classifyDifference({
+      original: ["flex", "p-4"],
+      scrambled: ["p-4", "flex"],
+      prettierOriginal: ["flex", "p-4"],
+      prettierScrambled: ["p-4", "flex"],
+      rustywind: ["flex", "flex"],
+    }),
     "token-multiset",
   );
 });
@@ -98,11 +132,81 @@ test("rejects order classification without a result for every token", () => {
   assert.throws(
     () =>
       classifyDifference(
-        ["unclassified", "flex"],
-        ["flex", "unclassified"],
+        comparison({
+          original: ["unclassified", "flex"],
+          scrambled: ["flex", "unclassified"],
+          prettier: ["unclassified", "flex"],
+          rustywind: ["flex", "unclassified"],
+        }),
         new Map([["flex", true]]),
       ),
     /missing Tailwind classification for token: "unclassified"/u,
+  );
+});
+
+test("allows convergent duplicate removal by both formatters", () => {
+  assert.equal(
+    classifyDifference({
+      original: ["rtl:mr-0", "flex", "rtl:mr-0"],
+      scrambled: ["rtl:mr-0", "flex", "rtl:mr-0"],
+      prettierOriginal: ["flex", "rtl:mr-0"],
+      prettierScrambled: ["flex", "rtl:mr-0"],
+      rustywind: ["flex", "rtl:mr-0"],
+    }),
+    "exact",
+  );
+});
+
+test("classifies nonconvergent Prettier output before RustyWind ordering", () => {
+  assert.equal(
+    classifyDifference({
+      original: ["grid", "m-2"],
+      scrambled: ["m-2", "grid"],
+      prettierOriginal: ["grid", "m-2"],
+      prettierScrambled: ["m-2", "grid"],
+      rustywind: ["grid", "m-2"],
+    }),
+    "prettier-nonconvergent",
+  );
+});
+
+test("pins per-attribute Svelte each-else Prettier convergence", async () => {
+  const source =
+    '{#each items as item}<div class="flex p-4">{item}</div>{:else}<div class="grid m-2">empty</div>{/each}';
+  const scrambledSource = scrambleAttributes(source);
+  const options = {
+    filepath: "regression.svelte",
+    parser: "svelte",
+    plugins: [sveltePlugin, tailwindPlugin],
+    tailwindStylesheet: fileURLToPath(
+      new URL("../tailwind.css", import.meta.url),
+    ),
+  };
+
+  const prettierOriginal = extractAttributes(
+    await prettier.format(source, options),
+  ).map(splitClassTokens);
+  const prettierScrambled = extractAttributes(
+    await prettier.format(scrambledSource, options),
+  ).map(splitClassTokens);
+
+  assert.deepEqual(prettierOriginal, [
+    ["flex", "p-4"],
+    ["grid", "m-2"],
+  ]);
+  assert.deepEqual(prettierScrambled, [
+    ["flex", "p-4"],
+    ["m-2", "grid"],
+  ]);
+  assert.equal(
+    classifyDifference({
+      original: ["grid", "m-2"],
+      scrambled: ["m-2", "grid"],
+      prettierOriginal: prettierOriginal[1],
+      prettierScrambled: prettierScrambled[1],
+      rustywind: ["grid", "m-2"],
+    }),
+    "prettier-nonconvergent",
   );
 });
 
@@ -119,3 +223,13 @@ test("fingerprints ordered path and scrambled source records with NUL separators
   assert.equal(corpusFingerprint(records), expected);
   assert.notEqual(corpusFingerprint([...records].reverse()), expected);
 });
+
+function comparison({ original, scrambled, prettier, rustywind }) {
+  return {
+    original,
+    scrambled,
+    prettierOriginal: prettier,
+    prettierScrambled: prettier,
+    rustywind,
+  };
+}

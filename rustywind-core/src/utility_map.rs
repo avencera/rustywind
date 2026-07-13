@@ -1211,9 +1211,9 @@ impl UtilityMap {
                     ][..],
                 )
             }
-            "ring" if is_color_value(value) => Some(&["--tw-ring-color"][..]),
+            "ring" if is_color_like_value(value) => Some(&["--tw-ring-color"][..]),
             "ring-offset" if value.parse::<u32>().is_ok() => Some(&["--tw-ring-offset-width"][..]),
-            "ring-offset" if is_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
+            "ring-offset" if is_color_like_value(value) => Some(&["--tw-ring-offset-color"][..]),
             "inset-ring" if value.is_empty() || value.parse::<u32>().is_ok() => {
                 Some(&["--tw-inset-ring-shadow"][..])
             }

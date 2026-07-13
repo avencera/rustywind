@@ -3,8 +3,10 @@
 This package compares RustyWind's ordering of static quoted class attributes
 with Prettier's Tailwind CSS plugin across a pinned external corpus. It supports
 TSX, Svelte, and Astro sources. The engine reverses eligible class lists in
-memory before invoking either formatter, so already-sorted source does not
-produce false agreement.
+memory, formats both the original and scrambled source with Prettier, and runs
+RustyWind on the scrambled source. This avoids false agreement from
+already-sorted source while detecting formatter output that depends on input
+order.
 
 Install the exact toolchain and run the focused unit tests with:
 
@@ -39,6 +41,21 @@ The process exits nonzero for invalid arguments, missing inputs, and a failed
 Tailwind classification probe. Source parse errors and RustyWind failures are
 recorded in the report for the caller to interpret alongside ordering and
 extraction findings.
+
+Schema version 2 classifies each attribute independently. Attribute-count and
+token-multiset mismatches take precedence. When both Prettier runs preserve the
+tokens but produce different orders, the attribute is reported as the
+non-failing `prettier-nonconvergent` classification and Prettier is not used as
+an ordering oracle for it. Only convergent Prettier output can produce `exact`,
+`custom-only`, or `known-order` classifications. Detail records use the
+explicit fields `original`, `scrambled`, `prettierOriginal`,
+`prettierScrambled`, and `rustywind`.
+
+The `prettierNonconvergent` summary field counts attributes for which the two
+Prettier runs disagree. `prettierChanged` continues to count changes from the
+scrambled input to the scrambled Prettier run, including nonconvergent
+attributes. Known-order and extraction mismatches remain actionable failures;
+Prettier nonconvergence and custom-only differences do not fail a corpus.
 
 Only quoted `class` and `className` literals without template delimiters are in
 scope. Dynamic expressions, `class:list`, helper calls such as `cn` and `cva`,

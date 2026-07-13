@@ -409,14 +409,14 @@ fn test_variants_beyond_64_sort_after_base_classes() {
 
     // Test each problematic variant separately to give clear error messages
     let test_cases = vec![
-        ("dark", 70),
-        ("@3xl", 64),
-        ("@4xl", 65),
-        ("print", 73),
-        ("portrait", 74),
-        ("landscape", 75),
-        ("motion-safe", 71),
-        ("motion-reduce", 72),
+        ("dark", 82),
+        ("@3xl", 77),
+        ("@4xl", 77),
+        ("print", 83),
+        ("portrait", 78),
+        ("landscape", 79),
+        ("motion-safe", 60),
+        ("motion-reduce", 61),
     ];
 
     for (variant, expected_idx) in test_cases {
@@ -623,9 +623,6 @@ fn test_enabled_disabled_variant_ordering() {
 
 #[test]
 fn test_landscape_variant_ordering() {
-    // Regression test for landscape variant positioning
-    // landscape should come after responsive breakpoints (sm, md, lg, xl, 2xl)
-    // Container queries (@3xl) are unknown variants and sort LAST
     let sorter = HybridSorter::new();
 
     let classes = vec![
@@ -663,12 +660,124 @@ fn test_landscape_variant_ordering() {
     assert!(xl_pos < xxl_pos, "xl should come before 2xl");
     assert!(xxl_pos < landscape_pos, "2xl should come before landscape");
 
-    // Container queries (@3xl) are unknown variants and sort LAST (after landscape)
-    // This matches Prettier's behavior where unknown/arbitrary variants sort at the end
     assert!(
-        landscape_pos < container_pos,
-        "landscape should come before @3xl (container queries sort last)"
+        container_pos < landscape_pos,
+        "@3xl should come before landscape"
     );
+}
+
+#[test]
+fn test_default_container_query_variant_ordering() {
+    let sorter = HybridSorter::new();
+    let classes = vec![
+        "portrait:flex",
+        "@md/sidebar:p-4",
+        "@max-sm:p-4",
+        "2xl:flex",
+        "@max-md:m-4",
+        "@sm/content:m-4",
+    ];
+
+    assert_eq!(
+        sorter.sort_classes(&classes),
+        vec![
+            "2xl:flex",
+            "@max-md:m-4",
+            "@max-sm:p-4",
+            "@sm/content:m-4",
+            "@md/sidebar:p-4",
+            "portrait:flex",
+        ]
+    );
+}
+
+#[test]
+fn test_named_container_query_breakpoints_follow_size_order() {
+    let sorter = HybridSorter::new();
+    let classes = vec!["@2xl/field-group:flex-row", "@md/field-group:flex-col"];
+
+    assert_eq!(
+        sorter.sort_classes(&classes),
+        vec!["@md/field-group:flex-col", "@2xl/field-group:flex-row",]
+    );
+}
+
+#[test]
+fn test_height_precedes_text_alignment() {
+    let sorter = HybridSorter::new();
+
+    assert_eq!(
+        sorter.sort_classes(&["text-center", "h-24"]),
+        vec!["h-24", "text-center"]
+    );
+}
+
+#[test]
+fn test_container_breakpoints_precede_properties_in_stacked_variants() {
+    let sorter = HybridSorter::new();
+    let classes = vec!["@md:hover:m-4", "@sm:focus:p-4"];
+
+    assert_eq!(
+        sorter.sort_classes(&classes),
+        vec!["@sm:focus:p-4", "@md:hover:m-4"]
+    );
+}
+
+#[test]
+fn test_container_names_do_not_precede_same_breakpoint_tiebreakers() {
+    let sorter = HybridSorter::new();
+    let classes = vec![
+        "@sm/alpha:p-4",
+        "@sm/zeta:m-4",
+        "@sm/zeta:p-4",
+        "@sm/alpha:m-4",
+    ];
+
+    assert_eq!(
+        sorter.sort_classes(&classes),
+        vec![
+            "@sm/alpha:m-4",
+            "@sm/zeta:m-4",
+            "@sm/alpha:p-4",
+            "@sm/zeta:p-4",
+        ]
+    );
+}
+
+#[test]
+fn test_custom_container_query_names_and_lengths_remain_unknown() {
+    let sorter = HybridSorter::new();
+    let classes = vec![
+        "@tablet:m-4",
+        "@[30rem]:m-4",
+        "@min-tablet:m-4",
+        "@max-[30rem]:m-4",
+        "print:m-4",
+        "@7xl:m-4",
+    ];
+    let sorted = sorter.sort_classes(&classes);
+    let print_pos = sorted
+        .iter()
+        .position(|class| *class == "print:m-4")
+        .unwrap();
+    let known_container_pos = sorted
+        .iter()
+        .position(|class| *class == "@7xl:m-4")
+        .unwrap();
+
+    assert!(known_container_pos < print_pos);
+    for class in [
+        "@tablet:m-4",
+        "@[30rem]:m-4",
+        "@min-tablet:m-4",
+        "@max-[30rem]:m-4",
+    ] {
+        let custom_pos = sorted
+            .iter()
+            .position(|candidate| *candidate == class)
+            .unwrap();
+        assert!(print_pos < custom_pos, "{class}");
+    }
 }
 
 #[test]
