@@ -154,15 +154,15 @@ Options:
 
           [possible values: no-wrapping, comma-single-quotes, comma-double-quotes]
 
-      --tailwind-prefix <TAILWIND_PREFIX>
+  -p, --tailwind-prefix <TAILWIND_PREFIX>
           Tailwind prefix used when sorting classes, e.g. tw for tw: or tw- classes
 
-      --language <LANGUAGE>
+  -l, --language <LANGUAGE>
           Source language to use for all inputs, overriding filename inference
 
           [possible values: html, svelte, astro, django, jinja, twig, liquid, handlebars, erb, ejs, php, blade, lit, ruby]
 
-      --stdin-filename <PATH>
+  -f, --stdin-filename <PATH>
           Filename used to infer the source language of stdin
 
       --quiet

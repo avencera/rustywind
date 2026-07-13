@@ -6,6 +6,8 @@
 
 - Add first-class Astro parsing for static quoted class attributes while preserving frontmatter,
   expressions, `class:list`, raw content, and component semantics.
+- Add `-p`, `-l`, and `-f` aliases for `--tailwind-prefix`, `--language`, and
+  `--stdin-filename`.
 
 ### Changed
 

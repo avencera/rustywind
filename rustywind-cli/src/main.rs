@@ -93,13 +93,14 @@ pub struct Cli {
     #[arg(long)]
     class_wrapping: Option<options::CliClassWrapping>,
     /// Tailwind prefix used when sorting classes, e.g. tw for tw: or tw- classes
-    #[arg(long)]
+    #[arg(short = 'p', long)]
     tailwind_prefix: Option<String>,
     /// Source language to use for all inputs, overriding filename inference
-    #[arg(long, value_name = "LANGUAGE")]
+    #[arg(short = 'l', long, value_name = "LANGUAGE")]
     language: Option<options::CliSourceLanguage>,
     /// Filename used to infer the source language of stdin
     #[arg(
+        short = 'f',
         long,
         value_name = "PATH",
         requires = "stdin",
@@ -314,7 +315,7 @@ mod tests {
 
     #[test]
     fn parses_explicit_source_language() {
-        let cli = Cli::try_parse_from(["rustywind", "--language", "svelte", "index.html"])
+        let cli = Cli::try_parse_from(["rustywind", "-l", "svelte", "index.html"])
             .expect("explicit language should parse");
 
         assert!(matches!(cli.language, Some(CliSourceLanguage::Svelte)));
@@ -322,13 +323,8 @@ mod tests {
 
     #[test]
     fn parses_stdin_filename_for_language_inference() {
-        let cli = Cli::try_parse_from([
-            "rustywind",
-            "--stdin",
-            "--stdin-filename",
-            "components/card.blade.php",
-        ])
-        .expect("stdin filename should parse with stdin mode");
+        let cli = Cli::try_parse_from(["rustywind", "--stdin", "-f", "components/card.blade.php"])
+            .expect("stdin filename should parse with stdin mode");
 
         assert_eq!(
             cli.stdin_filename,
@@ -347,5 +343,13 @@ mod tests {
     #[test]
     fn rejects_unknown_source_language() {
         assert!(Cli::try_parse_from(["rustywind", "--language", "unknown", "input.html"]).is_err());
+    }
+
+    #[test]
+    fn parses_tailwind_prefix_short_option() {
+        let cli = Cli::try_parse_from(["rustywind", "-p", "tw", "index.html"])
+            .expect("tailwind prefix should parse");
+
+        assert_eq!(cli.tailwind_prefix.as_deref(), Some("tw"));
     }
 }
