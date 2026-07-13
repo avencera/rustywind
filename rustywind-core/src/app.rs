@@ -4,7 +4,7 @@ use crate::{
     class_wrapping::ClassWrapping,
     consts::{VARIANT_SEARCHER, VARIANTS},
     hybrid_sorter::HybridSorter,
-    markup_parser::{ClassAttribute, class_attributes},
+    markup_parser::{ClassAttribute, class_attributes, is_attribute_name_character},
     sorter::{FinderRegex, Sorter},
     source::{
         ClassValueAnalysis, SourceDocument, StaticRuns, analyze_class_value, is_plain_class_list,
@@ -29,12 +29,81 @@ struct SortCandidate<'a> {
 struct SortableCapture<'a> {
     full_match: Match<'a>,
     classes_match: Match<'a>,
-    value: SortableClassValue,
+    value: SortableClassValue<'a>,
 }
 
-enum SortableClassValue {
+enum SortableClassValue<'a> {
     Static(StaticRuns),
-    Wrapped,
+    Wrapped(WrappedClassList<'a>),
+}
+
+/// A validated comma-separated list of quoted static class tokens
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WrappedClassList<'a> {
+    quote: WrappedQuote,
+    classes: Vec<&'a str>,
+}
+
+impl<'a> WrappedClassList<'a> {
+    fn parse(value: &'a str, wrapping: ClassWrapping) -> Option<Self> {
+        let quote = WrappedQuote::from_wrapping(wrapping)?;
+        let mut cursor = skip_ascii_whitespace(value, 0);
+        let mut classes = Vec::new();
+
+        loop {
+            let (class, next) = parse_wrapped_class(value, cursor, quote.as_char())?;
+            classes.push(class);
+            cursor = skip_ascii_whitespace(value, next);
+
+            if cursor == value.len() {
+                return Some(Self { quote, classes });
+            }
+            if value.as_bytes().get(cursor) != Some(&b',') {
+                return None;
+            }
+
+            cursor = skip_ascii_whitespace(value, cursor + 1);
+            if cursor == value.len() {
+                return None;
+            }
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &'a str> + '_ {
+        self.classes.iter().copied()
+    }
+
+    fn render(&self, classes: &[&str]) -> String {
+        let quote = self.quote.as_char();
+        classes
+            .iter()
+            .map(|class| format!("{quote}{class}{quote}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WrappedQuote {
+    Single,
+    Double,
+}
+
+impl WrappedQuote {
+    fn from_wrapping(wrapping: ClassWrapping) -> Option<Self> {
+        match wrapping {
+            ClassWrapping::NoWrapping => None,
+            ClassWrapping::CommaSingleQuotes => Some(Self::Single),
+            ClassWrapping::CommaDoubleQuotes => Some(Self::Double),
+        }
+    }
+
+    const fn as_char(self) -> char {
+        match self {
+            Self::Single => '\'',
+            Self::Double => '"',
+        }
+    }
 }
 
 /// A validated whitespace-separated list containing only static class tokens
@@ -189,7 +258,7 @@ impl RustyWind {
         let full_match = captures.get(0)?;
 
         if matches!(self.regex, FinderRegex::DefaultRegex)
-            && has_dynamic_attribute_prefix(document.text(), full_match.start())
+            && has_attribute_name_prefix(document.text(), full_match.start())
         {
             return None;
         }
@@ -205,7 +274,10 @@ impl RustyWind {
                 ClassValueAnalysis::Opaque => return None,
             }
         } else {
-            SortableClassValue::Wrapped
+            SortableClassValue::Wrapped(WrappedClassList::parse(
+                classes_match.as_str(),
+                self.class_wrapping,
+            )?)
         };
 
         Some(SortableCapture {
@@ -215,11 +287,11 @@ impl RustyWind {
         })
     }
 
-    fn sortable_attribute(
+    fn sortable_attribute<'a>(
         &self,
         attribute: &ClassAttribute,
-        document: SourceDocument<'_>,
-    ) -> Option<(Range<usize>, SortableClassValue)> {
+        document: SourceDocument<'a>,
+    ) -> Option<(Range<usize>, SortableClassValue<'a>)> {
         let range = attribute.value_range();
         let value = if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
             match analyze_class_value(&document.text()[range.clone()], document.language()) {
@@ -227,7 +299,10 @@ impl RustyWind {
                 ClassValueAnalysis::Opaque => return None,
             }
         } else {
-            SortableClassValue::Wrapped
+            SortableClassValue::Wrapped(WrappedClassList::parse(
+                &document.text()[range.clone()],
+                self.class_wrapping,
+            )?)
         };
 
         Some((range, value))
@@ -266,10 +341,13 @@ impl RustyWind {
     fn sort_source_value<'a>(
         &self,
         value: &'a str,
-        class_value: &SortableClassValue,
+        class_value: &SortableClassValue<'a>,
     ) -> Cow<'a, str> {
-        let SortableClassValue::Static(runs) = class_value else {
-            return Cow::Owned(self.sort_class_run(value));
+        let runs = match class_value {
+            SortableClassValue::Static(runs) => runs,
+            SortableClassValue::Wrapped(classes) => {
+                return Cow::Owned(self.sort_wrapped_classes(classes));
+            }
         };
 
         let mut sorted_value = value.to_string();
@@ -292,47 +370,22 @@ impl RustyWind {
     }
 
     fn sort_class_run(&self, class_string: &str) -> String {
-        let extracted_classes = self.unwrap_wrapped_classes(class_string);
-
-        let mut sorted = self.sort_classes_vec(extracted_classes.into_iter());
+        let mut sorted = self.sort_classes_vec(split_class_tokens(class_string).into_iter());
 
         if !self.allow_duplicates {
             deduplicate_classes(&mut sorted);
         }
 
-        self.rewrap_wrapped_classes(sorted)
+        sorted.join(" ")
     }
 
-    fn unwrap_wrapped_classes<'a>(&self, class_string: &'a str) -> Vec<&'a str> {
-        match self.class_wrapping {
-            ClassWrapping::NoWrapping => split_class_tokens(class_string),
-            ClassWrapping::CommaSingleQuotes => class_string
-                .split(',')
-                .flat_map(split_class_tokens)
-                .map(|class| class.trim_matches('\''))
-                .collect(),
-            ClassWrapping::CommaDoubleQuotes => class_string
-                .split(',')
-                .flat_map(split_class_tokens)
-                .map(|class| class.trim_matches('"'))
-                .collect(),
+    fn sort_wrapped_classes(&self, class_list: &WrappedClassList<'_>) -> String {
+        let mut sorted = self.sort_classes_vec(class_list.iter());
+        if !self.allow_duplicates {
+            deduplicate_classes(&mut sorted);
         }
-    }
 
-    fn rewrap_wrapped_classes(&self, classes: Vec<&str>) -> String {
-        match self.class_wrapping {
-            ClassWrapping::NoWrapping => classes.join(" "),
-            ClassWrapping::CommaSingleQuotes => classes
-                .iter()
-                .map(|class| format!("'{}'", class))
-                .collect::<Vec<String>>()
-                .join(", "),
-            ClassWrapping::CommaDoubleQuotes => classes
-                .iter()
-                .map(|class| format!("\"{}\"", class))
-                .collect::<Vec<String>>()
-                .join(", "),
-        }
+        class_list.render(&sorted)
     }
 
     fn sort_classes_vec<'a>(&self, classes: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
@@ -486,11 +539,53 @@ fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
     )
 }
 
-fn has_dynamic_attribute_prefix(source: &str, match_start: usize) -> bool {
+fn has_attribute_name_prefix(source: &str, match_start: usize) -> bool {
     source[..match_start]
         .chars()
         .next_back()
-        .is_some_and(|character| matches!(character, ':' | '.' | '@' | '['))
+        .is_some_and(is_attribute_name_character)
+}
+
+fn parse_wrapped_class(value: &str, start: usize, quote: char) -> Option<(&str, usize)> {
+    if value[start..].chars().next()? != quote {
+        return None;
+    }
+
+    let class_start = start + quote.len_utf8();
+    let mut escaped = false;
+    for (relative, character) in value[class_start..].char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if character == '\\' {
+            escaped = true;
+            continue;
+        }
+        if character != quote {
+            continue;
+        }
+
+        let class_end = class_start + relative;
+        let class = &value[class_start..class_end];
+        if !is_plain_class_list(class) || split_class_tokens(class).as_slice() != [class] {
+            return None;
+        }
+        return Some((class, class_end + quote.len_utf8()));
+    }
+
+    None
+}
+
+fn skip_ascii_whitespace(value: &str, mut cursor: usize) -> usize {
+    while value
+        .as_bytes()
+        .get(cursor)
+        .is_some_and(u8::is_ascii_whitespace)
+    {
+        cursor += 1;
+    }
+    cursor
 }
 
 fn splice_capture(
@@ -632,6 +727,32 @@ mod tests {
         assert_eq!(
             app.sort_document(SourceDocument::new(source, SourceLanguage::Unknown)),
             r#"<div class="m-4 flex p-4"></div>"#
+        );
+    }
+
+    #[test_case("data-class" ; "data attribute")]
+    #[test_case("x-class" ; "x attribute")]
+    #[test_case(":class" ; "colon directive")]
+    #[test_case(".class" ; "dot directive")]
+    #[test_case("@class" ; "event directive")]
+    #[test_case("[class]" ; "bracket binding")]
+    fn default_regex_rejects_class_suffixes_in_attribute_names(attribute_name: &str) {
+        let source = format!(r#"<div {attribute_name}="p-4 m-4"></div>"#);
+        let document = SourceDocument::new(&source, SourceLanguage::Unknown);
+
+        assert!(!RUSTYWIND_DEFAULT.has_classes(document));
+        assert_eq!(RUSTYWIND_DEFAULT.sort_document(document), source);
+    }
+
+    #[test]
+    fn default_regex_accepts_a_standalone_class_attribute() {
+        let source = r#"<div class="p-4 m-4">"#;
+        let document = SourceDocument::new(source, SourceLanguage::Unknown);
+
+        assert!(RUSTYWIND_DEFAULT.has_classes(document));
+        assert_eq!(
+            RUSTYWIND_DEFAULT.sort_document(document),
+            r#"<div class="m-4 p-4">"#
         );
     }
 
@@ -869,18 +990,6 @@ mod tests {
     }
     // CLASS WRAPPING
     #[test_case(
-        r#"flex-col inline flex"#,
-        ClassWrapping::NoWrapping,
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
-        ; "no wrapping"
-    )]
-    #[test_case(
-        r#"max-w-[min(100%, 500px)] my-6"#,
-        ClassWrapping::NoWrapping,
-        vec![r#"max-w-[min(100%, 500px)]"#, r#"my-6"#]
-        ; "arbitrary value with whitespace"
-    )]
-    #[test_case(
         r#"'flex-col', 'inline', 'flex'"#,
         ClassWrapping::CommaSingleQuotes,
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
@@ -892,40 +1001,66 @@ mod tests {
         vec![r#"flex-col"#, r#"inline"#, r#"flex"#]
         ; "comma double quotes"
     )]
-    fn test_unwrap_wrapped_classes(input: &str, wrapping: ClassWrapping, output: Vec<&str>) {
-        let app = RustyWind {
-            class_wrapping: wrapping,
-            ..RUSTYWIND_DEFAULT
-        };
+    #[test_case(
+        r#"  'grid-cols-[1fr,2fr]' , 'before:content-[\'foo\']'  "#,
+        ClassWrapping::CommaSingleQuotes,
+        vec![r#"grid-cols-[1fr,2fr]"#, r#"before:content-[\'foo\']"#]
+        ; "payload commas and escaped quotes"
+    )]
+    fn parses_valid_wrapped_class_lists(input: &str, wrapping: ClassWrapping, expected: Vec<&str>) {
+        let parsed = WrappedClassList::parse(input, wrapping).unwrap();
 
-        assert_eq!(app.unwrap_wrapped_classes(input), output)
+        assert_eq!(parsed.iter().collect::<Vec<_>>(), expected);
     }
 
-    #[test_case(
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        ClassWrapping::NoWrapping,
-        r#"flex-col inline flex"#
-        ; "no wrapping"
-    )]
-    #[test_case(
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        ClassWrapping::CommaSingleQuotes,
-        r#"'flex-col', 'inline', 'flex'"#
-        ; "comma single quotes"
-    )]
-    #[test_case(
-        vec![r#"flex-col"#, r#"inline"#, r#"flex"#],
-        ClassWrapping::CommaDoubleQuotes,
-        r#""flex-col", "inline", "flex""#
-        ; "comma double quotes"
-    )]
-    fn test_rewrap_wrapped_classes(input: Vec<&str>, wrapping: ClassWrapping, output: &str) {
+    #[test_case("", ClassWrapping::CommaSingleQuotes ; "empty list")]
+    #[test_case("   ", ClassWrapping::CommaSingleQuotes ; "whitespace only")]
+    #[test_case("flex", ClassWrapping::CommaSingleQuotes ; "unquoted entry")]
+    #[test_case(r#"'flex', "p-4""#, ClassWrapping::CommaSingleQuotes ; "mixed quote modes")]
+    #[test_case("'flex", ClassWrapping::CommaSingleQuotes ; "unterminated entry")]
+    #[test_case(r#"'flex\'"#, ClassWrapping::CommaSingleQuotes ; "escaped closing quote")]
+    #[test_case("''", ClassWrapping::CommaSingleQuotes ; "empty entry")]
+    #[test_case("'flex p-4'", ClassWrapping::CommaSingleQuotes ; "multiple class tokens")]
+    #[test_case("' flex'", ClassWrapping::CommaSingleQuotes ; "leading payload whitespace")]
+    #[test_case("'flex',", ClassWrapping::CommaSingleQuotes ; "trailing empty entry")]
+    #[test_case("'flex', , 'p-4'", ClassWrapping::CommaSingleQuotes ; "middle empty entry")]
+    #[test_case("'flex' + active", ClassWrapping::CommaSingleQuotes ; "expression syntax")]
+    #[test_case("'{{ flex }}'", ClassWrapping::CommaSingleQuotes ; "template syntax")]
+    #[test_case(r#"'flex'"#, ClassWrapping::CommaDoubleQuotes ; "wrong configured quote")]
+    fn rejects_invalid_wrapped_class_lists(input: &str, wrapping: ClassWrapping) {
+        assert_eq!(WrappedClassList::parse(input, wrapping), None);
+    }
+
+    #[test_case(SourceLanguage::Html ; "structured markup parser")]
+    #[test_case(SourceLanguage::Unknown ; "regex capture parser")]
+    fn invalid_wrapped_values_fail_closed(language: SourceLanguage) {
         let app = RustyWind {
-            class_wrapping: wrapping,
+            class_wrapping: ClassWrapping::CommaSingleQuotes,
             ..RUSTYWIND_DEFAULT
         };
+        let source = r#"<div class="'p-4', active, 'm-4'"></div>"#;
+        let document = SourceDocument::new(source, language);
 
-        assert_eq!(app.rewrap_wrapped_classes(input), output)
+        assert!(!app.has_classes(document));
+        assert_eq!(app.sort_document(document), source);
+    }
+
+    #[test]
+    fn valid_wrapped_values_sort_and_canonicalize_separators() {
+        let app = RustyWind {
+            sorter: Sorter::new(HashMap::from([
+                ("grid-cols-[1fr,2fr]".to_string(), 1),
+                ("flex".to_string(), 0),
+            ])),
+            class_wrapping: ClassWrapping::CommaSingleQuotes,
+            ..RUSTYWIND_DEFAULT
+        };
+        let source = r#"<div class="  'grid-cols-[1fr,2fr]' , 'flex'  "></div>"#;
+
+        assert_eq!(
+            app.sort_document(SourceDocument::new(source, SourceLanguage::Html)),
+            r#"<div class="'flex', 'grid-cols-[1fr,2fr]'"></div>"#
+        );
     }
 
     #[test]

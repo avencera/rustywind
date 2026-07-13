@@ -207,7 +207,8 @@ impl<'a> MarkupParser<'a> {
 
             let attribute = self.parse_attribute(input)??;
             is_raw |= matches!(self.dialect, MarkupDialect::Astro) && attribute.name == "is:raw";
-            if matches!(attribute.name, "class" | "className")
+            if (self.name_matching().matches(attribute.name, "class")
+                || attribute.name == "className")
                 && let Some(value) = attribute.quoted_value
             {
                 self.attributes.push(ClassAttribute(value));
@@ -470,7 +471,7 @@ fn is_tag_name_character(character: char) -> bool {
     character.is_alphanumeric() || matches!(character, '-' | '_' | ':' | '.')
 }
 
-fn is_attribute_name_character(character: char) -> bool {
+pub(crate) fn is_attribute_name_character(character: char) -> bool {
     !character.is_ascii_whitespace()
         && !character.is_control()
         && !matches!(
@@ -514,6 +515,31 @@ mod tests {
         assert_eq!(
             values(source, SourceLanguage::Svelte),
             Some(vec!["p-4 m-4"])
+        );
+    }
+
+    #[test]
+    fn html_class_names_are_ascii_case_insensitive_but_class_name_is_exact() {
+        let source = r#"<div CLASS="one" Class="two" className="three" CLASSNAME="ignored"></div>"#;
+
+        assert_eq!(
+            values(source, SourceLanguage::Html),
+            Some(vec!["one", "two", "three"])
+        );
+    }
+
+    #[test]
+    fn component_dialects_match_class_attribute_names_exactly() {
+        let source =
+            r#"<div CLASS="ignored" class="one" className="two" ClassName="ignored"></div>"#;
+
+        assert_eq!(
+            values(source, SourceLanguage::Svelte),
+            Some(vec!["one", "two"])
+        );
+        assert_eq!(
+            values(source, SourceLanguage::Astro),
+            Some(vec!["one", "two"])
         );
     }
 

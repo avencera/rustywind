@@ -2,7 +2,6 @@ use std::ops::Range;
 
 use winnow::{
     Parser,
-    ascii::multispace0,
     combinator::opt,
     stream::{LocatingSlice, Location},
     token::{any, literal, take_till, take_while},
@@ -23,15 +22,43 @@ pub(crate) enum ClassValueValidation {
     Unspecified,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct DelimitedTemplateProfile<'a> {
+    delimiters: &'a [(&'a str, &'a str)],
+    closing_policy: DelimitedClosingPolicy,
+}
+
+impl<'a> DelimitedTemplateProfile<'a> {
+    pub(crate) const fn template_tokens(delimiters: &'a [(&'a str, &'a str)]) -> Self {
+        Self {
+            delimiters,
+            closing_policy: DelimitedClosingPolicy::QuotedFirstCloser,
+        }
+    }
+
+    pub(crate) const fn php(delimiters: &'a [(&'a str, &'a str)]) -> Self {
+        Self {
+            delimiters,
+            closing_policy: DelimitedClosingPolicy::PhpBlockComments,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DelimitedClosingPolicy {
+    QuotedFirstCloser,
+    PhpBlockComments,
+}
+
 pub(crate) fn delimited_islands(
     value: &str,
-    delimiters: &[(&str, &str)],
+    profile: DelimitedTemplateProfile<'_>,
 ) -> Option<Vec<Range<usize>>> {
     let mut islands = Vec::new();
     let mut cursor = 0;
 
-    while let Some((start, opener, closer)) = next_delimiter(value, cursor, delimiters) {
-        let end = delimited_end(value, start + opener.len(), closer)?;
+    while let Some((start, opener, closer)) = next_delimiter(value, cursor, profile.delimiters) {
+        let end = delimited_end(value, start + opener.len(), closer, profile.closing_policy)?;
         islands.push(start..end);
         cursor = end;
     }
@@ -42,16 +69,21 @@ pub(crate) fn delimited_islands(
 pub(crate) fn delimited_island_end_at(
     value: &str,
     cursor: usize,
-    delimiters: &[(&str, &str)],
+    profile: DelimitedTemplateProfile<'_>,
 ) -> Option<Option<usize>> {
-    delimiters.iter().find_map(|&(opener, closer)| {
+    profile.delimiters.iter().find_map(|&(opener, closer)| {
         value[cursor..]
             .starts_with(opener)
-            .then(|| delimited_end(value, cursor + opener.len(), closer))
+            .then(|| delimited_end(value, cursor + opener.len(), closer, profile.closing_policy))
     })
 }
 
-fn delimited_end(value: &str, cursor: usize, closer: &str) -> Option<usize> {
+fn delimited_end(
+    value: &str,
+    cursor: usize,
+    closer: &str,
+    closing_policy: DelimitedClosingPolicy,
+) -> Option<usize> {
     let mut input = Input::new(&value[cursor..]);
     loop {
         if remaining(&input).starts_with(closer) {
@@ -60,6 +92,13 @@ fn delimited_end(value: &str, cursor: usize, closer: &str) -> Option<usize> {
                 .parse_next(&mut input)
                 .ok()?;
             return Some(cursor + input.current_token_start());
+        }
+
+        if matches!(closing_policy, DelimitedClosingPolicy::PhpBlockComments)
+            && remaining(&input).starts_with("/*")
+        {
+            consume_block_comment(&mut input)?;
+            continue;
         }
 
         match remaining(&input).chars().next()? {
@@ -452,16 +491,21 @@ fn expression_keyword_allows_regex(identifier: &str) -> bool {
 
 pub(crate) fn blade_islands(value: &str) -> Option<Vec<Range<usize>>> {
     const MUSTACHES: &[(&str, &str)] = &[("{{--", "--}}"), ("{!!", "!!}"), ("{{", "}}")];
+    const PROFILE: DelimitedTemplateProfile<'_> =
+        DelimitedTemplateProfile::template_tokens(MUSTACHES);
 
     let mut islands = Vec::new();
     let mut cursor = 0;
-    while let Some(island) = next_blade_island(value, cursor, MUSTACHES) {
+    while let Some(island) = next_blade_island(value, cursor, PROFILE.delimiters) {
         let (start, end) = match island {
             BladeIsland::Delimited {
                 start,
                 opener,
                 closer,
-            } => (start, delimited_end(value, start + opener.len(), closer)?),
+            } => (
+                start,
+                delimited_end(value, start + opener.len(), closer, PROFILE.closing_policy)?,
+            ),
             BladeIsland::Directive {
                 start,
                 identifier_end,
@@ -480,11 +524,12 @@ pub(crate) fn blade_islands(value: &str) -> Option<Vec<Range<usize>>> {
 }
 
 pub(crate) fn blade_island_end_at(value: &str, cursor: usize) -> Option<Option<usize>> {
-    let mustache = delimited_island_end_at(
-        value,
-        cursor,
-        &[("{{--", "--}}"), ("{!!", "!!}"), ("{{", "}}")],
-    );
+    const PROFILE: DelimitedTemplateProfile<'_> = DelimitedTemplateProfile::template_tokens(&[
+        ("{{--", "--}}"),
+        ("{!!", "!!}"),
+        ("{{", "}}"),
+    ]);
+    let mustache = delimited_island_end_at(value, cursor, PROFILE);
     if mustache.is_some() {
         return mustache;
     }
@@ -548,35 +593,52 @@ fn next_blade_island<'a>(
 }
 
 fn next_blade_directive(value: &str, cursor: usize) -> Option<(usize, usize, Option<usize>)> {
-    let relative_start = value[cursor..].find('@')?;
-    let start = cursor + relative_start;
-    let mut input = Input::new(&value[start..]);
-    literal::<_, _, winnow::error::ContextError>("@")
-        .void()
-        .parse_next(&mut input)
-        .ok()?;
-    let identifier: &str =
-        take_while::<_, _, winnow::error::ContextError>(1.., |character: char| {
-            character.is_ascii_alphanumeric() || character == '_'
-        })
-        .parse_next(&mut input)
-        .ok()?;
-    if !identifier
-        .as_bytes()
-        .first()
-        .is_some_and(|byte| byte.is_ascii_alphabetic() || *byte == b'_')
-    {
-        return next_blade_directive(value, start + 1);
+    let mut search_from = cursor;
+    while let Some(relative_start) = value[search_from..].find('@') {
+        let found = search_from + relative_start;
+        let escape_run = blade_at_run(value, found);
+        search_from = escape_run.end;
+        if escape_run.len().is_multiple_of(2) {
+            continue;
+        }
+        let start = escape_run.end - 1;
+
+        let Some(first) = value.as_bytes().get(start + 1) else {
+            continue;
+        };
+        if !(first.is_ascii_alphabetic() || *first == b'_') {
+            continue;
+        }
+
+        let identifier_end = value.as_bytes()[start + 2..]
+            .iter()
+            .position(|byte| !(byte.is_ascii_alphanumeric() || *byte == b'_'))
+            .map_or(value.len(), |relative_end| start + 2 + relative_end);
+        let parenthesis = value[identifier_end..]
+            .char_indices()
+            .find(|(_, character)| !character.is_ascii_whitespace())
+            .and_then(|(relative_start, character)| {
+                (character == '(').then_some(identifier_end + relative_start)
+            });
+        return Some((start, identifier_end, parenthesis));
     }
-    let identifier_end = start + input.current_token_start();
-    multispace0::<_, winnow::error::ContextError>
-        .void()
-        .parse_next(&mut input)
-        .ok()?;
-    let parenthesis = remaining(&input)
-        .starts_with('(')
-        .then_some(start + input.current_token_start());
-    Some((start, identifier_end, parenthesis))
+    None
+}
+
+fn blade_at_is_escaped(value: &str, start: usize) -> bool {
+    !(start - blade_at_run(value, start).start).is_multiple_of(2)
+}
+
+fn blade_at_run(value: &str, start: usize) -> Range<usize> {
+    let run_start = value.as_bytes()[..start]
+        .iter()
+        .rposition(|byte| *byte != b'@')
+        .map_or(0, |index| index + 1);
+    let run_end = value.as_bytes()[start..]
+        .iter()
+        .position(|byte| *byte != b'@')
+        .map_or(value.len(), |relative_end| start + relative_end);
+    run_start..run_end
 }
 
 pub(crate) fn validate_class_value(value: &str, validation: ClassValueValidation) -> bool {
@@ -649,6 +711,10 @@ pub(crate) fn validate_class_value(value: &str, validation: ClassValueValidation
 }
 
 fn is_blade_directive_at(value: &str, start: usize) -> bool {
+    if blade_at_is_escaped(value, start) {
+        return false;
+    }
+
     let mut input = Input::new(&value[start + 1..]);
     let Ok(identifier) = take_while::<_, _, winnow::error::ContextError>(0.., |character: char| {
         character.is_ascii_alphanumeric() || character == '_'
@@ -714,7 +780,10 @@ fn remaining<'a>(input: &Input<'a>) -> &'a str {
 
 #[cfg(test)]
 mod tests {
-    use super::{ExpressionSyntax, balanced_end};
+    use super::{
+        DelimitedTemplateProfile, ExpressionSyntax, balanced_end, blade_island_end_at,
+        blade_islands, delimited_island_end_at, delimited_islands, next_blade_directive,
+    };
 
     #[test]
     fn javascript_template_interpolation_is_balanced() {
@@ -722,6 +791,119 @@ mod tests {
         assert_eq!(
             balanced_end(source, 0, '{', '}', ExpressionSyntax::JavaScript),
             Some(source.find(" rest").unwrap())
+        );
+    }
+
+    #[test]
+    fn default_delimited_policy_shields_quotes_but_uses_the_first_other_closer() {
+        const PROFILE: DelimitedTemplateProfile<'_> =
+            DelimitedTemplateProfile::template_tokens(&[("<%", "%>")]);
+        let quoted = r#"<% "not %> yet" %> tail"#;
+        let block_comment = "<% /* %> still static";
+
+        assert_eq!(
+            delimited_islands(quoted, PROFILE),
+            Some(std::iter::once(0..quoted.find(" tail").unwrap()).collect())
+        );
+        assert_eq!(
+            delimited_island_end_at(block_comment, 0, PROFILE),
+            Some(Some(block_comment.find(" still").unwrap()))
+        );
+
+        let blade_quoted = r#"{{ "not }} yet" }} tail"#;
+        let blade_comment = "{{ /* }} tail";
+        assert_eq!(
+            blade_island_end_at(blade_quoted, 0),
+            Some(Some(blade_quoted.find(" tail").unwrap()))
+        );
+        assert_eq!(
+            blade_island_end_at(blade_comment, 0),
+            Some(Some(blade_comment.find(" tail").unwrap()))
+        );
+    }
+
+    #[test]
+    fn php_delimited_policy_only_shields_block_comments() {
+        const PROFILE: DelimitedTemplateProfile<'_> =
+            DelimitedTemplateProfile::php(&[("<?", "?>")]);
+        let block_comment = "<?php /* ?> */ echo ?> tail";
+
+        assert_eq!(
+            delimited_island_end_at(block_comment, 0, PROFILE),
+            Some(Some(block_comment.find(" tail").unwrap()))
+        );
+        assert_eq!(
+            delimited_island_end_at("<?php /* ?>", 0, PROFILE),
+            Some(None)
+        );
+
+        for line_comment in ["<?php // ?> later ?>", "<?php # ?> later ?>"] {
+            assert_eq!(
+                delimited_island_end_at(line_comment, 0, PROFILE),
+                Some(Some(line_comment.find(" later").unwrap()))
+            );
+        }
+    }
+
+    #[test]
+    fn blade_directive_scanner_skips_escapes_and_invalid_candidates() {
+        let value = "@@literal @ @1 @- tail@ @if($ready) @custom_name trailing@";
+        let if_start = value.find("@if").unwrap();
+        let custom_start = value.find("@custom_name").unwrap();
+
+        assert_eq!(
+            next_blade_directive(value, 0),
+            Some((if_start, if_start + "@if".len(), Some(if_start + 3)))
+        );
+        assert_eq!(blade_island_end_at(value, 0), None);
+        assert_eq!(blade_island_end_at(value, 1), None);
+        for invalid in ["@ @1", "@1", "@-", "tail@"] {
+            assert_eq!(
+                blade_island_end_at(value, value.find(invalid).unwrap()),
+                None
+            );
+        }
+        assert_eq!(
+            next_blade_directive(value, if_start + "@if($ready)".len()),
+            Some((custom_start, custom_start + "@custom_name".len(), None))
+        );
+        assert_eq!(
+            blade_island_end_at(value, custom_start),
+            Some(Some(custom_start + "@custom_name".len()))
+        );
+    }
+
+    #[test]
+    fn blade_escape_runs_have_the_same_point_and_whole_value_meaning() {
+        let value = "@@if @@@unless($hidden)";
+        let directive_start = value.find("@@@unless").unwrap() + 2;
+        let islands = blade_islands(value).unwrap();
+
+        assert_eq!(islands.len(), 1);
+        assert_eq!(islands[0], directive_start..value.len());
+        assert_eq!(blade_island_end_at(value, 0), None);
+        assert_eq!(blade_island_end_at(value, 1), None);
+        assert_eq!(
+            blade_island_end_at(value, directive_start),
+            Some(Some(value.len()))
+        );
+    }
+
+    #[test]
+    fn blade_directive_scanner_handles_long_invalid_sequences_iteratively() {
+        let invalid = "@1".repeat(50_000);
+        let value = format!("{invalid}@later");
+
+        assert_eq!(
+            next_blade_directive(&value, 0),
+            Some((invalid.len(), invalid.len() + "@later".len(), None))
+        );
+
+        let escaped = "@".repeat(50_000);
+        let value = format!("{escaped}@later");
+        assert_eq!(
+            next_blade_directive(&value, 0),
+            Some((escaped.len(), escaped.len() + "@later".len(), None))
         );
     }
 }

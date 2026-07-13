@@ -1,16 +1,29 @@
 use std::{ops::Range, path::Path};
 
 use crate::template_parser::{
-    ClassValueValidation, ExpressionSyntax, balanced_end,
+    ClassValueValidation, DelimitedTemplateProfile, ExpressionSyntax, balanced_end,
     balanced_islands as balanced_brace_islands, blade_island_end_at, blade_islands,
     delimited_island_end_at, delimited_islands, validate_class_value,
 };
 
+const PHP_DELIMITERS: &[(&str, &str)] = &[("<?", "?>")];
 const DJANGO_DELIMITERS: &[(&str, &str)] = &[("{{", "}}"), ("{%", "%}"), ("{#", "#}")];
 const LIQUID_DELIMITERS: &[(&str, &str)] = &[("{{", "}}"), ("{%", "%}")];
 const HANDLEBARS_DELIMITERS: &[(&str, &str)] = &[("{{{", "}}}"), ("{{", "}}")];
 const ERB_DELIMITERS: &[(&str, &str)] = &[("<%", "%>")];
-const PHP_DELIMITERS: &[(&str, &str)] = &[("<?", "?>")];
+
+const PHP_PROFILE: DelimitedTemplateProfile<'_> = DelimitedTemplateProfile::php(PHP_DELIMITERS);
+const DJANGO_PROFILE: DelimitedTemplateProfile<'_> =
+    DelimitedTemplateProfile::template_tokens(DJANGO_DELIMITERS);
+
+const LIQUID_PROFILE: DelimitedTemplateProfile<'_> =
+    DelimitedTemplateProfile::template_tokens(LIQUID_DELIMITERS);
+
+const HANDLEBARS_PROFILE: DelimitedTemplateProfile<'_> =
+    DelimitedTemplateProfile::template_tokens(HANDLEBARS_DELIMITERS);
+
+const ERB_PROFILE: DelimitedTemplateProfile<'_> =
+    DelimitedTemplateProfile::template_tokens(ERB_DELIMITERS);
 
 /// The template or markup language used by a source document
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -122,14 +135,12 @@ impl SourceProfile {
                 expression: ExpressionSyntax::JavaScript,
             },
             SourceLanguage::Django | SourceLanguage::Jinja | SourceLanguage::Twig => {
-                ClassValueSyntax::Delimited(DJANGO_DELIMITERS)
+                ClassValueSyntax::Delimited(DJANGO_PROFILE)
             }
-            SourceLanguage::Liquid => ClassValueSyntax::Delimited(LIQUID_DELIMITERS),
-            SourceLanguage::Handlebars => ClassValueSyntax::Delimited(HANDLEBARS_DELIMITERS),
-            SourceLanguage::Erb | SourceLanguage::Ejs => {
-                ClassValueSyntax::Delimited(ERB_DELIMITERS)
-            }
-            SourceLanguage::Php => ClassValueSyntax::Delimited(PHP_DELIMITERS),
+            SourceLanguage::Liquid => ClassValueSyntax::Delimited(LIQUID_PROFILE),
+            SourceLanguage::Handlebars => ClassValueSyntax::Delimited(HANDLEBARS_PROFILE),
+            SourceLanguage::Erb | SourceLanguage::Ejs => ClassValueSyntax::Delimited(ERB_PROFILE),
+            SourceLanguage::Php => ClassValueSyntax::Delimited(PHP_PROFILE),
             SourceLanguage::Blade => ClassValueSyntax::Blade,
             SourceLanguage::Lit => ClassValueSyntax::Balanced {
                 opener: "${",
@@ -155,7 +166,7 @@ enum ClassValueSyntax {
         opener: &'static str,
         expression: ExpressionSyntax,
     },
-    Delimited(&'static [(&'static str, &'static str)]),
+    Delimited(DelimitedTemplateProfile<'static>),
     Blade,
 }
 
@@ -236,7 +247,7 @@ pub(crate) fn analyze_class_value(value: &str, language: SourceLanguage) -> Clas
         ClassValueSyntax::Balanced { opener, expression } => {
             balanced_brace_islands(value, opener, expression)
         }
-        ClassValueSyntax::Delimited(delimiters) => delimited_islands(value, delimiters),
+        ClassValueSyntax::Delimited(profile) => delimited_islands(value, profile),
         ClassValueSyntax::Blade => blade_islands(value),
     };
 
@@ -277,8 +288,8 @@ pub(crate) fn template_island_end_at(
     match SourceProfile::new(language).class_values {
         ClassValueSyntax::Unspecified => TemplateIslandEnd::NotAnOpener,
         ClassValueSyntax::Balanced { opener, expression } => balanced(opener, expression),
-        ClassValueSyntax::Delimited(delimiters) => {
-            match delimited_island_end_at(value, cursor, delimiters) {
+        ClassValueSyntax::Delimited(profile) => {
+            match delimited_island_end_at(value, cursor, profile) {
                 None => TemplateIslandEnd::NotAnOpener,
                 Some(Some(end)) => TemplateIslandEnd::Closed(end),
                 Some(None) => TemplateIslandEnd::Malformed,
@@ -363,7 +374,10 @@ fn is_static_unspecified_class_value(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClassValueAnalysis, SourceDocument, SourceLanguage, analyze_class_value};
+    use super::{
+        ClassValueAnalysis, SourceDocument, SourceLanguage, TemplateIslandEnd, analyze_class_value,
+        template_island_end_at,
+    };
     use std::{ops::Range, path::Path};
 
     fn sortable_spans(value: &str, language: SourceLanguage) -> Option<Vec<Range<usize>>> {
@@ -477,6 +491,47 @@ mod tests {
     }
 
     #[test]
+    fn php_block_comment_closers_stay_inside_the_template_island() {
+        for value in [
+            "px-2 <?php /* ?> */ echo $class; ?> py-1",
+            "px-2 <?= /* ?> */ $class ?> py-1",
+        ] {
+            let spans = sortable_spans(value, SourceLanguage::Php).unwrap();
+
+            assert_eq!(span_texts(value, &spans), ["px-2", "py-1"]);
+        }
+        assert_eq!(
+            sortable_spans("px-2 <?php /* ?>", SourceLanguage::Php),
+            None
+        );
+    }
+
+    #[test]
+    fn php_line_comment_closers_keep_first_closer_behavior() {
+        for value in ["<?php // ?> later ?>", "<?php # ?> later ?>"] {
+            assert_eq!(
+                template_island_end_at(value, 0, SourceLanguage::Php),
+                TemplateIslandEnd::Closed(value.find(" later").unwrap())
+            );
+        }
+    }
+
+    #[test]
+    fn default_delimited_languages_keep_quote_shielding_and_first_closer_behavior() {
+        let quoted = r#"<%= "not %> yet" %> tail"#;
+        let unshielded_comment = "<% /* %> tail";
+
+        assert_eq!(
+            template_island_end_at(quoted, 0, SourceLanguage::Erb),
+            TemplateIslandEnd::Closed(quoted.find(" tail").unwrap())
+        );
+        assert_eq!(
+            template_island_end_at(unshielded_comment, 0, SourceLanguage::Ejs),
+            TemplateIslandEnd::Closed(unshielded_comment.find(" tail").unwrap())
+        );
+    }
+
+    #[test]
     fn ignores_delimiters_inside_template_strings() {
         let value = r#"px-2 {{ value == "}}" ? "a" : "b" }} py-1"#;
         let spans = sortable_spans(value, SourceLanguage::Jinja).unwrap();
@@ -501,6 +556,28 @@ mod tests {
         let spans = sortable_spans(value, SourceLanguage::Blade).unwrap();
 
         assert_eq!(span_texts(value, &spans), ["p-2", "border-red", "text-sm"]);
+    }
+
+    #[test]
+    fn escaped_blade_literal_before_directives_keeps_independent_static_runs() {
+        let value = "@@literal p-2 @if($visible) flex @endif text-sm";
+        let spans = sortable_spans(value, SourceLanguage::Blade).unwrap();
+
+        assert_eq!(
+            span_texts(value, &spans),
+            ["@@literal p-2", "flex", "text-sm"]
+        );
+    }
+
+    #[test]
+    fn invalid_blade_at_signs_do_not_hide_later_directives() {
+        let value = "p-2 @ @1 @- text-sm @if($visible) flex @endif block @";
+        let spans = sortable_spans(value, SourceLanguage::Blade).unwrap();
+
+        assert_eq!(
+            span_texts(value, &spans),
+            ["p-2 @ @1 @- text-sm", "flex", "block @"]
+        );
     }
 
     #[test]

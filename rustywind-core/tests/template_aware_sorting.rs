@@ -1,9 +1,10 @@
 use ahash::AHashMap;
 use pretty_assertions::assert_eq;
+use regex::Regex;
 use rustywind_core::{
     PlainClassList, RustyWind, SourceDocument, SourceLanguage,
     class_wrapping::ClassWrapping,
-    sorter::{FinderRegex, Sorter},
+    sorter::{CustomClassExtractor, FinderRegex, Sorter},
 };
 use std::path::Path;
 
@@ -489,6 +490,85 @@ fn unknown_language_uses_the_conservative_static_fallback() {
     let expected = r#"<main class="m-4 p-4"><div class="p-4 {active ? 'md:flex' : 'hidden'}"></div><div class="active ? 'p-4' : 'm-4'"></div><div class="p-4 {{ classes }} m-4"></div><div class="p-4 <%= classes %> m-4"></div></main>"#;
 
     assert_eq!(sort(source, SourceLanguage::Unknown), expected);
+}
+
+#[test]
+fn unknown_language_rejects_class_attribute_name_suffixes() {
+    let source = r#"<div data-class="p-4 m-4" x-class="p-4 m-4" class="p-4 m-4"></div>"#;
+    let expected = r#"<div data-class="p-4 m-4" x-class="p-4 m-4" class="m-4 p-4"></div>"#;
+    let suffixes_only = r#"<div data-class="p-4 m-4" x-class="p-4 m-4"></div>"#;
+    let sorter = RustyWind::default();
+
+    assert_eq!(sort(source, SourceLanguage::Unknown), expected);
+    assert!(!sorter.has_classes(SourceDocument::new(suffixes_only, SourceLanguage::Unknown)));
+}
+
+#[test]
+fn class_attribute_name_case_follows_the_markup_dialect() {
+    let source = r#"<div CLASS="p-4 m-4" Class="p-4 m-4"></div>"#;
+
+    assert_eq!(
+        sort(source, SourceLanguage::Html),
+        r#"<div CLASS="m-4 p-4" Class="m-4 p-4"></div>"#
+    );
+    for language in [SourceLanguage::Svelte, SourceLanguage::Astro] {
+        assert_eq!(sort(source, language), source, "language: {language:?}");
+    }
+}
+
+#[test]
+fn wrapped_custom_captures_fail_closed_on_expressions() {
+    let regex = Regex::new(r#"classes\s*=\s*\[(?P<classes>[^\]]*)\]"#).unwrap();
+    let cases = [
+        (
+            ClassWrapping::CommaSingleQuotes,
+            r#"classes = ['p-4', condition ? 'm-4' : 'hidden']"#,
+        ),
+        (
+            ClassWrapping::CommaDoubleQuotes,
+            r#"classes = ["p-4", condition ? "m-4" : "hidden"]"#,
+        ),
+    ];
+
+    for (class_wrapping, source) in cases {
+        let extractor = CustomClassExtractor::new(regex.clone()).unwrap();
+        let sorter = RustyWind {
+            regex: FinderRegex::CustomRegex(extractor),
+            class_wrapping,
+            ..RustyWind::default()
+        };
+        let document = SourceDocument::new(source, SourceLanguage::Unknown);
+
+        assert!(!sorter.has_classes(document));
+        assert_eq!(sorter.sort_document(document), source);
+    }
+}
+
+#[test]
+fn php_block_comment_closers_remain_inside_the_template_island() {
+    let cases = [
+        r#"<div class="p-4 m-4 <?php $value /* ?> grid flex */ ?> grid block"></div>"#,
+        r#"<div class="p-4 m-4 <?= $value /* ?> grid flex */ ?> grid block"></div>"#,
+    ];
+
+    for source in cases {
+        let expected =
+            source
+                .replacen("p-4 m-4", "m-4 p-4", 1)
+                .replacen("?> grid block", "?> block grid", 1);
+
+        assert_eq!(sort(source, SourceLanguage::Php), expected);
+    }
+}
+
+#[test]
+fn escaped_blade_at_does_not_hide_later_directives() {
+    let source =
+        r#"<div class="p-4 m-4 @@literal @if($active) grid block @endif flex block"></div>"#;
+    let expected =
+        r#"<div class="@@literal m-4 p-4 @if($active) block grid @endif block flex"></div>"#;
+
+    assert_eq!(sort(source, SourceLanguage::Blade), expected);
 }
 
 #[test]
