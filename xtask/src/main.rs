@@ -6,6 +6,8 @@ use color_eyre::Result;
 use semver::Version;
 use std::str::FromStr;
 
+use commands::compare::CorpusName;
+
 #[derive(Parser)]
 #[command(name = "xtask")]
 #[command(about = "RustyWind automation tasks", long_about = None)]
@@ -16,6 +18,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Tailwind compatibility comparison commands
+    Compare {
+        #[command(subcommand)]
+        subcommand: CompareCommand,
+    },
     /// Fuzz testing commands
     Fuzz {
         #[command(subcommand)]
@@ -25,6 +32,20 @@ enum Command {
     Npm {
         #[command(subcommand)]
         subcommand: NpmCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum CompareCommand {
+    /// Compare RustyWind against pinned real-world corpora
+    Run {
+        /// Corpus to compare; repeat to select multiple corpora
+        #[arg(long, value_enum)]
+        corpus: Vec<CorpusName>,
+
+        /// Use only existing repositories and npm's local cache
+        #[arg(long)]
+        offline: bool,
     },
 }
 
@@ -118,6 +139,9 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Command::Compare { subcommand } => match subcommand {
+            CompareCommand::Run { corpus, offline } => commands::compare::run(&corpus, offline),
+        },
         Command::Fuzz { subcommand } => match subcommand {
             FuzzCommand::Setup => commands::setup::run(),
             FuzzCommand::Run {

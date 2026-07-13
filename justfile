@@ -6,6 +6,9 @@ fmt:
 clippy:
     cargo clippy -- -D warnings
 
+compare-tailwind *args:
+    cargo xtask compare run {{args}}
+
 update:
     cargo update --workspace
 

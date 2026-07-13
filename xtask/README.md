@@ -8,6 +8,25 @@ This crate provides developer automation tools for the RustyWind project, replac
 
 ## Available Commands
 
+### compare run
+
+Compare RustyWind against immutable snapshots of real-world Tailwind projects.
+
+```bash
+# compare every corpus
+cargo xtask compare run
+
+# compare selected corpora
+cargo xtask compare run --corpus shadcn-ui --corpus astrowind
+
+# reuse cached repositories and npm packages without network access
+cargo xtask compare run --offline
+```
+
+The command builds the release binary, installs the pinned comparison harness with
+`npm ci`, checks out each corpus at its exact revision, and writes aggregate reports
+to `target/tailwind-compare/results/`.
+
 ### fuzz setup
 
 Set up the fuzz test environment by building the RustyWind release binary and installing npm dependencies.
@@ -64,7 +83,8 @@ cargo xtask fuzz run 50 --workers 4
 ## Prerequisites
 
 Commands require:
-- Node.js and npm installed (system-wide)
+- Node.js 20.19 or newer and npm installed system-wide
+- Git for the real-world comparison corpora
 
 The `fuzz run` command automatically ensures that:
 - RustyWind binary is built (`cargo build --release`)
@@ -81,6 +101,8 @@ xtask/
 ├── src/
 │   ├── main.rs              # CLI entry point with clap
 │   ├── commands/            # Command implementations
+│   │   ├── compare.rs       # pinned real-world Tailwind comparisons
+│   │   ├── npm.rs           # npm package publishing
 │   │   ├── setup.rs         # setup command
 │   │   └── run.rs           # run command with integrated analysis
 │   └── utils/               # Shared utilities
@@ -128,7 +150,7 @@ cargo test --package xtask
 
 1. Create new file in `src/commands/`
 2. Implement `pub fn run(...) -> Result<()>`
-3. Add module to `src/commands/mod.rs`
+3. Add the module to `src/commands.rs`
 4. Add variant to appropriate enum in `src/main.rs`
 5. Add match arm in the match expression
 
