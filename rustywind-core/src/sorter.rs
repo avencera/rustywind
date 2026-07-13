@@ -7,7 +7,7 @@ use std::ops::Deref;
 
 use ahash::AHashMap as HashMap;
 
-use regex::Regex;
+use regex::{Captures, Match, Regex};
 use std::sync::LazyLock;
 
 use crate::defaults::RE;
@@ -16,27 +16,44 @@ use eyre::Result;
 pub(crate) static SORTER_EXTRACTOR_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*(\.[^\s]+)[ ]").unwrap());
 
-/// A custom class extractor with one unambiguous `classes` capture
+/// A custom class extractor with one class-list capture
 #[derive(Debug, Clone)]
-pub struct CustomClassExtractor(Regex);
+pub struct CustomClassExtractor(Regex, ClassCapture);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClassCapture {
+    Named,
+    First,
+}
 
 impl CustomClassExtractor {
-    /// Creates an extractor whose regex contains a named `classes` capture
+    /// Creates an extractor with a named `classes` capture or a first positional capture
     pub fn new(regex: Regex) -> std::result::Result<Self, InvalidCustomClassExtractor> {
-        if regex
+        let capture = if regex
             .capture_names()
             .flatten()
             .any(|name| name == "classes")
         {
-            Ok(Self(regex))
+            ClassCapture::Named
+        } else if regex.captures_len() > 1 {
+            ClassCapture::First
         } else {
-            Err(InvalidCustomClassExtractor)
-        }
+            return Err(InvalidCustomClassExtractor);
+        };
+
+        Ok(Self(regex, capture))
     }
 
     /// Returns the configured extraction regex
     pub fn regex(&self) -> &Regex {
         &self.0
+    }
+
+    pub(crate) fn classes<'a>(&self, captures: &'a Captures<'a>) -> Option<Match<'a>> {
+        match self.1 {
+            ClassCapture::Named => captures.name("classes"),
+            ClassCapture::First => captures.get(1),
+        }
     }
 }
 
@@ -48,13 +65,13 @@ impl Deref for CustomClassExtractor {
     }
 }
 
-/// Error returned when a custom extractor lacks a named `classes` capture
+/// Error returned when a custom extractor has no class-list capture
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvalidCustomClassExtractor;
 
 impl fmt::Display for InvalidCustomClassExtractor {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("custom extractor requires a named `classes` capture")
+        formatter.write_str("custom extractor requires at least one capture group")
     }
 }
 
@@ -65,7 +82,7 @@ impl std::error::Error for InvalidCustomClassExtractor {}
 pub enum FinderRegex {
     /// Uses RustyWind's language-aware default extraction
     DefaultRegex,
-    /// Uses an explicit regex with a named `classes` capture
+    /// Uses an explicit regex whose `classes` or first capture contains the class list
     CustomRegex(CustomClassExtractor),
 }
 
@@ -142,13 +159,15 @@ mod tests {
     use std::io::BufReader;
 
     #[test]
-    fn custom_extractor_requires_the_named_classes_capture() {
+    fn custom_extractor_accepts_named_and_legacy_positional_captures() {
         let named = Regex::new(r#"class=["'](?P<classes>[^"']*)["']"#).unwrap();
         let unnamed = Regex::new(r#"class=["']([^"']*)["']"#).unwrap();
+        let missing = Regex::new(r#"class=["'][^"']*["']"#).unwrap();
 
         assert!(CustomClassExtractor::new(named).is_ok());
+        assert!(CustomClassExtractor::new(unnamed).is_ok());
         assert_eq!(
-            CustomClassExtractor::new(unnamed).unwrap_err(),
+            CustomClassExtractor::new(missing).unwrap_err(),
             InvalidCustomClassExtractor
         );
     }

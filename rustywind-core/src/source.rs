@@ -1,5 +1,11 @@
 use std::{ops::Range, path::Path};
 
+const DJANGO_DELIMITERS: &[(&str, &str)] = &[("{{", "}}"), ("{%", "%}"), ("{#", "#}")];
+const LIQUID_DELIMITERS: &[(&str, &str)] = &[("{{", "}}"), ("{%", "%}")];
+const HANDLEBARS_DELIMITERS: &[(&str, &str)] = &[("{{{", "}}}"), ("{{", "}}")];
+const ERB_DELIMITERS: &[(&str, &str)] = &[("<%", "%>")];
+const PHP_DELIMITERS: &[(&str, &str)] = &[("<?", "?>")];
+
 /// The template or markup language used by a source document
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceLanguage {
@@ -78,6 +84,73 @@ impl SourceLanguage {
             _ => Self::Unknown,
         }
     }
+
+    pub(crate) const fn markup_dialect(self) -> Option<MarkupDialect> {
+        SourceProfile::new(self).markup
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SourceProfile {
+    class_values: ClassValueSyntax,
+    markup: Option<MarkupDialect>,
+}
+
+impl SourceProfile {
+    const fn new(language: SourceLanguage) -> Self {
+        let markup = match language {
+            SourceLanguage::Unknown => None,
+            SourceLanguage::Svelte => Some(MarkupDialect::Svelte),
+            _ => Some(MarkupDialect::Html),
+        };
+        let class_values = match language {
+            SourceLanguage::Html | SourceLanguage::Unknown => ClassValueSyntax::Unspecified,
+            SourceLanguage::Svelte => ClassValueSyntax::Balanced {
+                opener: "{",
+                expression: ExpressionSyntax::JavaScript,
+            },
+            SourceLanguage::Django | SourceLanguage::Jinja | SourceLanguage::Twig => {
+                ClassValueSyntax::Delimited(DJANGO_DELIMITERS)
+            }
+            SourceLanguage::Liquid => ClassValueSyntax::Delimited(LIQUID_DELIMITERS),
+            SourceLanguage::Handlebars => ClassValueSyntax::Delimited(HANDLEBARS_DELIMITERS),
+            SourceLanguage::Erb | SourceLanguage::Ejs => {
+                ClassValueSyntax::Delimited(ERB_DELIMITERS)
+            }
+            SourceLanguage::Php => ClassValueSyntax::Delimited(PHP_DELIMITERS),
+            SourceLanguage::Blade => ClassValueSyntax::Blade,
+            SourceLanguage::Lit => ClassValueSyntax::Balanced {
+                opener: "${",
+                expression: ExpressionSyntax::JavaScript,
+            },
+            SourceLanguage::Ruby => ClassValueSyntax::Balanced {
+                opener: "#{",
+                expression: ExpressionSyntax::Ruby,
+            },
+        };
+
+        Self {
+            class_values,
+            markup,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClassValueSyntax {
+    Unspecified,
+    Balanced {
+        opener: &'static str,
+        expression: ExpressionSyntax,
+    },
+    Delimited(&'static [(&'static str, &'static str)]),
+    Blade,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MarkupDialect {
+    Html,
+    Svelte,
 }
 
 /// Source text paired with the language profile used to interpret it
@@ -104,27 +177,59 @@ impl<'a> SourceDocument<'a> {
     }
 }
 
-pub(crate) fn sortable_spans(value: &str, language: SourceLanguage) -> Option<Vec<Range<usize>>> {
-    if value.is_empty() {
-        return Some(Vec::new());
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ClassValueAnalysis {
+    Sortable(StaticRuns),
+    Opaque,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct StaticRuns(Vec<Range<usize>>);
+
+impl StaticRuns {
+    fn new(value: &str, spans: Vec<Range<usize>>) -> Option<Self> {
+        debug_assert!(spans.iter().all(|span| {
+            span.start < span.end
+                && value.is_char_boundary(span.start)
+                && value.is_char_boundary(span.end)
+        }));
+        debug_assert!(spans.windows(2).all(|pair| pair[0].end <= pair[1].start));
+
+        (!spans.is_empty()).then_some(Self(spans))
     }
 
-    let islands = match language {
-        SourceLanguage::Html | SourceLanguage::Unknown => Some(Vec::new()),
-        SourceLanguage::Svelte => balanced_brace_islands(value, "{", ExpressionSyntax::JavaScript),
-        SourceLanguage::Django | SourceLanguage::Jinja | SourceLanguage::Twig => {
-            delimited_islands(value, &[("{{", "}}"), ("{%", "%}"), ("{#", "#}")])
-        }
-        SourceLanguage::Liquid => delimited_islands(value, &[("{{", "}}"), ("{%", "%}")]),
-        SourceLanguage::Handlebars => delimited_islands(value, &[("{{{", "}}}"), ("{{", "}}")]),
-        SourceLanguage::Erb | SourceLanguage::Ejs => delimited_islands(value, &[("<%", "%>")]),
-        SourceLanguage::Php => delimited_islands(value, &[("<?", "?>")]),
-        SourceLanguage::Blade => blade_islands(value),
-        SourceLanguage::Lit => balanced_brace_islands(value, "${", ExpressionSyntax::JavaScript),
-        SourceLanguage::Ruby => balanced_brace_islands(value, "#{", ExpressionSyntax::Ruby),
-    }?;
+    fn whole(value: &str) -> Option<Self> {
+        (!value.trim().is_empty()).then(|| Self(std::iter::once(0..value.len()).collect()))
+    }
 
-    Some(static_spans(value, islands))
+    pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &Range<usize>> {
+        self.0.iter()
+    }
+}
+
+pub(crate) fn analyze_class_value(value: &str, language: SourceLanguage) -> ClassValueAnalysis {
+    let syntax = SourceProfile::new(language).class_values;
+    if matches!(syntax, ClassValueSyntax::Unspecified) {
+        return if is_static_unspecified_class_value(value) {
+            StaticRuns::whole(value)
+                .map_or(ClassValueAnalysis::Opaque, ClassValueAnalysis::Sortable)
+        } else {
+            ClassValueAnalysis::Opaque
+        };
+    }
+
+    let islands = match syntax {
+        ClassValueSyntax::Unspecified => unreachable!("handled above"),
+        ClassValueSyntax::Balanced { opener, expression } => {
+            balanced_brace_islands(value, opener, expression)
+        }
+        ClassValueSyntax::Delimited(delimiters) => delimited_islands(value, delimiters),
+        ClassValueSyntax::Blade => blade_islands(value),
+    };
+
+    islands
+        .and_then(|islands| StaticRuns::new(value, static_spans(value, islands)))
+        .map_or(ClassValueAnalysis::Opaque, ClassValueAnalysis::Sortable)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -156,23 +261,13 @@ pub(crate) fn template_island_end_at(
             .map_or(TemplateIslandEnd::Malformed, TemplateIslandEnd::Closed)
     };
 
-    match language {
-        SourceLanguage::Html | SourceLanguage::Unknown => TemplateIslandEnd::NotAnOpener,
-        SourceLanguage::Svelte => balanced("{", ExpressionSyntax::JavaScript),
-        SourceLanguage::Django | SourceLanguage::Jinja | SourceLanguage::Twig => {
-            delimited_island_end_at(value, cursor, &[("{{", "}}"), ("{%", "%}"), ("{#", "#}")])
+    match SourceProfile::new(language).class_values {
+        ClassValueSyntax::Unspecified => TemplateIslandEnd::NotAnOpener,
+        ClassValueSyntax::Balanced { opener, expression } => balanced(opener, expression),
+        ClassValueSyntax::Delimited(delimiters) => {
+            delimited_island_end_at(value, cursor, delimiters)
         }
-        SourceLanguage::Liquid => {
-            delimited_island_end_at(value, cursor, &[("{{", "}}"), ("{%", "%}")])
-        }
-        SourceLanguage::Handlebars => {
-            delimited_island_end_at(value, cursor, &[("{{{", "}}}"), ("{{", "}}")])
-        }
-        SourceLanguage::Erb | SourceLanguage::Ejs => {
-            delimited_island_end_at(value, cursor, &[("<%", "%>")])
-        }
-        SourceLanguage::Php => delimited_island_end_at(value, cursor, &[("<?", "?>")]),
-        SourceLanguage::Blade => {
+        ClassValueSyntax::Blade => {
             let mustache = delimited_island_end_at(
                 value,
                 cursor,
@@ -192,8 +287,6 @@ pub(crate) fn template_island_end_at(
                 _ => TemplateIslandEnd::NotAnOpener,
             }
         }
-        SourceLanguage::Lit => balanced("${", ExpressionSyntax::JavaScript),
-        SourceLanguage::Ruby => balanced("#{", ExpressionSyntax::Ruby),
     }
 }
 
@@ -679,10 +772,143 @@ fn push_trimmed_span(value: &str, mut span: Range<usize>, spans: &mut Vec<Range<
     }
 }
 
+pub(crate) fn is_plain_class_list(value: &str) -> bool {
+    validate_class_value(value, ClassValueValidation::Direct)
+}
+
+fn is_static_unspecified_class_value(value: &str) -> bool {
+    validate_class_value(value, ClassValueValidation::Unspecified)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClassValueValidation {
+    Direct,
+    Unspecified,
+}
+
+fn validate_class_value(value: &str, validation: ClassValueValidation) -> bool {
+    if value.trim().is_empty() {
+        return false;
+    }
+
+    let mut bracket_depth = 0_u32;
+    let mut bracket_quote = None;
+    let mut escaped = false;
+
+    for (index, character) in value.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if character == '\\' {
+            escaped = true;
+            continue;
+        }
+
+        if let Some(active_quote) = bracket_quote {
+            if character == active_quote {
+                bracket_quote = None;
+            }
+            continue;
+        }
+
+        if bracket_depth > 0 && matches!(character, '\'' | '"' | '`') {
+            bracket_quote = Some(character);
+            continue;
+        }
+
+        match character {
+            '[' => bracket_depth += 1,
+            ']' if bracket_depth == 0 => return false,
+            ']' => bracket_depth -= 1,
+            '{' | '}' if bracket_depth == 0 => return false,
+            '<' if bracket_depth == 0
+                && (matches!(validation, ClassValueValidation::Direct)
+                    || value[index..].starts_with("<%")
+                    || value[index..].starts_with("<?")) =>
+            {
+                return false;
+            }
+            '\'' | '"' | '`' if bracket_depth == 0 => return false,
+            '>' | '$'
+                if bracket_depth == 0 && matches!(validation, ClassValueValidation::Direct) =>
+            {
+                return false;
+            }
+            '%' if bracket_depth == 0 && value[index..].starts_with("%>") => return false,
+            '?' if bracket_depth == 0 && value[index..].starts_with("?>") => return false,
+            '@' if bracket_depth == 0 && is_blade_directive_at(value, index) => return false,
+            character if character.is_control() && !character.is_ascii_whitespace() => {
+                return false;
+            }
+            _ => {}
+        }
+    }
+
+    bracket_depth == 0 && bracket_quote.is_none()
+}
+
+fn is_blade_directive_at(value: &str, start: usize) -> bool {
+    let bytes = value.as_bytes();
+    let mut end = start + 1;
+    while bytes
+        .get(end)
+        .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+    {
+        end += 1;
+    }
+
+    matches!(
+        &value[start + 1..end],
+        "auth"
+            | "break"
+            | "case"
+            | "class"
+            | "continue"
+            | "default"
+            | "else"
+            | "elseif"
+            | "empty"
+            | "endauth"
+            | "endempty"
+            | "endenvironment"
+            | "enderror"
+            | "endfor"
+            | "endforelse"
+            | "endforeach"
+            | "endguest"
+            | "endif"
+            | "endisset"
+            | "endproduction"
+            | "endswitch"
+            | "endunless"
+            | "endwhile"
+            | "env"
+            | "error"
+            | "for"
+            | "forelse"
+            | "foreach"
+            | "guest"
+            | "if"
+            | "isset"
+            | "production"
+            | "switch"
+            | "unless"
+            | "while"
+    )
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{SourceDocument, SourceLanguage, sortable_spans};
+    use super::{ClassValueAnalysis, SourceDocument, SourceLanguage, analyze_class_value};
     use std::{ops::Range, path::Path};
+
+    fn sortable_spans(value: &str, language: SourceLanguage) -> Option<Vec<Range<usize>>> {
+        match analyze_class_value(value, language) {
+            ClassValueAnalysis::Sortable(runs) => Some(runs.0),
+            ClassValueAnalysis::Opaque => None,
+        }
+    }
 
     fn span_texts<'a>(value: &'a str, spans: &[Range<usize>]) -> Vec<&'a str> {
         spans.iter().map(|span| &value[span.clone()]).collect()

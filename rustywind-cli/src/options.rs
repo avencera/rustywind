@@ -194,7 +194,7 @@ fn get_custom_regex_from_cli(cli: &Cli) -> Result<FinderRegex> {
         Some(regex_string) => {
             let regex = Regex::new(regex_string).wrap_err("Unable to parse custom regex")?;
             let extractor = CustomClassExtractor::new(regex)
-                .wrap_err("Custom regex requires a named `classes` capture")?;
+                .wrap_err("Custom regex requires at least one capture group")?;
 
             Ok(FinderRegex::CustomRegex(extractor))
         }

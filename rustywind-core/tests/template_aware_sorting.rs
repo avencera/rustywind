@@ -1,5 +1,11 @@
+use ahash::AHashMap;
 use pretty_assertions::assert_eq;
-use rustywind_core::{PlainClassList, RustyWind, SourceDocument, SourceLanguage};
+use rustywind_core::{
+    PlainClassList, RustyWind, SourceDocument, SourceLanguage,
+    class_wrapping::ClassWrapping,
+    sorter::{FinderRegex, Sorter},
+};
+use std::path::Path;
 
 fn sort(source: &str, language: SourceLanguage) -> String {
     RustyWind::default()
@@ -7,12 +13,192 @@ fn sort(source: &str, language: SourceLanguage) -> String {
         .into_owned()
 }
 
+fn sort_path(source: &str, path: &str) -> String {
+    sort(source, SourceLanguage::from_path(Path::new(path)))
+}
+
+fn legacy_sorter() -> RustyWind {
+    let order = [
+        "card",
+        "card-border",
+        "join-item",
+        "btn",
+        "btn-sm",
+        "btn-outline",
+        "input",
+        "textarea",
+        "select",
+        "validator",
+        "w-full",
+        "shadow-sm",
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, class)| (class.to_string(), index))
+    .collect::<AHashMap<_, _>>();
+
+    RustyWind::new(
+        FinderRegex::DefaultRegex,
+        Sorter::new(order),
+        false,
+        ClassWrapping::NoWrapping,
+    )
+}
+
 #[test]
 fn preserves_the_exact_svelte_interpolation_from_github_issue_142() {
     let source =
         r#"<div class="{imageRight ? 'md:rounded-l-none' : 'rounded-r-none'} bg-white "> </div>"#;
 
-    assert_eq!(sort(source, SourceLanguage::Svelte), source);
+    assert_eq!(sort_path(source, "Component.svelte"), source);
+}
+
+#[test]
+fn preserves_all_django_examples_from_github_issue_138_with_both_sorters() {
+    let cases = [
+        (
+            r#"<div class="card card-border {{ class }}"></div>"#,
+            &["{{ class }}"][..],
+        ),
+        (
+            r#"<button class="join-item btn btn-sm btn-outline btn-{{ color }} rounded-l-field"></button>"#,
+            &["btn-{{ color }}"][..],
+        ),
+        (
+            r#"<span class="gap-2 badge badge-sm badge-outline badge-{{ item.status|status_color }} whitespace-nowrap"></span>"#,
+            &["badge-{{ item.status|status_color }}"][..],
+        ),
+        (
+            r#"<input class="input validator {% if field.errors %}input-error{% endif %} w-full {{ class }}" />"#,
+            &["{% if field.errors %}input-error{% endif %}", "{{ class }}"][..],
+        ),
+        (
+            r#"<textarea class="textarea validator {% if field.errors %}textarea-error{% endif %} w-full field-sizing-content {{ class }}"></textarea>"#,
+            &[
+                "{% if field.errors %}textarea-error{% endif %}",
+                "{{ class }}",
+            ][..],
+        ),
+        (
+            r#"<div class="card {% if not item.read %}bg-base-100 border border-primary/30{% else %}bg-base-200 opacity-60{% endif %} shadow-sm"></div>"#,
+            &[
+                "{% if not item.read %}bg-base-100 border border-primary/30{% else %}bg-base-200 opacity-60{% endif %}",
+            ][..],
+        ),
+        (
+            r#"<select class="{% if 'widget' not in attrs %}select{% endif %} validator {% if field.errors %}select-error{% endif %} w-full {{ class }}"></select>"#,
+            &[
+                "{% if 'widget' not in attrs %}select{% endif %}",
+                "{% if field.errors %}select-error{% endif %}",
+                "{{ class }}",
+            ][..],
+        ),
+    ];
+    let language = SourceLanguage::from_path(Path::new("view.django.html"));
+    assert_eq!(language, SourceLanguage::Django);
+
+    for sorter in [RustyWind::default(), legacy_sorter()] {
+        for (source, opaque_fragments) in cases {
+            let once = sorter
+                .sort_document(SourceDocument::new(source, language))
+                .into_owned();
+
+            for opaque_fragment in opaque_fragments {
+                assert!(
+                    once.contains(opaque_fragment),
+                    "template fragment changed: {opaque_fragment:?}"
+                );
+            }
+            assert_eq!(
+                sorter.sort_document(SourceDocument::new(&once, language)),
+                once
+            );
+        }
+    }
+}
+
+#[test]
+fn erb_filename_inference_preserves_all_reproductions_from_github_issue_140() {
+    let cases = [
+        r#"<div class="<%= layout == :cards ? 'flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center' : 'sm:flex sm:items-center' %>">"#,
+        r#"<span class="inline-flex items-center <%= data["company"].present? ? 'h-auto py-2 px-3 gap-x-1.5' : 'h-8 py-1 px-2 gap-x-0.5' %> rounded-md">"#,
+        r#"<span class="flex h-8 w-8 items-center justify-center rounded-full <%= record.active? ? 'bg-brand-yellow text-gray-950' : 'border-2 border-gray-300 bg-white' %>">"#,
+    ];
+
+    for source in cases {
+        assert_eq!(sort_path(source, "view.html.erb"), source);
+    }
+}
+
+#[test]
+fn inferred_html_keeps_ambiguous_template_values_opaque() {
+    let cases = [
+        r#"<div class="{{ active ? 'p-4' : 'p-4' }}"></div>"#,
+        r#"<div class="p-4 m-4 {{ active }} grid block"></div>"#,
+        r#"<div class="p-4 m-4 {active ? 'grid' : 'block'}"></div>"#,
+        r#"<div class="p-4 m-4 <%= classes %>"></div>"#,
+    ];
+
+    for source in cases {
+        let document = SourceDocument::new(source, SourceLanguage::Html);
+        assert!(!RustyWind::default().has_classes(document));
+        assert_eq!(RustyWind::default().sort_document(document), source);
+    }
+}
+
+#[test]
+fn unknown_extensions_sort_static_tailwind_punctuation() {
+    let source = r#"<div class="!p-4 m-4 flex"></div>"#;
+    let expected = r#"<div class="m-4 flex !p-4"></div>"#;
+
+    for path in [
+        "Component.jsx",
+        "Component.tsx",
+        "Component.vue",
+        "Component.astro",
+        "Component.mdx",
+    ] {
+        assert_eq!(sort_path(source, path), expected, "path: {path}");
+    }
+
+    assert_eq!(
+        sort(
+            r#"<div class="content-['a?b|c'] p-4 m-4"></div>"#,
+            SourceLanguage::Unknown
+        ),
+        r#"<div class="m-4 p-4 content-['a?b|c']"></div>"#
+    );
+    assert_eq!(
+        sort(
+            r#"<div class="[&[data-value?=a|b]]:p-4 flex m-4"></div>"#,
+            SourceLanguage::Unknown
+        ),
+        r#"<div class="m-4 flex [&[data-value?=a|b]]:p-4"></div>"#
+    );
+    assert_eq!(
+        sort(
+            r#"<div class="p-4 content-['[ spaced ]'] m-4"></div>"#,
+            SourceLanguage::Unknown
+        ),
+        r#"<div class="content-['[ spaced ]'] m-4 p-4"></div>"#
+    );
+}
+
+#[test]
+fn svelte_component_names_do_not_hide_nested_markup() {
+    let source = r#"<Title><div class="p-4 m-4"></div></Title><Textarea><div class="p-4 m-4"></div></Textarea><Script><div class="p-4 m-4"></div></Script>"#;
+    let expected = r#"<Title><div class="m-4 p-4"></div></Title><Textarea><div class="m-4 p-4"></div></Textarea><Script><div class="m-4 p-4"></div></Script>"#;
+
+    assert_eq!(sort(source, SourceLanguage::Svelte), expected);
+}
+
+#[test]
+fn native_raw_text_elements_keep_their_language_specific_case_semantics() {
+    let lowercase = r#"<title><div class="p-4 m-4"></div></title><textarea><div class="p-4 m-4"></div></textarea><script><div class="p-4 m-4"></div></script>"#;
+    let uppercase = r#"<TITLE><div class="p-4 m-4"></div></TITLE>"#;
+
+    assert_eq!(sort(lowercase, SourceLanguage::Svelte), lowercase);
+    assert_eq!(sort(uppercase, SourceLanguage::Html), uppercase);
 }
 
 #[test]
@@ -178,8 +364,8 @@ fn class_like_text_outside_markup_attributes_is_not_rewritten() {
 
 #[test]
 fn unknown_language_uses_the_conservative_static_fallback() {
-    let source = r#"<main class="p-4 m-4"><div class="p-4 {active ? 'md:flex' : 'hidden'}"></div><div class="p-4 {{ classes }} m-4"></div><div class="p-4 <%= classes %> m-4"></div></main>"#;
-    let expected = r#"<main class="m-4 p-4"><div class="p-4 {active ? 'md:flex' : 'hidden'}"></div><div class="p-4 {{ classes }} m-4"></div><div class="p-4 <%= classes %> m-4"></div></main>"#;
+    let source = r#"<main class="p-4 m-4"><div class="p-4 {active ? 'md:flex' : 'hidden'}"></div><div class="active ? 'p-4' : 'm-4'"></div><div class="p-4 {{ classes }} m-4"></div><div class="p-4 <%= classes %> m-4"></div></main>"#;
+    let expected = r#"<main class="m-4 p-4"><div class="p-4 {active ? 'md:flex' : 'hidden'}"></div><div class="active ? 'p-4' : 'm-4'"></div><div class="p-4 {{ classes }} m-4"></div><div class="p-4 <%= classes %> m-4"></div></main>"#;
 
     assert_eq!(sort(source, SourceLanguage::Unknown), expected);
 }
