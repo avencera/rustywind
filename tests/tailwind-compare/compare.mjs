@@ -26,7 +26,6 @@ import {
   kinds,
   orderCandidates,
   same,
-  sameMultiset,
   scrambleAttributes,
   splitClassTokens,
 } from "./lib.mjs";
@@ -214,10 +213,11 @@ function selectCandidates(configuration) {
     const source = readFileSync(file, "utf8");
     const path = normalizeRelativePath(relative(configuration.repo, file));
     return {
-      attributes: extractAttributes(source).length,
+      attributes: extractAttributes(source, configuration.kind).length,
       file,
       path,
-      scrambledSource: scrambleAttributes(source),
+      source,
+      scrambledSource: scrambleAttributes(source, configuration.kind),
     };
   });
   return orderCandidates(candidates, configuration.limit);
@@ -345,35 +345,44 @@ function compareAttribute(
   pending,
   candidate,
   attribute,
-  original,
-  prettierTokens,
-  rustywindTokens,
+  comparison,
 ) {
-  summary.prettierChanged += Number(!same(original, prettierTokens));
-  summary.rustywindChanged += Number(!same(original, rustywindTokens));
+  summary.prettierChanged += Number(
+    !same(comparison.scrambled, comparison.prettierScrambled),
+  );
+  summary.rustywindChanged += Number(
+    !same(comparison.scrambled, comparison.rustywind),
+  );
 
-  if (!sameMultiset(prettierTokens, rustywindTokens)) {
+  const kind = classifyDifference(comparison);
+  if (kind === "token-multiset") {
     summary.extractionMismatch += 1;
     pending.push({
       attribute,
-      kind: "token-multiset",
-      original,
+      ...comparison,
+      kind,
       path: candidate.path,
-      prettier: prettierTokens,
-      rustywind: rustywindTokens,
     });
     return;
   }
-  if (same(prettierTokens, rustywindTokens)) {
+  if (kind === "prettier-nonconvergent") {
+    summary.prettierNonconvergent += 1;
+    pending.push({
+      attribute,
+      ...comparison,
+      kind,
+      path: candidate.path,
+    });
+    return;
+  }
+  if (kind === "exact") {
     summary.exact += 1;
     return;
   }
   pending.push({
     attribute,
-    original,
+    ...comparison,
     path: candidate.path,
-    prettier: prettierTokens,
-    rustywind: rustywindTokens,
   });
 }
 
@@ -383,6 +392,7 @@ async function compareCandidates(configuration, candidates) {
     rustywindChanged: 0,
     exact: 0,
     customOnly: 0,
+    prettierNonconvergent: 0,
     knownOrderMismatch: 0,
     extractionMismatch: 0,
     failures: 0,
@@ -391,17 +401,31 @@ async function compareCandidates(configuration, candidates) {
   const failures = [];
 
   for (const candidate of candidates) {
-    let prettierOutput;
+    let prettierOriginalOutput;
+    let prettierScrambledOutput;
     let rustywindOutput;
     try {
-      prettierOutput = await prettier.format(
+      prettierOriginalOutput = await prettier.format(
+        candidate.source,
+        prettierOptions(configuration, candidate.file),
+      );
+    } catch (error) {
+      failures.push({
+        path: candidate.path,
+        stage: "prettier-original",
+        error: scrubError(error, configuration),
+      });
+      continue;
+    }
+    try {
+      prettierScrambledOutput = await prettier.format(
         candidate.scrambledSource,
         prettierOptions(configuration, candidate.file),
       );
     } catch (error) {
       failures.push({
         path: candidate.path,
-        stage: "prettier",
+        stage: "prettier-scrambled",
         error: scrubError(error, configuration),
       });
       continue;
@@ -418,12 +442,31 @@ async function compareCandidates(configuration, candidates) {
       continue;
     }
 
-    const originalAttributes = extractAttributes(candidate.scrambledSource);
-    const prettierAttributes = extractAttributes(prettierOutput);
-    const rustywindAttributes = extractAttributes(rustywindOutput);
+    const originalAttributes = extractAttributes(
+      candidate.source,
+      configuration.kind,
+    );
+    const scrambledAttributes = extractAttributes(
+      candidate.scrambledSource,
+      configuration.kind,
+    );
+    const prettierOriginalAttributes = extractAttributes(
+      prettierOriginalOutput,
+      configuration.kind,
+    );
+    const prettierScrambledAttributes = extractAttributes(
+      prettierScrambledOutput,
+      configuration.kind,
+    );
+    const rustywindAttributes = extractAttributes(
+      rustywindOutput,
+      configuration.kind,
+    );
     if (
       originalAttributes.length !== candidate.attributes ||
-      prettierAttributes.length !== candidate.attributes ||
+      scrambledAttributes.length !== candidate.attributes ||
+      prettierOriginalAttributes.length !== candidate.attributes ||
+      prettierScrambledAttributes.length !== candidate.attributes ||
       rustywindAttributes.length !== candidate.attributes
     ) {
       summary.extractionMismatch += candidate.attributes;
@@ -431,8 +474,10 @@ async function compareCandidates(configuration, candidates) {
         kind: "attribute-count",
         expected: candidate.attributes,
         original: originalAttributes.length,
+        scrambled: scrambledAttributes.length,
         path: candidate.path,
-        prettier: prettierAttributes.length,
+        prettierOriginal: prettierOriginalAttributes.length,
+        prettierScrambled: prettierScrambledAttributes.length,
         rustywind: rustywindAttributes.length,
       });
       continue;
@@ -444,9 +489,17 @@ async function compareCandidates(configuration, candidates) {
         pending,
         candidate,
         index,
-        splitClassTokens(originalAttributes[index]),
-        splitClassTokens(prettierAttributes[index]),
-        splitClassTokens(rustywindAttributes[index]),
+        {
+          original: splitClassTokens(originalAttributes[index]),
+          scrambled: splitClassTokens(scrambledAttributes[index]),
+          prettierOriginal: splitClassTokens(
+            prettierOriginalAttributes[index],
+          ),
+          prettierScrambled: splitClassTokens(
+            prettierScrambledAttributes[index],
+          ),
+          rustywind: splitClassTokens(rustywindAttributes[index]),
+        },
       );
     }
   }
@@ -458,9 +511,9 @@ async function compareCandidates(configuration, candidates) {
   try {
     known = await probeKnownClasses(
       orderDifferences.flatMap(
-        ({ prettier: prettierTokens, rustywind: rustywindTokens }) => [
-          ...prettierTokens,
-          ...rustywindTokens,
+        ({ prettierScrambled, rustywind }) => [
+          ...prettierScrambled,
+          ...rustywind,
         ],
       ),
       configuration.stylesheet,
@@ -472,7 +525,7 @@ async function compareCandidates(configuration, candidates) {
   }
 
   for (const detail of orderDifferences) {
-    detail.kind = classifyDifference(detail.prettier, detail.rustywind, known);
+    detail.kind = classifyDifference(detail, known);
     detail.prettierUnknown = unique(
       detail.rustywind.filter((token) => known.get(token) !== true),
     );
@@ -494,7 +547,7 @@ async function runComparison(configuration) {
     0,
   );
   const result = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     corpus: {
       name: configuration.corpus,
       revision: configuration.revision,

@@ -27,7 +27,16 @@ test("classifies known-order differences for utilities containing both quotes", 
 
   assert.equal(known.get(quotedUtility), true);
   assert.equal(
-    classifyDifference([quotedUtility, "flex"], ["flex", quotedUtility], known),
+    classifyDifference(
+      {
+        original: [quotedUtility, "flex"],
+        scrambled: ["flex", quotedUtility],
+        prettierOriginal: [quotedUtility, "flex"],
+        prettierScrambled: [quotedUtility, "flex"],
+        rustywind: ["flex", quotedUtility],
+      },
+      known,
+    ),
     "known-order",
   );
 });

@@ -28,7 +28,7 @@
 //! assert!(parsed.important);
 //! ```
 
-use crate::utility_map::UTILITY_MAP;
+use crate::{class_name::ClassSegments, utility_map::UTILITY_MAP};
 
 /// A parsed Tailwind CSS class name with all its components.
 ///
@@ -174,24 +174,17 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
         working = &working[..working.len() - 1];
     }
 
-    // split by ':' but respect brackets - ':' inside [] should not be a separator
-    // e.g., "[&>*:last-child]:rounded-b-lg" -> ["[&>*:last-child]", "rounded-b-lg"]
-    let parts = split_respecting_brackets(working);
+    let segments = ClassSegments::parse(working)?;
 
-    if parts.is_empty() {
-        return None;
-    }
-
-    if parts.len() > 1
-        && parts[..parts.len() - 1]
-            .iter()
-            .any(|part| part.starts_with('!'))
+    if segments
+        .variants()
+        .iter()
+        .any(|variant| variant.starts_with('!'))
     {
         return None;
     }
 
-    // last part is the utility (with value)
-    let mut utility_part = parts[parts.len() - 1];
+    let mut utility_part = segments.utility();
     if let Some(stripped) = utility_part.strip_prefix('!') {
         important = true;
         utility_part = stripped;
@@ -200,11 +193,7 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
     // everything before is variants
     // Tailwind parses variants RIGHT-TO-LEFT, so we need to reverse them
     // for dark:hover:utility, Tailwind stores [hover, dark], not [dark, hover]
-    let mut variants = if parts.len() > 1 {
-        parts[..parts.len() - 1].to_vec()
-    } else {
-        vec![]
-    };
+    let mut variants = segments.variants().to_vec();
     variants.reverse(); // Match Tailwind's right-to-left parsing order
 
     // parse utility into base + value
@@ -217,38 +206,6 @@ pub fn parse_class(class: &str) -> Option<ParsedClass<'_>> {
         value,
         important,
     })
-}
-
-/// Split a class string by ':' while respecting bracket nesting.
-/// Colons inside square brackets `[]` are NOT treated as separators.
-///
-/// # Examples
-/// - `"hover:p-4"` -> `["hover", "p-4"]`
-/// - `"[&>*:last-child]:rounded-b-lg"` -> `["[&>*:last-child]", "rounded-b-lg"]`
-/// - `"dark:[&.active]:bg-red-500"` -> `["dark", "[&.active]", "bg-red-500"]`
-fn split_respecting_brackets(s: &str) -> Vec<&str> {
-    let mut parts = Vec::new();
-    let mut start = 0;
-    let mut bracket_depth: u32 = 0;
-
-    for (i, c) in s.char_indices() {
-        match c {
-            '[' => bracket_depth += 1,
-            ']' => bracket_depth = bracket_depth.saturating_sub(1),
-            ':' if bracket_depth == 0 => {
-                parts.push(&s[start..i]);
-                start = i + 1;
-            }
-            _ => {}
-        }
-    }
-
-    // don't forget the last part
-    if start < s.len() {
-        parts.push(&s[start..]);
-    }
-
-    parts
 }
 
 /// Parse a utility string into base and value parts.
@@ -537,6 +494,15 @@ mod tests {
         let parsed = parse_class("w-[100px]").unwrap();
         assert_eq!(parsed.utility, "w");
         assert_eq!(parsed.value, "[100px]");
+    }
+
+    #[test]
+    fn test_parse_typed_parenthesized_value() {
+        let parsed = parse_class("hover:ring-(length:--ring-width)").unwrap();
+
+        assert_eq!(parsed.variants, vec!["hover"]);
+        assert_eq!(parsed.utility, "ring");
+        assert_eq!(parsed.value, "(length:--ring-width)");
     }
 
     #[test]

@@ -24,6 +24,8 @@
 use ahash::AHashMap as HashMap;
 use std::sync::LazyLock;
 
+use crate::class_name::ClassSegments;
+
 /// Maps utility names to the CSS properties they generate.
 ///
 /// This struct provides methods to look up which CSS properties a given utility
@@ -1200,6 +1202,8 @@ impl UtilityMap {
             "ring"
                 if value.is_empty()
                     || value.parse::<u32>().is_ok()
+                    || ParenthesizedRingValueKind::parse(value)
+                        == Some(ParenthesizedRingValueKind::Length)
                     || (value.starts_with('[') && !is_color_like_value(value)) =>
             {
                 Some(
@@ -1211,13 +1215,24 @@ impl UtilityMap {
                     ][..],
                 )
             }
-            "ring" if is_color_value(value) => Some(&["--tw-ring-color"][..]),
-            "ring-offset" if value.parse::<u32>().is_ok() => Some(&["--tw-ring-offset-width"][..]),
-            "ring-offset" if is_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
-            "inset-ring" if value.is_empty() || value.parse::<u32>().is_ok() => {
+            "ring" if is_ring_color_value(value) => Some(&["--tw-ring-color"][..]),
+            "ring-offset"
+                if value.parse::<u32>().is_ok()
+                    || ParenthesizedRingValueKind::parse(value)
+                        == Some(ParenthesizedRingValueKind::Length) =>
+            {
+                Some(&["--tw-ring-offset-width"][..])
+            }
+            "ring-offset" if is_ring_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
+            "inset-ring"
+                if value.is_empty()
+                    || value.parse::<u32>().is_ok()
+                    || ParenthesizedRingValueKind::parse(value)
+                        == Some(ParenthesizedRingValueKind::Length) =>
+            {
                 Some(&["--tw-inset-ring-shadow"][..])
             }
-            "inset-ring" if is_color_like_value(value) => Some(&["--tw-inset-ring-color"][..]),
+            "inset-ring" if is_ring_color_value(value) => Some(&["--tw-inset-ring-color"][..]),
 
             // transitions
             "transition" => Some(&["transition-property"][..]),
@@ -2034,6 +2049,40 @@ fn is_numeric_value(value: &str) -> bool {
     value.parse::<f64>().is_ok()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ParenthesizedRingValueKind {
+    Color,
+    Length,
+}
+
+impl ParenthesizedRingValueKind {
+    fn parse(value: &str) -> Option<Self> {
+        let inner = value.strip_prefix('(')?.strip_suffix(')')?;
+        let (data_type, custom_property) = inner
+            .split_once(':')
+            .map_or((None, inner), |(data_type, custom_property)| {
+                (Some(data_type), custom_property)
+            });
+
+        if !custom_property.starts_with("--") || custom_property.len() == 2 {
+            return None;
+        }
+
+        Some(match data_type {
+            Some("length") => Self::Length,
+            None | Some(_) => Self::Color,
+        })
+    }
+}
+
+fn is_ring_color_value(value: &str) -> bool {
+    match ParenthesizedRingValueKind::parse(value) {
+        Some(ParenthesizedRingValueKind::Color) => true,
+        Some(ParenthesizedRingValueKind::Length) => false,
+        None => !value.starts_with('(') && is_color_like_value(value),
+    }
+}
+
 fn is_color_like_value(value: &str) -> bool {
     is_color_value(value) || value == "current" || value.starts_with('(')
 }
@@ -2221,8 +2270,7 @@ static DECLARATION_COUNTS: LazyLock<HashMap<&'static str, usize>> = LazyLock::ne
 /// assert_eq!(get_declaration_count("p-4"), 1); // Default
 /// ```
 pub fn get_declaration_count(utility: &str) -> usize {
-    // strip variants to get the base utility
-    let base_utility = utility.split(':').next_back().unwrap_or(utility);
+    let base_utility = ClassSegments::parse(utility).map_or(utility, |segments| segments.utility());
 
     // first try exact match
     if let Some(&count) = DECLARATION_COUNTS.get(base_utility) {

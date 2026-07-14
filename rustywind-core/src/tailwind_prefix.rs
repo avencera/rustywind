@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use crate::class_name::ClassSegments;
+
 /// Normalize a Tailwind-prefixed class into the class name used for sorting.
 ///
 /// Tailwind v3 places the prefix on the utility (`md:tw-text-lg`), while v4
@@ -19,7 +21,10 @@ pub fn normalize_tailwind_prefix<'a>(class: &'a str, prefix: Option<&str>) -> Co
         return Cow::Borrowed(rest);
     }
 
-    let utility_start = utility_start(class);
+    let Some(utility_start) = ClassSegments::parse(class).map(|segments| segments.utility_start())
+    else {
+        return Cow::Borrowed(class);
+    };
     let (variants, utility) = class.split_at(utility_start);
 
     match normalize_v3_utility(utility, prefix) {
@@ -32,22 +37,6 @@ pub fn normalize_tailwind_prefix<'a>(class: &'a str, prefix: Option<&str>) -> Co
 pub(crate) fn normalize_tailwind_prefix_value(prefix: &str) -> Option<&str> {
     let prefix = prefix.trim_end_matches(['-', ':']);
     (!prefix.is_empty()).then_some(prefix)
-}
-
-fn utility_start(class: &str) -> usize {
-    let mut start = 0;
-    let mut bracket_depth: u32 = 0;
-
-    for (index, character) in class.char_indices() {
-        match character {
-            '[' => bracket_depth += 1,
-            ']' => bracket_depth = bracket_depth.saturating_sub(1),
-            ':' if bracket_depth == 0 => start = index + 1,
-            _ => {}
-        }
-    }
-
-    start
 }
 
 fn normalize_v3_utility<'a>(utility: &'a str, prefix: &str) -> Option<Cow<'a, str>> {
@@ -143,6 +132,14 @@ mod tests {
         assert_eq!(
             normalize_tailwind_prefix("[&:hover]:tw-bg-red-500", Some("tw")),
             "[&:hover]:bg-red-500"
+        );
+    }
+
+    #[test]
+    fn ignores_colons_inside_parenthesized_utility_values() {
+        assert_eq!(
+            normalize_tailwind_prefix("hover:tw-ring-(length:--ring-width)", Some("tw")),
+            "hover:ring-(length:--ring-width)"
         );
     }
 

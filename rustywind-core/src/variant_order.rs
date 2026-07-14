@@ -107,12 +107,14 @@ pub const VARIANT_ORDER: &[&str] = &[
     "lg",                // 73
     "xl",                // 74
     "2xl",               // 75
-    "portrait",          // 76
-    "landscape",         // 77
-    "ltr",               // 78
-    "rtl",               // 79
-    "dark",              // 80
-    "print",             // 81
+    "@max",              // 76
+    "@",                 // 77
+    "portrait",          // 78
+    "landscape",         // 79
+    "ltr",               // 80
+    "rtl",               // 81
+    "dark",              // 82
+    "print",             // 83
 ];
 
 /// A structured representation of a variant that may be compound.
@@ -215,6 +217,10 @@ impl VariantInfo {
 fn compare_dynamic_variant_bases(a: &str, b: &str) -> std::cmp::Ordering {
     use std::cmp::Ordering;
 
+    if let (Some(a_query), Some(b_query)) = (ContainerQuery::parse(a), ContainerQuery::parse(b)) {
+        return a_query.cmp(&b_query);
+    }
+
     match (dynamic_variant_sort_key(a), dynamic_variant_sort_key(b)) {
         (Some((a_kind, a_value)), Some((b_kind, b_value))) => {
             a_kind.cmp(&b_kind).then_with(|| a_value.cmp(b_value))
@@ -227,6 +233,239 @@ fn compare_dynamic_variant_bases(a: &str, b: &str) -> std::cmp::Ordering {
             }
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DefaultContainerBreakpoint {
+    ThreeExtraSmall,
+    TwoExtraSmall,
+    ExtraSmall,
+    Small,
+    Medium,
+    Large,
+    ExtraLarge,
+    TwoExtraLarge,
+    ThreeExtraLarge,
+    FourExtraLarge,
+    FiveExtraLarge,
+    SixExtraLarge,
+    SevenExtraLarge,
+}
+
+impl DefaultContainerBreakpoint {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "3xs" => Some(Self::ThreeExtraSmall),
+            "2xs" => Some(Self::TwoExtraSmall),
+            "xs" => Some(Self::ExtraSmall),
+            "sm" => Some(Self::Small),
+            "md" => Some(Self::Medium),
+            "lg" => Some(Self::Large),
+            "xl" => Some(Self::ExtraLarge),
+            "2xl" => Some(Self::TwoExtraLarge),
+            "3xl" => Some(Self::ThreeExtraLarge),
+            "4xl" => Some(Self::FourExtraLarge),
+            "5xl" => Some(Self::FiveExtraLarge),
+            "6xl" => Some(Self::SixExtraLarge),
+            "7xl" => Some(Self::SevenExtraLarge),
+            _ => None,
+        }
+    }
+
+    fn css_value(self) -> &'static str {
+        match self {
+            Self::ThreeExtraSmall => "16rem",
+            Self::TwoExtraSmall => "18rem",
+            Self::ExtraSmall => "20rem",
+            Self::Small => "24rem",
+            Self::Medium => "28rem",
+            Self::Large => "32rem",
+            Self::ExtraLarge => "36rem",
+            Self::TwoExtraLarge => "42rem",
+            Self::ThreeExtraLarge => "48rem",
+            Self::FourExtraLarge => "56rem",
+            Self::FiveExtraLarge => "64rem",
+            Self::SixExtraLarge => "72rem",
+            Self::SevenExtraLarge => "80rem",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ContainerBreakpoint<'a> {
+    Default(DefaultContainerBreakpoint),
+    Arbitrary(&'a str),
+}
+
+impl<'a> ContainerBreakpoint<'a> {
+    fn parse(value: &'a str) -> Option<Self> {
+        if let Some(value) = value
+            .strip_prefix('[')
+            .and_then(|value| value.strip_suffix(']'))
+        {
+            return (!value.trim().is_empty() && !value.contains("var("))
+                .then_some(Self::Arbitrary(value));
+        }
+
+        DefaultContainerBreakpoint::parse(value).map(Self::Default)
+    }
+
+    fn css_value(self) -> &'a str {
+        match self {
+            Self::Default(breakpoint) => breakpoint.css_value(),
+            Self::Arbitrary(value) => value,
+        }
+    }
+}
+
+impl PartialEq for ContainerBreakpoint<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        compare_container_breakpoint_values(self.css_value(), other.css_value()).is_eq()
+    }
+}
+
+impl Eq for ContainerBreakpoint<'_> {}
+
+impl Ord for ContainerBreakpoint<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        compare_container_breakpoint_values(self.css_value(), other.css_value())
+    }
+}
+
+impl PartialOrd for ContainerBreakpoint<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ContainerQueryDirection {
+    Maximum,
+    Minimum,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ContainerQuery<'a> {
+    direction: ContainerQueryDirection,
+    breakpoint: ContainerBreakpoint<'a>,
+}
+
+impl<'a> ContainerQuery<'a> {
+    fn parse(variant: &'a str) -> Option<Self> {
+        let variant = split_container_query_name(variant)?;
+        let (direction, breakpoint) = if let Some(breakpoint) = variant.strip_prefix("@max-") {
+            (ContainerQueryDirection::Maximum, breakpoint)
+        } else if let Some(breakpoint) = variant.strip_prefix("@min-") {
+            (ContainerQueryDirection::Minimum, breakpoint)
+        } else {
+            (ContainerQueryDirection::Minimum, variant.strip_prefix('@')?)
+        };
+
+        Some(Self {
+            direction,
+            breakpoint: ContainerBreakpoint::parse(breakpoint)?,
+        })
+    }
+
+    fn variant_bucket(self) -> &'static str {
+        match self.direction {
+            ContainerQueryDirection::Maximum => "@max",
+            ContainerQueryDirection::Minimum => "@",
+        }
+    }
+}
+
+impl Ord for ContainerQuery<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.direction.cmp(&other.direction) {
+            std::cmp::Ordering::Equal => match self.direction {
+                ContainerQueryDirection::Minimum => self.breakpoint.cmp(&other.breakpoint),
+                ContainerQueryDirection::Maximum => other.breakpoint.cmp(&self.breakpoint),
+            },
+            ordering => ordering,
+        }
+    }
+}
+
+impl PartialOrd for ContainerQuery<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn split_container_query_name(variant: &str) -> Option<&str> {
+    let mut nesting = 0usize;
+    let mut escaped = false;
+    let mut separator = None;
+
+    for (index, character) in variant.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+
+        match character {
+            '\\' => escaped = true,
+            '[' | '(' => nesting += 1,
+            ']' | ')' => nesting = nesting.checked_sub(1)?,
+            '/' if nesting == 0 => {
+                if separator.is_some() {
+                    return None;
+                }
+                separator = Some(index);
+            }
+            _ => {}
+        }
+    }
+
+    if nesting != 0 || escaped {
+        return None;
+    }
+
+    match separator {
+        Some(index) if index + 1 < variant.len() => Some(&variant[..index]),
+        Some(_) => None,
+        None => Some(variant),
+    }
+}
+
+fn compare_container_breakpoint_values(a: &str, b: &str) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+
+    if a == b {
+        return Ordering::Equal;
+    }
+
+    match container_breakpoint_value_kind(a).cmp(container_breakpoint_value_kind(b)) {
+        Ordering::Equal => {}
+        ordering => return ordering,
+    }
+
+    match (integer_prefix(a), integer_prefix(b)) {
+        (Some(a), Some(b)) => a.cmp(&b),
+        _ => a.cmp(b),
+    }
+}
+
+fn container_breakpoint_value_kind(value: &str) -> impl Iterator<Item = u8> + '_ {
+    let (kind, strip_numeric) = value
+        .find('(')
+        .map_or((value, true), |parenthesis| (&value[..parenthesis], false));
+
+    kind.bytes()
+        .filter(move |byte| !strip_numeric || (!byte.is_ascii_digit() && *byte != b'.'))
+}
+
+fn integer_prefix(value: &str) -> Option<i128> {
+    let value = value.trim_start();
+    let digits_start = usize::from(matches!(value.as_bytes().first(), Some(b'+' | b'-')));
+    let digits_end = value[digits_start..]
+        .find(|character: char| !character.is_ascii_digit())
+        .map_or(value.len(), |index| digits_start + index);
+
+    (digits_end > digits_start)
+        .then(|| value[..digits_end].parse().ok())
+        .flatten()
 }
 
 fn dynamic_variant_sort_key(variant: &str) -> Option<(u8, &str)> {
@@ -314,11 +553,25 @@ fn bracket_inner(value: &str) -> Option<&str> {
 /// assert_eq!(get_variant_index("focus"), Some(47));
 /// assert_eq!(get_variant_index("focus-visible"), Some(48));
 /// assert_eq!(get_variant_index("sm"), Some(71));
-/// assert_eq!(get_variant_index("dark"), Some(80));
+/// assert_eq!(get_variant_index("@max-md"), Some(76));
+/// assert_eq!(get_variant_index("@md/sidebar"), Some(77));
+/// assert_eq!(get_variant_index("dark"), Some(82));
 /// assert_eq!(get_variant_index("unknown-variant"), None);
 /// ```
 #[inline]
 pub fn get_variant_index(variant: &str) -> Option<usize> {
+    if matches!(variant, "@max" | "@") {
+        return VARIANT_ORDER.iter().position(|&value| value == variant);
+    }
+
+    if variant.starts_with('@') {
+        return ContainerQuery::parse(variant).and_then(|query| {
+            VARIANT_ORDER
+                .iter()
+                .position(|&value| value == query.variant_bucket())
+        });
+    }
+
     let variant = variant.split_once('/').map_or(variant, |(base, _)| base);
 
     if let Some(index) = VARIANT_ORDER.iter().position(|&v| v == variant) {
@@ -492,8 +745,8 @@ pub fn calculate_variant_order(variants: &[&str]) -> u128 {
             if idx < 120 {
                 order |= 1u128 << idx;
             }
-        } else if variant.starts_with('[') {
-            // arbitrary variant (e.g., [&.htmx-request], [&>*], [@supports...])
+        } else if variant.starts_with('@') || variant.starts_with('[') {
+            // unknown container queries and arbitrary variants use the arbitrary bucket
             has_arbitrary = true;
         } else if variant.contains('-') {
             // handle compound variants like "peer-hover", "group-focus", or "peer-focus-within"
@@ -534,7 +787,7 @@ mod tests {
 
     #[test]
     fn test_variant_count() {
-        assert_eq!(VARIANT_ORDER.len(), 82);
+        assert_eq!(VARIANT_ORDER.len(), 84);
     }
 
     #[test]
@@ -567,15 +820,165 @@ mod tests {
         assert_eq!(get_variant_index("md"), Some(72));
         assert_eq!(get_variant_index("lg"), Some(73));
 
+        // test default container query variants
+        assert_eq!(get_variant_index("@max-7xl"), Some(76));
+        assert_eq!(get_variant_index("@3xs"), Some(77));
+        assert_eq!(get_variant_index("@min-md/sidebar"), Some(77));
+
         // test orientation (portrait before landscape)
-        assert_eq!(get_variant_index("portrait"), Some(76));
-        assert_eq!(get_variant_index("landscape"), Some(77));
+        assert_eq!(get_variant_index("portrait"), Some(78));
+        assert_eq!(get_variant_index("landscape"), Some(79));
 
         // test critical dark position
-        assert_eq!(get_variant_index("dark"), Some(80));
+        assert_eq!(get_variant_index("dark"), Some(82));
 
         // test unknown variant
         assert_eq!(get_variant_index("unknown-variant"), None);
+    }
+
+    #[test]
+    fn test_default_container_query_breakpoint_scale() {
+        let breakpoints = [
+            "3xs", "2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl", "7xl",
+        ];
+
+        let shorthand_minimum: Vec<_> = breakpoints
+            .iter()
+            .map(|breakpoint| VariantInfo::parse(&format!("@{breakpoint}")))
+            .collect();
+        assert!(
+            shorthand_minimum
+                .windows(2)
+                .all(|pair| pair[0].cmp_variants(&pair[1]).is_lt())
+        );
+
+        let explicit_minimum: Vec<_> = breakpoints
+            .iter()
+            .map(|breakpoint| VariantInfo::parse(&format!("@min-{breakpoint}")))
+            .collect();
+        assert!(
+            explicit_minimum
+                .windows(2)
+                .all(|pair| pair[0].cmp_variants(&pair[1]).is_lt())
+        );
+        assert!(
+            shorthand_minimum
+                .iter()
+                .zip(&explicit_minimum)
+                .all(|(shorthand, explicit)| shorthand.cmp_variants(explicit).is_eq())
+        );
+
+        let maximum: Vec<_> = breakpoints
+            .iter()
+            .rev()
+            .map(|breakpoint| VariantInfo::parse(&format!("@max-{breakpoint}")))
+            .collect();
+        assert!(
+            maximum
+                .windows(2)
+                .all(|pair| pair[0].cmp_variants(&pair[1]).is_lt())
+        );
+    }
+
+    #[test]
+    fn test_container_query_directions_and_names() {
+        let max = VariantInfo::parse("@max-sm");
+        let minimum = VariantInfo::parse("@min-sm");
+        let shorthand = VariantInfo::parse("@sm/sidebar");
+        let differently_named = VariantInfo::parse("@min-sm/content");
+
+        assert!(max.cmp_variants(&minimum).is_lt());
+        assert_eq!(minimum.cmp_variants(&shorthand), std::cmp::Ordering::Equal);
+        assert_eq!(shorthand.base, "@sm/sidebar");
+        assert_eq!(shorthand.modifier, None);
+        assert_eq!(
+            shorthand.cmp_variants(&differently_named),
+            std::cmp::Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn test_arbitrary_container_query_breakpoints_are_known() {
+        for (variant, expected_index) in [
+            ("@[30rem]", 77),
+            ("@min-[30rem]", 77),
+            ("@max-[30rem]", 76),
+            ("@[30rem]/sidebar", 77),
+        ] {
+            assert_eq!(
+                get_variant_index(variant),
+                Some(expected_index),
+                "{variant}"
+            );
+            assert_eq!(
+                calculate_variant_order(&[variant]) & ARBITRARY_VARIANT_BIT,
+                0
+            );
+        }
+    }
+
+    #[test]
+    fn test_arbitrary_container_query_breakpoints_follow_size_order() {
+        let minimum =
+            ["@[20rem]", "@sm", "@md", "@[30rem]", "@min-[40rem]"].map(VariantInfo::parse);
+        assert!(
+            minimum
+                .windows(2)
+                .all(|pair| pair[0].cmp_variants(&pair[1]).is_lt())
+        );
+
+        let maximum = [
+            "@max-[40rem]",
+            "@max-[30rem]",
+            "@max-md",
+            "@max-sm",
+            "@max-[20rem]",
+        ]
+        .map(VariantInfo::parse);
+        assert!(
+            maximum
+                .windows(2)
+                .all(|pair| pair[0].cmp_variants(&pair[1]).is_lt())
+        );
+
+        assert_eq!(
+            VariantInfo::parse("@[30rem]").cmp_variants(&VariantInfo::parse("@min-[30rem]")),
+            std::cmp::Ordering::Equal
+        );
+    }
+
+    #[test]
+    fn test_container_query_equality_matches_tailwind_ordering_equivalence() {
+        for (a, b) in [
+            ("@sm", "@[24rem]"),
+            ("@[30.1rem]", "@min-[30.9rem]"),
+            ("@max-sm", "@max-[24rem]"),
+        ] {
+            let a = ContainerQuery::parse(a).unwrap();
+            let b = ContainerQuery::parse(b).unwrap();
+
+            assert_eq!(a.cmp(&b), std::cmp::Ordering::Equal);
+            assert_eq!(a, b);
+        }
+    }
+
+    #[test]
+    fn test_invalid_container_queries_remain_unknown() {
+        for variant in [
+            "@tablet",
+            "@min-tablet",
+            "@max-tablet",
+            "@[]",
+            "@min-[var(--width)]",
+            "@md/",
+            "@md/sidebar/nested",
+        ] {
+            assert_eq!(get_variant_index(variant), None, "{variant}");
+            assert_ne!(
+                calculate_variant_order(&[variant]) & ARBITRARY_VARIANT_BIT,
+                0
+            );
+        }
     }
 
     #[test]
@@ -755,9 +1158,9 @@ mod tests {
         let print_idx = get_variant_index("print").unwrap();
 
         // verify expected indices
-        assert_eq!(dark_idx, 80, "dark should be at index 80");
-        assert_eq!(portrait_idx, 76, "portrait should be at index 76");
-        assert_eq!(print_idx, 81, "print should be at index 81");
+        assert_eq!(dark_idx, 82, "dark should be at index 82");
+        assert_eq!(portrait_idx, 78, "portrait should be at index 78");
+        assert_eq!(print_idx, 83, "print should be at index 83");
 
         // calculate variant orders - these should NOT be 0
         let dark_order = calculate_variant_order(&["dark"]);

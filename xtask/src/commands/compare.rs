@@ -13,7 +13,7 @@ use color_eyre::{
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 
-const REPORT_SCHEMA_VERSION: u32 = 1;
+const REPORT_SCHEMA_VERSION: u32 = 2;
 const MINIMUM_NODE_VERSION: &str = ">=20.19.0";
 
 /// A pinned real-world Tailwind corpus.
@@ -693,6 +693,7 @@ struct ReportSummary {
     rustywind_changed: u64,
     exact: u64,
     custom_only: u64,
+    prettier_nonconvergent: u64,
     known_order_mismatch: u64,
     extraction_mismatch: u64,
     failures: u64,
@@ -715,21 +716,36 @@ enum ComparisonDetail {
         path: String,
         expected: u64,
         original: u64,
-        prettier: u64,
+        scrambled: u64,
+        prettier_original: u64,
+        prettier_scrambled: u64,
         rustywind: u64,
     },
     TokenMultiset {
         path: String,
         attribute: u64,
         original: Vec<String>,
-        prettier: Vec<String>,
+        scrambled: Vec<String>,
+        prettier_original: Vec<String>,
+        prettier_scrambled: Vec<String>,
+        rustywind: Vec<String>,
+    },
+    PrettierNonconvergent {
+        path: String,
+        attribute: u64,
+        original: Vec<String>,
+        scrambled: Vec<String>,
+        prettier_original: Vec<String>,
+        prettier_scrambled: Vec<String>,
         rustywind: Vec<String>,
     },
     CustomOnly {
         path: String,
         attribute: u64,
         original: Vec<String>,
-        prettier: Vec<String>,
+        scrambled: Vec<String>,
+        prettier_original: Vec<String>,
+        prettier_scrambled: Vec<String>,
         rustywind: Vec<String>,
         prettier_unknown: Vec<String>,
     },
@@ -737,7 +753,9 @@ enum ComparisonDetail {
         path: String,
         attribute: u64,
         original: Vec<String>,
-        prettier: Vec<String>,
+        scrambled: Vec<String>,
+        prettier_original: Vec<String>,
+        prettier_scrambled: Vec<String>,
         rustywind: Vec<String>,
         prettier_unknown: Vec<String>,
     },
@@ -748,6 +766,7 @@ impl ComparisonDetail {
         match self {
             Self::AttributeCount { path, .. }
             | Self::TokenMultiset { path, .. }
+            | Self::PrettierNonconvergent { path, .. }
             | Self::CustomOnly { path, .. }
             | Self::KnownOrder { path, .. } => path,
         }
@@ -860,6 +879,7 @@ fn validate_details(report: &NodeReport) -> Result<()> {
     let mut attribute_details = HashSet::new();
     let mut whole_file_details = HashSet::new();
     let mut custom_only = 0_u64;
+    let mut prettier_nonconvergent = 0_u64;
     let mut known_order = 0_u64;
     let mut extraction = 0_u64;
 
@@ -876,14 +896,21 @@ fn validate_details(report: &NodeReport) -> Result<()> {
             ComparisonDetail::AttributeCount {
                 expected,
                 original,
-                prettier,
+                scrambled,
+                prettier_original,
+                prettier_scrambled,
                 rustywind,
                 ..
             } => {
                 if *expected != candidate_attributes {
                     bail!("attribute-count detail does not match candidate metadata");
                 }
-                if original == expected && prettier == expected && rustywind == expected {
+                if original == expected
+                    && scrambled == expected
+                    && prettier_original == expected
+                    && prettier_scrambled == expected
+                    && rustywind == expected
+                {
                     bail!("attribute-count detail does not describe a mismatch");
                 }
                 if !whole_file_details.insert(path) {
@@ -896,7 +923,9 @@ fn validate_details(report: &NodeReport) -> Result<()> {
             ComparisonDetail::TokenMultiset {
                 attribute,
                 original,
-                prettier,
+                scrambled,
+                prettier_original,
+                prettier_scrambled,
                 rustywind,
                 ..
             } => {
@@ -905,18 +934,65 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                     *attribute,
                     candidate_attributes,
                     original,
-                    prettier,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
                     rustywind,
                     &mut attribute_details,
                 )?;
+                if comparison_multisets_match(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                ) {
+                    bail!("token-multiset detail does not describe a mismatch");
+                }
                 extraction = extraction
                     .checked_add(1)
                     .ok_or_else(|| eyre!("detail extraction count overflow"))?;
             }
+            ComparisonDetail::PrettierNonconvergent {
+                attribute,
+                original,
+                scrambled,
+                prettier_original,
+                prettier_scrambled,
+                rustywind,
+                ..
+            } => {
+                validate_attribute_detail(
+                    path,
+                    *attribute,
+                    candidate_attributes,
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                    &mut attribute_details,
+                )?;
+                validate_ordering_detail(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                )?;
+                if prettier_original == prettier_scrambled {
+                    bail!("prettier-nonconvergent detail contains convergent output");
+                }
+                prettier_nonconvergent = prettier_nonconvergent
+                    .checked_add(1)
+                    .ok_or_else(|| eyre!("Prettier nonconvergent detail count overflow"))?;
+            }
             ComparisonDetail::CustomOnly {
                 attribute,
                 original,
-                prettier,
+                scrambled,
+                prettier_original,
+                prettier_scrambled,
                 rustywind,
                 prettier_unknown,
                 ..
@@ -926,9 +1002,18 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                     *attribute,
                     candidate_attributes,
                     original,
-                    prettier,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
                     rustywind,
                     &mut attribute_details,
+                )?;
+                validate_convergent_mismatch(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
                 )?;
                 validate_unknown_tokens(prettier_unknown, rustywind)?;
                 custom_only = custom_only
@@ -938,7 +1023,9 @@ fn validate_details(report: &NodeReport) -> Result<()> {
             ComparisonDetail::KnownOrder {
                 attribute,
                 original,
-                prettier,
+                scrambled,
+                prettier_original,
+                prettier_scrambled,
                 rustywind,
                 prettier_unknown,
                 ..
@@ -948,9 +1035,18 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                     *attribute,
                     candidate_attributes,
                     original,
-                    prettier,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
                     rustywind,
                     &mut attribute_details,
+                )?;
+                validate_convergent_mismatch(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
                 )?;
                 validate_unknown_tokens(prettier_unknown, rustywind)?;
                 known_order = known_order
@@ -967,6 +1063,7 @@ fn validate_details(report: &NodeReport) -> Result<()> {
         bail!("attribute-count detail overlaps per-attribute details for the same candidate");
     }
     if custom_only != report.summary.custom_only
+        || prettier_nonconvergent != report.summary.prettier_nonconvergent
         || known_order != report.summary.known_order_mismatch
         || extraction != report.summary.extraction_mismatch
     {
@@ -980,18 +1077,19 @@ fn validate_attribute_detail(
     attribute: u64,
     candidate_attributes: u64,
     original: &[String],
-    prettier: &[String],
+    scrambled: &[String],
+    prettier_original: &[String],
+    prettier_scrambled: &[String],
     rustywind: &[String],
     seen: &mut HashSet<(String, u64)>,
 ) -> Result<()> {
     if attribute >= candidate_attributes {
         bail!("detail attribute index is outside its candidate");
     }
-    if prettier == rustywind {
-        bail!("comparison detail does not describe a mismatch");
-    }
     if original.iter().any(|token| token.contains('\0'))
-        || prettier.iter().any(|token| token.contains('\0'))
+        || scrambled.iter().any(|token| token.contains('\0'))
+        || prettier_original.iter().any(|token| token.contains('\0'))
+        || prettier_scrambled.iter().any(|token| token.contains('\0'))
         || rustywind.iter().any(|token| token.contains('\0'))
     {
         bail!("comparison detail contains an invalid class token");
@@ -1000,6 +1098,69 @@ fn validate_attribute_detail(
         bail!("candidate attribute appears in more than one detail");
     }
     Ok(())
+}
+
+fn validate_ordering_detail(
+    original: &[String],
+    scrambled: &[String],
+    prettier_original: &[String],
+    prettier_scrambled: &[String],
+    rustywind: &[String],
+) -> Result<()> {
+    if !comparison_multisets_match(
+        original,
+        scrambled,
+        prettier_original,
+        prettier_scrambled,
+        rustywind,
+    ) {
+        bail!("ordering detail contains a token-multiset mismatch");
+    }
+    Ok(())
+}
+
+fn validate_convergent_mismatch(
+    original: &[String],
+    scrambled: &[String],
+    prettier_original: &[String],
+    prettier_scrambled: &[String],
+    rustywind: &[String],
+) -> Result<()> {
+    validate_ordering_detail(
+        original,
+        scrambled,
+        prettier_original,
+        prettier_scrambled,
+        rustywind,
+    )?;
+    if prettier_original != prettier_scrambled {
+        bail!("ordering mismatch uses nonconvergent Prettier output");
+    }
+    if prettier_scrambled == rustywind {
+        bail!("ordering mismatch does not describe a mismatch");
+    }
+    Ok(())
+}
+
+fn comparison_multisets_match(
+    original: &[String],
+    scrambled: &[String],
+    prettier_original: &[String],
+    prettier_scrambled: &[String],
+    rustywind: &[String],
+) -> bool {
+    same_token_multiset(original, scrambled)
+        && [prettier_scrambled, rustywind]
+            .into_iter()
+            .all(|tokens| same_token_multiset(prettier_original, tokens))
+}
+
+fn same_token_multiset(left: &[String], right: &[String]) -> bool {
+    let mut left = left.iter().map(String::as_str).collect::<Vec<_>>();
+    let mut right = right.iter().map(String::as_str).collect::<Vec<_>>();
+    left.sort_unstable();
+    right.sort_unstable();
+    left == right
 }
 
 fn validate_unknown_tokens(unknown: &[String], rustywind: &[String]) -> Result<()> {
@@ -1054,6 +1215,7 @@ fn validate_failures(report: &NodeReport) -> Result<()> {
         .summary
         .exact
         .checked_add(report.summary.custom_only)
+        .and_then(|count| count.checked_add(report.summary.prettier_nonconvergent))
         .and_then(|count| count.checked_add(report.summary.known_order_mismatch))
         .and_then(|count| count.checked_add(report.summary.extraction_mismatch))
         .ok_or_else(|| eyre!("summary classification count overflow"))?;
@@ -1253,7 +1415,7 @@ impl ComparisonSummary {
 
     fn markdown(&self) -> String {
         let mut markdown = format!(
-            "# Tailwind comparison\n\nOverall status: **{}**\n\n| Corpus | Revision | Files | Attributes | Exact | Custom only | Known-order mismatch | Extraction mismatch | Failures | Status | Reason |\n| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |\n",
+            "# Tailwind comparison\n\nOverall status: **{}**\n\n| Corpus | Revision | Files | Attributes | Exact | Custom only | Prettier nonconvergent | Known-order mismatch | Extraction mismatch | Failures | Status | Reason |\n| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |\n",
             self.status
         );
         for corpus in &self.corpora {
@@ -1280,13 +1442,14 @@ impl ComparisonSummary {
                     .join(", ")
             };
             markdown.push_str(&format!(
-                "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} | {} |\n",
+                "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |\n",
                 corpus.name,
                 corpus.revision,
                 files,
                 attributes,
                 metric(|summary| summary.exact),
                 metric(|summary| summary.custom_only),
+                metric(|summary| summary.prettier_nonconvergent),
                 metric(|summary| summary.known_order_mismatch),
                 metric(|summary| summary.extraction_mismatch),
                 metric(|summary| summary.failures),
@@ -1379,6 +1542,7 @@ mod tests {
             rustywind_changed: 1,
             exact: 0,
             custom_only: 1,
+            prettier_nonconvergent: 0,
             known_order_mismatch: 0,
             extraction_mismatch: 0,
             failures: 0,
@@ -1393,6 +1557,87 @@ mod tests {
     }
 
     #[test]
+    fn prettier_nonconvergence_is_accounted_for_without_failing() {
+        let mut report = report_with_summary(ReportSummary {
+            prettier_changed: 0,
+            rustywind_changed: 1,
+            exact: 0,
+            custom_only: 0,
+            prettier_nonconvergent: 1,
+            known_order_mismatch: 0,
+            extraction_mismatch: 0,
+            failures: 0,
+        });
+        report
+            .details
+            .push(ComparisonDetail::PrettierNonconvergent {
+                path: "src/file.tsx".to_string(),
+                attribute: 0,
+                original: vec!["grid".to_string(), "m-2".to_string()],
+                scrambled: vec!["m-2".to_string(), "grid".to_string()],
+                prettier_original: vec!["grid".to_string(), "m-2".to_string()],
+                prettier_scrambled: vec!["m-2".to_string(), "grid".to_string()],
+                rustywind: vec!["grid".to_string(), "m-2".to_string()],
+            });
+
+        assert!(validate_details(&report).is_ok());
+        assert!(validate_failures(&report).is_ok());
+        let result = CorpusRunResult::from_report(test_spec(), &report);
+        assert_eq!(result.status, CorpusStatus::Passed);
+        let summary = ComparisonSummary::new(vec![result]);
+        assert_eq!(summary.status, AggregateStatus::Passed);
+        assert!(summary.markdown().contains("Prettier nonconvergent"));
+        assert!(validate_report(test_spec(), report).is_ok());
+    }
+
+    #[test]
+    fn matching_formatter_deduplication_preserves_comparison_multiset() {
+        let original = vec![
+            "rtl:mr-0".to_string(),
+            "flex".to_string(),
+            "rtl:mr-0".to_string(),
+        ];
+        let scrambled = vec![
+            "rtl:mr-0".to_string(),
+            "rtl:mr-0".to_string(),
+            "flex".to_string(),
+        ];
+        let formatted = vec!["flex".to_string(), "rtl:mr-0".to_string()];
+
+        assert!(comparison_multisets_match(
+            &original, &scrambled, &formatted, &formatted, &formatted,
+        ));
+    }
+
+    #[test]
+    fn report_validation_requires_schema_version_two() {
+        let mut report = report_with_summary(ReportSummary {
+            prettier_changed: 0,
+            rustywind_changed: 0,
+            exact: 1,
+            custom_only: 0,
+            prettier_nonconvergent: 0,
+            known_order_mismatch: 0,
+            extraction_mismatch: 0,
+            failures: 0,
+        });
+        assert!(validate_report(test_spec(), report).is_ok());
+
+        report = report_with_summary(ReportSummary {
+            prettier_changed: 0,
+            rustywind_changed: 0,
+            exact: 1,
+            custom_only: 0,
+            prettier_nonconvergent: 0,
+            known_order_mismatch: 0,
+            extraction_mismatch: 0,
+            failures: 0,
+        });
+        report.schema_version = 1;
+        assert!(validate_report(test_spec(), report).is_err());
+    }
+
+    #[test]
     fn any_actionable_mismatch_fails_aggregate_status() {
         for summary in [
             ReportSummary {
@@ -1400,6 +1645,7 @@ mod tests {
                 rustywind_changed: 1,
                 exact: 0,
                 custom_only: 0,
+                prettier_nonconvergent: 0,
                 known_order_mismatch: 1,
                 extraction_mismatch: 0,
                 failures: 0,
@@ -1409,6 +1655,7 @@ mod tests {
                 rustywind_changed: 1,
                 exact: 0,
                 custom_only: 0,
+                prettier_nonconvergent: 0,
                 known_order_mismatch: 0,
                 extraction_mismatch: 1,
                 failures: 0,
@@ -1418,6 +1665,7 @@ mod tests {
                 rustywind_changed: 0,
                 exact: 0,
                 custom_only: 0,
+                prettier_nonconvergent: 0,
                 known_order_mismatch: 0,
                 extraction_mismatch: 0,
                 failures: 1,
@@ -1438,6 +1686,7 @@ mod tests {
             rustywind_changed: 1,
             exact: 1,
             custom_only: 0,
+            prettier_nonconvergent: 0,
             known_order_mismatch: 0,
             extraction_mismatch: 0,
             failures: 0,
@@ -1446,7 +1695,9 @@ mod tests {
             path: "src/file.tsx".to_string(),
             attribute: 0,
             original: vec!["px-2".to_string(), "flex".to_string()],
-            prettier: vec!["flex".to_string(), "px-2".to_string()],
+            scrambled: vec!["flex".to_string(), "px-2".to_string()],
+            prettier_original: vec!["flex".to_string(), "px-2".to_string()],
+            prettier_scrambled: vec!["flex".to_string(), "px-2".to_string()],
             rustywind: vec!["px-2".to_string(), "flex".to_string()],
             prettier_unknown: Vec::new(),
         });
@@ -1465,7 +1716,9 @@ mod tests {
                 "path": "src/file.tsx",
                 "attribute": 0,
                 "original": ["brand-card", "flex"],
-                "prettier": ["brand-card", "flex"],
+                "scrambled": ["flex", "brand-card"],
+                "prettierOriginal": ["brand-card", "flex"],
+                "prettierScrambled": ["brand-card", "flex"],
                 "rustywind": ["flex", "brand-card"],
                 "prettierUnknown": ["brand-card"]
             }"#,
