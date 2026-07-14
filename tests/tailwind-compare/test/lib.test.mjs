@@ -88,6 +88,18 @@ test("permits changes only inside real quoted class attributes", () => {
   );
 });
 
+test("preserves dynamic quoted Svelte attributes without scrambling them", () => {
+  const source = '<div class="p-4 {active ? \'flex\' : \'grid\'}"></div>';
+  const changed = source.replace("p-4", "m-4");
+
+  assert.deepEqual(extractAttributes(source, "svelte"), []);
+  assert.equal(scrambleAttributes(source, "svelte"), source);
+  assert.equal(
+    preservesSourceOutsideAttributes(source, changed, "svelte"),
+    true,
+  );
+});
+
 test("ignores markup text in source comments and string literals", () => {
   const fixtures = [
     {

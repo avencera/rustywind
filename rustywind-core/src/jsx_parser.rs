@@ -203,6 +203,15 @@ impl<'a> JsxParser<'a> {
                 return None;
             }
 
+            if remaining(input).starts_with("//") {
+                consume_line_comment(input, "//")?;
+                continue;
+            }
+            if remaining(input).starts_with("/*") {
+                consume_block_comment(input)?;
+                continue;
+            }
+
             if remaining(input).starts_with('{') {
                 consume_character(input, '{')?;
                 self.parse_javascript(input, Some('}'))?;
@@ -432,6 +441,22 @@ mod tests {
     #[test]
     fn boolean_attributes_do_not_consume_the_next_separator() {
         let source = r#"const view = <AreaChart accessibilityLayer data={chartData} className="p-4 flex" />;"#;
+
+        assert_eq!(values(source), Some(vec!["p-4 flex"]));
+    }
+
+    #[test]
+    fn comments_can_separate_attributes() {
+        let source = r#"
+            const view = (
+                <Button
+                    onClick={() => submit()}
+                    // keep this prop documented
+                    className="p-4 flex"
+                    /* and this one */ disabled
+                />
+            );
+        "#;
 
         assert_eq!(values(source), Some(vec!["p-4 flex"]));
     }

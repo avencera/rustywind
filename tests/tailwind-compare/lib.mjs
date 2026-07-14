@@ -65,16 +65,31 @@ function findReactAttributes(source, kind) {
   return attributes;
 }
 
-function findSvelteAttributes(source) {
+function findStaticSvelteAttributes(source) {
   const ast = parseSvelte(source, { modern: true });
   const attributes = [];
   walk(ast.fragment, (node) => {
     if (
       node.type !== "Attribute" ||
-      !isClassAttributeName(node.name)
+      !isClassAttributeName(node.name) ||
+      node.value?.length !== 1 ||
+      node.value[0].type !== "Text"
     ) {
       return;
     }
+    const { start, end } = node.value[0];
+    const quote = source[start - 1];
+    if ((quote !== '"' && quote !== "'") || source[end] !== quote) return;
+    attributes.push({ end, start });
+  });
+  return attributes;
+}
+
+function findQuotedSvelteAttributes(source) {
+  const ast = parseSvelte(source, { modern: true });
+  const attributes = [];
+  walk(ast.fragment, (node) => {
+    if (node.type !== "Attribute" || !isClassAttributeName(node.name)) return;
     const valueStart = source.indexOf("=", node.name_loc.end.character) + 1;
     if (valueStart === 0 || valueStart >= node.end) return;
     const quoteStart = source
@@ -166,7 +181,7 @@ function findStaticAttributes(source, kind) {
   if (kind === "jsx" || kind === "tsx") {
     attributes = findReactAttributes(source, kind);
   } else if (kind === "svelte") {
-    attributes = findSvelteAttributes(source);
+    attributes = findStaticSvelteAttributes(source);
   } else if (kind === "astro") {
     attributes = findAstroAttributes(source);
   } else {
@@ -194,7 +209,7 @@ function findQuotedAttributes(source, kind) {
   if (kind === "jsx" || kind === "tsx") {
     attributes = findReactAttributes(source, kind);
   } else if (kind === "svelte") {
-    attributes = findSvelteAttributes(source);
+    attributes = findQuotedSvelteAttributes(source);
   } else if (kind === "astro") {
     attributes = findAstroAttributes(source);
   } else {
