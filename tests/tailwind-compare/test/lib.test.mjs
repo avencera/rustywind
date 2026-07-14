@@ -189,7 +189,7 @@ test("rejects order classification without a result for every token", () => {
   );
 });
 
-test("allows convergent duplicate removal by both formatters", () => {
+test("rejects convergent token removal by both formatters", () => {
   assert.equal(
     classifyDifference({
       original: ["rtl:mr-0", "flex", "rtl:mr-0"],
@@ -198,7 +198,7 @@ test("allows convergent duplicate removal by both formatters", () => {
       prettierScrambled: ["flex", "rtl:mr-0"],
       rustywind: ["flex", "rtl:mr-0"],
     }),
-    "exact",
+    "token-multiset",
   );
 });
 

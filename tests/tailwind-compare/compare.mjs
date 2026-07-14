@@ -357,31 +357,19 @@ function compareAttribute(
   const kind = classifyDifference(comparison);
   if (kind === "token-multiset") {
     summary.extractionMismatch += 1;
-    pending.push({
-      attribute,
-      ...comparison,
-      kind,
-      path: candidate.path,
-    });
-    return;
-  }
-  if (kind === "prettier-nonconvergent") {
+  } else if (kind === "prettier-nonconvergent") {
     summary.prettierNonconvergent += 1;
-    pending.push({
-      attribute,
-      ...comparison,
-      kind,
-      path: candidate.path,
-    });
-    return;
-  }
-  if (kind === "exact") {
+  } else if (kind === "exact") {
     summary.exact += 1;
     return;
+  } else if (kind !== "order-difference") {
+    throw new Error(`Unexpected comparison kind: ${kind}`);
   }
+
   pending.push({
     attribute,
     ...comparison,
+    kind,
     path: candidate.path,
   });
 }
@@ -505,7 +493,7 @@ async function compareCandidates(configuration, candidates) {
   }
 
   const orderDifferences = pending.filter(
-    (detail) => detail.kind === undefined,
+    (detail) => detail.kind === "order-difference",
   );
   let known;
   try {

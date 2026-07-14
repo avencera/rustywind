@@ -217,9 +217,9 @@ export function classifyDifference(comparison, known) {
   } = comparison;
   if (
     !sameMultiset(original, scrambled) ||
-    ![prettierScrambled, rustywind].every((tokens) =>
-      sameMultiset(prettierOriginal, tokens),
-    )
+    !sameMultiset(original, prettierOriginal) ||
+    !sameMultiset(scrambled, prettierScrambled) ||
+    !sameMultiset(scrambled, rustywind)
   ) {
     return "token-multiset";
   }
