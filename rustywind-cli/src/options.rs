@@ -57,6 +57,8 @@ pub enum CliSourceLanguage {
     Html,
     Svelte,
     Astro,
+    Jsx,
+    Tsx,
     Django,
     Jinja,
     Twig,
@@ -76,6 +78,7 @@ impl From<CliSourceLanguage> for SourceLanguage {
             CliSourceLanguage::Html => Self::Html,
             CliSourceLanguage::Svelte => Self::Svelte,
             CliSourceLanguage::Astro => Self::Astro,
+            CliSourceLanguage::Jsx | CliSourceLanguage::Tsx => Self::Jsx,
             CliSourceLanguage::Django => Self::Django,
             CliSourceLanguage::Jinja => Self::Jinja,
             CliSourceLanguage::Twig => Self::Twig,
@@ -289,5 +292,15 @@ mod tests {
             SourceLanguage::Blade
         );
         assert_eq!(resolve_source_language(None, None), SourceLanguage::Unknown);
+    }
+
+    #[test]
+    fn jsx_and_tsx_filenames_share_the_jsx_profile() {
+        for path in ["component.jsx", "component.tsx"] {
+            assert_eq!(
+                resolve_source_language(None, Some(Path::new(path))),
+                SourceLanguage::Jsx
+            );
+        }
     }
 }

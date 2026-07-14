@@ -6,6 +6,8 @@
 
 - Add first-class Astro parsing for static quoted class attributes while preserving frontmatter,
   expressions, `class:list`, raw content, and component semantics.
+- Add first-class Winnow parsing for directly quoted JSX and TSX `class` and `className`
+  attributes while preserving host-language program text and dynamic attributes.
 - Add `-p`, `-l`, and `-f` aliases for `--tailwind-prefix`, `--language`, and
   `--stdin-filename`.
 
@@ -19,6 +21,8 @@
 ### Breaking changes
 
 - `SourceLanguage` now includes an `Astro` variant. Downstream exhaustive matches must handle it.
+- `SourceLanguage` now includes a `Jsx` variant shared by `.jsx` and `.tsx` sources. Downstream
+  exhaustive matches must handle it.
 - The default extractor for known markup languages only sorts actual quoted `class` and `className`
   attributes. Class-looking text in comments, raw elements, non-markup program expressions, and
   other attributes is no longer rewritten.

@@ -322,6 +322,18 @@ mod tests {
     }
 
     #[test]
+    fn jsx_and_tsx_cli_values_share_the_jsx_profile() {
+        for language in ["jsx", "tsx"] {
+            let cli = Cli::try_parse_from(["rustywind", "--language", language, "input.js"])
+                .expect("JSX language alias should parse");
+            assert!(matches!(
+                cli.language,
+                Some(CliSourceLanguage::Jsx | CliSourceLanguage::Tsx)
+            ));
+        }
+    }
+
+    #[test]
     fn parses_stdin_filename_for_language_inference() {
         let cli = Cli::try_parse_from(["rustywind", "--stdin", "-f", "components/card.blade.php"])
             .expect("stdin filename should parse with stdin mode");
