@@ -291,8 +291,20 @@ impl DefaultContainerBreakpoint {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ContainerQueryDirection {
+    Maximum,
+    Minimum,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum ContainerBreakpoint<'a> {
+    Resolved(ResolvedContainerBreakpoint<'a>),
+    Named(&'a str),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ResolvedContainerBreakpoint<'a> {
     Default(DefaultContainerBreakpoint),
     Arbitrary(&'a str),
 }
@@ -303,13 +315,36 @@ impl<'a> ContainerBreakpoint<'a> {
             .strip_prefix('[')
             .and_then(|value| value.strip_suffix(']'))
         {
-            return (!value.trim().is_empty() && !value.contains("var("))
-                .then_some(Self::Arbitrary(value));
+            return (!value.trim().is_empty() && !value.contains("var(")).then_some(
+                Self::Resolved(ResolvedContainerBreakpoint::Arbitrary(value)),
+            );
         }
 
-        DefaultContainerBreakpoint::parse(value).map(Self::Default)
+        DefaultContainerBreakpoint::parse(value)
+            .map(ResolvedContainerBreakpoint::Default)
+            .map(Self::Resolved)
+            .or_else(|| is_named_variant_value(value).then_some(Self::Named(value)))
     }
 
+    fn cmp_for_query(self, other: Self, direction: ContainerQueryDirection) -> std::cmp::Ordering {
+        use std::cmp::Ordering;
+
+        match (self, other) {
+            (Self::Named(a), Self::Named(b)) => a.cmp(b),
+            (Self::Named(_), _) => Ordering::Greater,
+            (_, Self::Named(_)) => Ordering::Less,
+            (Self::Resolved(a), Self::Resolved(b)) => {
+                let ordering = compare_container_breakpoint_values(a.css_value(), b.css_value());
+                match direction {
+                    ContainerQueryDirection::Maximum => ordering.reverse(),
+                    ContainerQueryDirection::Minimum => ordering,
+                }
+            }
+        }
+    }
+}
+
+impl<'a> ResolvedContainerBreakpoint<'a> {
     fn css_value(self) -> &'a str {
         match self {
             Self::Default(breakpoint) => breakpoint.css_value(),
@@ -320,28 +355,18 @@ impl<'a> ContainerBreakpoint<'a> {
 
 impl PartialEq for ContainerBreakpoint<'_> {
     fn eq(&self, other: &Self) -> bool {
-        compare_container_breakpoint_values(self.css_value(), other.css_value()).is_eq()
+        self.cmp_for_query(*other, ContainerQueryDirection::Minimum)
+            .is_eq()
     }
 }
 
 impl Eq for ContainerBreakpoint<'_> {}
 
-impl Ord for ContainerBreakpoint<'_> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        compare_container_breakpoint_values(self.css_value(), other.css_value())
-    }
-}
-
-impl PartialOrd for ContainerBreakpoint<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum ContainerQueryDirection {
-    Maximum,
-    Minimum,
+fn is_named_variant_value(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'.' | b'%' | b'-'))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -378,10 +403,9 @@ impl<'a> ContainerQuery<'a> {
 impl Ord for ContainerQuery<'_> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match self.direction.cmp(&other.direction) {
-            std::cmp::Ordering::Equal => match self.direction {
-                ContainerQueryDirection::Minimum => self.breakpoint.cmp(&other.breakpoint),
-                ContainerQueryDirection::Maximum => other.breakpoint.cmp(&self.breakpoint),
-            },
+            std::cmp::Ordering::Equal => self
+                .breakpoint
+                .cmp_for_query(other.breakpoint, self.direction),
             ordering => ordering,
         }
     }
@@ -423,10 +447,27 @@ fn split_container_query_name(variant: &str) -> Option<&str> {
     }
 
     match separator {
-        Some(index) if index + 1 < variant.len() => Some(&variant[..index]),
-        Some(_) => None,
+        Some(index) => is_container_query_name(&variant[index + 1..]).then_some(&variant[..index]),
         None => Some(variant),
     }
+}
+
+fn is_container_query_name(value: &str) -> bool {
+    if is_named_variant_value(value) {
+        return true;
+    }
+
+    if let Some(value) = value
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+    {
+        return !value.trim().is_empty();
+    }
+
+    value
+        .strip_prefix('(')
+        .and_then(|value| value.strip_suffix(')'))
+        .is_some_and(|value| value.starts_with("--") && value.len() > 2)
 }
 
 fn compare_container_breakpoint_values(a: &str, b: &str) -> std::cmp::Ordering {
@@ -825,6 +866,11 @@ mod tests {
         assert_eq!(get_variant_index("@3xs"), Some(77));
         assert_eq!(get_variant_index("@min-md/sidebar"), Some(77));
 
+        // test named custom container query variants
+        assert_eq!(get_variant_index("@max-tablet"), Some(76));
+        assert_eq!(get_variant_index("@tablet"), Some(77));
+        assert_eq!(get_variant_index("@min-tablet/sidebar"), Some(77));
+
         // test orientation (portrait before landscape)
         assert_eq!(get_variant_index("portrait"), Some(78));
         assert_eq!(get_variant_index("landscape"), Some(79));
@@ -918,6 +964,35 @@ mod tests {
     }
 
     #[test]
+    fn test_named_custom_container_query_breakpoints_are_known() {
+        for (variant, expected_index) in [
+            ("@tablet", 77),
+            ("@min-tablet", 77),
+            ("@max-tablet", 76),
+            ("@tablet/sidebar", 77),
+            ("@min-tablet/sidebar", 77),
+            ("@max-tablet/sidebar", 76),
+        ] {
+            assert_eq!(
+                get_variant_index(variant),
+                Some(expected_index),
+                "{variant}"
+            );
+            assert_eq!(
+                calculate_variant_order(&[variant]) & ARBITRARY_VARIANT_BIT,
+                0,
+                "{variant}"
+            );
+        }
+
+        assert_eq!(
+            VariantInfo::parse("@tablet/sidebar")
+                .cmp_variants(&VariantInfo::parse("@min-tablet/content")),
+            std::cmp::Ordering::Equal
+        );
+    }
+
+    #[test]
     fn test_arbitrary_container_query_breakpoints_follow_size_order() {
         let minimum =
             ["@[20rem]", "@sm", "@md", "@[30rem]", "@min-[40rem]"].map(VariantInfo::parse);
@@ -965,12 +1040,12 @@ mod tests {
     #[test]
     fn test_invalid_container_queries_remain_unknown() {
         for variant in [
-            "@tablet",
-            "@min-tablet",
-            "@max-tablet",
             "@[]",
             "@min-[var(--width)]",
+            "@max-tablet?",
             "@md/",
+            "@tablet/[ ]",
+            "@tablet/side:bar",
             "@md/sidebar/nested",
         ] {
             assert_eq!(get_variant_index(variant), None, "{variant}");
