@@ -745,27 +745,26 @@ fn test_container_names_do_not_precede_same_breakpoint_tiebreakers() {
 }
 
 #[test]
-fn test_custom_container_query_names_remain_unknown() {
+fn test_custom_container_query_names_use_container_variant_buckets() {
     let sorter = HybridSorter::new();
-    let classes = vec!["@tablet:m-4", "@min-tablet:m-4", "print:m-4", "@7xl:m-4"];
-    let sorted = sorter.sort_classes(&classes);
-    let print_pos = sorted
-        .iter()
-        .position(|class| *class == "print:m-4")
-        .unwrap();
-    let known_container_pos = sorted
-        .iter()
-        .position(|class| *class == "@7xl:m-4")
-        .unwrap();
+    let classes = vec![
+        "@tablet:m-4",
+        "print:m-4",
+        "@min-tablet:m-4",
+        "@max-tablet:m-4",
+        "@7xl:m-4",
+    ];
 
-    assert!(known_container_pos < print_pos);
-    for class in ["@tablet:m-4", "@min-tablet:m-4"] {
-        let custom_pos = sorted
-            .iter()
-            .position(|candidate| *candidate == class)
-            .unwrap();
-        assert!(print_pos < custom_pos, "{class}");
-    }
+    assert_eq!(
+        sorter.sort_classes(&classes),
+        vec![
+            "@max-tablet:m-4",
+            "@7xl:m-4",
+            "@min-tablet:m-4",
+            "@tablet:m-4",
+            "print:m-4",
+        ]
+    );
 }
 
 #[test]

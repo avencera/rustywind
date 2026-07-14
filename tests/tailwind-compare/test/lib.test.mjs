@@ -27,6 +27,7 @@ test("extracts only static quoted class attributes", () => {
   assert.deepEqual(extractAttributes(source, "astro"), [
     "flex p-4",
     "grid gap-2",
+    "before:content-['{']",
   ]);
 });
 
@@ -70,6 +71,25 @@ const sample = '<div class="fake string">';
     assert.match(scrambled, /class="fake string"/u);
     assert.match(scrambled, /class(?:Name)?="fake comment"/u);
   }
+});
+
+test("preserves Astro attribute positions after multibyte text", () => {
+  const source = `---
+// →
+---
+<div class="flex p-4"></div>
+<span class="grid gap-2"></span>
+`;
+  const scrambled = scrambleAttributes(source, "astro");
+
+  assert.deepEqual(extractAttributes(source, "astro"), [
+    "flex p-4",
+    "grid gap-2",
+  ]);
+  assert.deepEqual(extractAttributes(scrambled, "astro"), [
+    "p-4 flex",
+    "gap-2 grid",
+  ]);
 });
 
 test("splits whitespace outside arbitrary-value brackets", () => {
@@ -189,7 +209,7 @@ test("rejects order classification without a result for every token", () => {
   );
 });
 
-test("rejects convergent token removal by both formatters", () => {
+test("compares ordering after matching formatter deduplication", () => {
   assert.equal(
     classifyDifference({
       original: ["rtl:mr-0", "flex", "rtl:mr-0"],
@@ -198,7 +218,7 @@ test("rejects convergent token removal by both formatters", () => {
       prettierScrambled: ["flex", "rtl:mr-0"],
       rustywind: ["flex", "rtl:mr-0"],
     }),
-    "token-multiset",
+    "exact",
   );
 });
 

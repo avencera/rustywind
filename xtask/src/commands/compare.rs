@@ -21,17 +21,25 @@ const MINIMUM_NODE_VERSION: &str = ">=20.19.0";
 pub(crate) enum CorpusName {
     #[value(name = "shadcn-ui")]
     ShadcnUi,
+    Tremor,
     #[value(name = "shadcn-svelte")]
     ShadcnSvelte,
+    #[value(name = "flowbite-svelte")]
+    FlowbiteSvelte,
     Astrowind,
+    #[value(name = "astro-paper")]
+    AstroPaper,
 }
 
 impl CorpusName {
     fn as_str(self) -> &'static str {
         match self {
             Self::ShadcnUi => "shadcn-ui",
+            Self::Tremor => "tremor",
             Self::ShadcnSvelte => "shadcn-svelte",
+            Self::FlowbiteSvelte => "flowbite-svelte",
             Self::Astrowind => "astrowind",
+            Self::AstroPaper => "astro-paper",
         }
     }
 }
@@ -104,7 +112,7 @@ impl CorpusSpec {
 }
 
 // update these fingerprints after intentionally refreshing the pinned corpus reports
-const CORPORA: [CorpusSpec; 3] = [
+const CORPORA: &[CorpusSpec] = &[
     CorpusSpec::new(
         CorpusName::ShadcnUi,
         "shadcn-ui/ui",
@@ -119,6 +127,19 @@ const CORPORA: [CorpusSpec; 3] = [
         },
     ),
     CorpusSpec::new(
+        CorpusName::Tremor,
+        "tremorlabs/tremor",
+        "ca4d588f47820ff3d514d37fa4ee08a4222dec11",
+        "src",
+        CorpusKind::Tsx,
+        40,
+        ExpectedCorpus {
+            files: 40,
+            attributes: 560,
+            fingerprint: "2b1c2815ba2f41173d6a2c5b3f95e790671ba56a1e699949c27cc437ee85f13e",
+        },
+    ),
+    CorpusSpec::new(
         CorpusName::ShadcnSvelte,
         "huntabyte/shadcn-svelte",
         "efcf8a4ef2c6a3a21ee2fd4db905519f8d4c8e63",
@@ -127,8 +148,21 @@ const CORPORA: [CorpusSpec; 3] = [
         40,
         ExpectedCorpus {
             files: 40,
-            attributes: 717,
-            fingerprint: "2b1e23a82fff982fe3f270a2cefaffeac3290c2fc640a656dd77a176bf13d80e",
+            attributes: 713,
+            fingerprint: "15e18692dc1bd3651867a52b12ed8f60cd1527c922b0258c15c1afef0fb79200",
+        },
+    ),
+    CorpusSpec::new(
+        CorpusName::FlowbiteSvelte,
+        "themesberg/flowbite-svelte",
+        "85f20a048ec51598e2be099bd57b5f555fe7a5b4",
+        "src/routes",
+        CorpusKind::Svelte,
+        40,
+        ExpectedCorpus {
+            files: 40,
+            attributes: 1382,
+            fingerprint: "d8d0a5b916a56f75a0028a35470e00a7ae95fefb3854b0c42bbc683c192f1ef4",
         },
     ),
     CorpusSpec::new(
@@ -139,9 +173,22 @@ const CORPORA: [CorpusSpec; 3] = [
         CorpusKind::Astro,
         53,
         ExpectedCorpus {
-            files: 53,
-            attributes: 379,
-            fingerprint: "7045db395ba1d01792b2731e78c94744745a9e6da56a6920fdd71efde752ac3e",
+            files: 52,
+            attributes: 362,
+            fingerprint: "5b8ae1fae9cee54b8b2748f9d05f89c3cd34fa225c28e3d658af4c452ccfe172",
+        },
+    ),
+    CorpusSpec::new(
+        CorpusName::AstroPaper,
+        "satnaing/astro-paper",
+        "4fe3aca0e09ed8404ec2e716ac4f3b57ccc252eb",
+        "src",
+        CorpusKind::Astro,
+        40,
+        ExpectedCorpus {
+            files: 20,
+            attributes: 103,
+            fingerprint: "2448e76486173bf89f516755cd0733c06f3fe13548ce88d53c86fbe8df7ed37b",
         },
     ),
 ];
@@ -159,6 +206,59 @@ struct CompareRunner {
 }
 
 struct RustywindBinary(PathBuf);
+
+#[derive(Clone, Copy)]
+enum RevisionFetchMode {
+    Shallow,
+    Complete,
+}
+
+#[derive(Clone, Copy)]
+struct RevisionFetch<'a> {
+    repository: &'a Path,
+    revision: &'a str,
+}
+
+impl<'a> RevisionFetch<'a> {
+    fn new(repository: &'a Path, revision: &'a str) -> Self {
+        Self {
+            repository,
+            revision,
+        }
+    }
+
+    fn run(self) -> Result<()> {
+        self.run_with(run_checked)
+    }
+
+    fn run_with(self, mut run: impl FnMut(&mut Command, &str) -> Result<()>) -> Result<()> {
+        let mut shallow = self.command(RevisionFetchMode::Shallow);
+        let shallow_error = match run(&mut shallow, "fetch pinned corpus revision shallowly") {
+            Ok(()) => return Ok(()),
+            Err(error) => error,
+        };
+
+        eprintln!("Shallow corpus fetch failed; retrying without a depth limit: {shallow_error:#}");
+        let mut complete = self.command(RevisionFetchMode::Complete);
+        run(
+            &mut complete,
+            "fetch pinned corpus revision without a depth limit",
+        )
+        .wrap_err_with(|| format!("shallow corpus fetch also failed: {shallow_error:#}"))
+    }
+
+    fn command(self, mode: RevisionFetchMode) -> Command {
+        let mut command = Command::new("git");
+        command
+            .current_dir(self.repository)
+            .args(["fetch", "--quiet"]);
+        if matches!(mode, RevisionFetchMode::Shallow) {
+            command.arg("--depth=1");
+        }
+        command.args(["origin", self.revision]);
+        command
+    }
+}
 
 impl RustywindBinary {
     fn build(workspace: &Path, offline: bool) -> Result<Self> {
@@ -325,15 +425,7 @@ impl CompareRunner {
 
         if !self.offline {
             self.configure_remote(&repository, spec)?;
-            let mut fetch = Command::new("git");
-            fetch.current_dir(&repository).args([
-                "fetch",
-                "--quiet",
-                "--depth=1",
-                "origin",
-                spec.revision,
-            ]);
-            run_checked(&mut fetch, "fetch pinned corpus revision")?;
+            RevisionFetch::new(&repository, spec.revision).run()?;
         }
 
         let mut checkout = Command::new("git");
@@ -870,6 +962,69 @@ fn validate_candidates(report: &NodeReport) -> Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+struct ComparisonTokens<'a> {
+    original: &'a [String],
+    scrambled: &'a [String],
+    prettier_original: &'a [String],
+    prettier_scrambled: &'a [String],
+    rustywind: &'a [String],
+}
+
+impl<'a> ComparisonTokens<'a> {
+    fn new(
+        original: &'a [String],
+        scrambled: &'a [String],
+        prettier_original: &'a [String],
+        prettier_scrambled: &'a [String],
+        rustywind: &'a [String],
+    ) -> Self {
+        Self {
+            original,
+            scrambled,
+            prettier_original,
+            prettier_scrambled,
+            rustywind,
+        }
+    }
+
+    fn contains_invalid_token(self) -> bool {
+        [
+            self.original,
+            self.scrambled,
+            self.prettier_original,
+            self.prettier_scrambled,
+            self.rustywind,
+        ]
+        .into_iter()
+        .flatten()
+        .any(|token| token.contains('\0'))
+    }
+
+    fn multisets_match(self) -> bool {
+        same_token_multiset(self.original, self.scrambled)
+            && [self.prettier_scrambled, self.rustywind]
+                .into_iter()
+                .all(|tokens| same_token_multiset(self.prettier_original, tokens))
+    }
+
+    fn known_token_order_is_preserved(self, unknown: &HashSet<&str>) -> bool {
+        self.prettier_scrambled
+            .iter()
+            .filter(|token| !unknown.contains(token.as_str()))
+            .eq(self
+                .rustywind
+                .iter()
+                .filter(|token| !unknown.contains(token.as_str())))
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ExpectedKnownTokenOrder {
+    Preserved,
+    Changed,
+}
+
 fn validate_details(report: &NodeReport) -> Result<()> {
     let candidate_attributes = report
         .candidates
@@ -929,24 +1084,21 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                 rustywind,
                 ..
             } => {
+                let tokens = ComparisonTokens::new(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                );
                 validate_attribute_detail(
                     path,
                     *attribute,
                     candidate_attributes,
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
+                    tokens,
                     &mut attribute_details,
                 )?;
-                if comparison_multisets_match(
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
-                ) {
+                if tokens.multisets_match() {
                     bail!("token-multiset detail does not describe a mismatch");
                 }
                 extraction = extraction
@@ -962,24 +1114,21 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                 rustywind,
                 ..
             } => {
+                let tokens = ComparisonTokens::new(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                );
                 validate_attribute_detail(
                     path,
                     *attribute,
                     candidate_attributes,
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
+                    tokens,
                     &mut attribute_details,
                 )?;
-                validate_ordering_detail(
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
-                )?;
+                validate_ordering_detail(tokens)?;
                 if prettier_original == prettier_scrambled {
                     bail!("prettier-nonconvergent detail contains convergent output");
                 }
@@ -997,25 +1146,26 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                 prettier_unknown,
                 ..
             } => {
+                let tokens = ComparisonTokens::new(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                );
                 validate_attribute_detail(
                     path,
                     *attribute,
                     candidate_attributes,
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
+                    tokens,
                     &mut attribute_details,
                 )?;
-                validate_convergent_mismatch(
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
+                validate_convergent_mismatch(tokens)?;
+                validate_known_token_order(
+                    tokens,
+                    prettier_unknown,
+                    ExpectedKnownTokenOrder::Preserved,
                 )?;
-                validate_unknown_tokens(prettier_unknown, rustywind)?;
                 custom_only = custom_only
                     .checked_add(1)
                     .ok_or_else(|| eyre!("custom-only detail count overflow"))?;
@@ -1030,25 +1180,26 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                 prettier_unknown,
                 ..
             } => {
+                let tokens = ComparisonTokens::new(
+                    original,
+                    scrambled,
+                    prettier_original,
+                    prettier_scrambled,
+                    rustywind,
+                );
                 validate_attribute_detail(
                     path,
                     *attribute,
                     candidate_attributes,
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
+                    tokens,
                     &mut attribute_details,
                 )?;
-                validate_convergent_mismatch(
-                    original,
-                    scrambled,
-                    prettier_original,
-                    prettier_scrambled,
-                    rustywind,
+                validate_convergent_mismatch(tokens)?;
+                validate_known_token_order(
+                    tokens,
+                    prettier_unknown,
+                    ExpectedKnownTokenOrder::Changed,
                 )?;
-                validate_unknown_tokens(prettier_unknown, rustywind)?;
                 known_order = known_order
                     .checked_add(1)
                     .ok_or_else(|| eyre!("known-order detail count overflow"))?;
@@ -1076,22 +1227,13 @@ fn validate_attribute_detail(
     path: &str,
     attribute: u64,
     candidate_attributes: u64,
-    original: &[String],
-    scrambled: &[String],
-    prettier_original: &[String],
-    prettier_scrambled: &[String],
-    rustywind: &[String],
+    tokens: ComparisonTokens<'_>,
     seen: &mut HashSet<(String, u64)>,
 ) -> Result<()> {
     if attribute >= candidate_attributes {
         bail!("detail attribute index is outside its candidate");
     }
-    if original.iter().any(|token| token.contains('\0'))
-        || scrambled.iter().any(|token| token.contains('\0'))
-        || prettier_original.iter().any(|token| token.contains('\0'))
-        || prettier_scrambled.iter().any(|token| token.contains('\0'))
-        || rustywind.iter().any(|token| token.contains('\0'))
-    {
+    if tokens.contains_invalid_token() {
         bail!("comparison detail contains an invalid class token");
     }
     if !seen.insert((path.to_string(), attribute)) {
@@ -1100,59 +1242,22 @@ fn validate_attribute_detail(
     Ok(())
 }
 
-fn validate_ordering_detail(
-    original: &[String],
-    scrambled: &[String],
-    prettier_original: &[String],
-    prettier_scrambled: &[String],
-    rustywind: &[String],
-) -> Result<()> {
-    if !comparison_multisets_match(
-        original,
-        scrambled,
-        prettier_original,
-        prettier_scrambled,
-        rustywind,
-    ) {
+fn validate_ordering_detail(tokens: ComparisonTokens<'_>) -> Result<()> {
+    if !tokens.multisets_match() {
         bail!("ordering detail contains a token-multiset mismatch");
     }
     Ok(())
 }
 
-fn validate_convergent_mismatch(
-    original: &[String],
-    scrambled: &[String],
-    prettier_original: &[String],
-    prettier_scrambled: &[String],
-    rustywind: &[String],
-) -> Result<()> {
-    validate_ordering_detail(
-        original,
-        scrambled,
-        prettier_original,
-        prettier_scrambled,
-        rustywind,
-    )?;
-    if prettier_original != prettier_scrambled {
+fn validate_convergent_mismatch(tokens: ComparisonTokens<'_>) -> Result<()> {
+    validate_ordering_detail(tokens)?;
+    if tokens.prettier_original != tokens.prettier_scrambled {
         bail!("ordering mismatch uses nonconvergent Prettier output");
     }
-    if prettier_scrambled == rustywind {
+    if tokens.prettier_scrambled == tokens.rustywind {
         bail!("ordering mismatch does not describe a mismatch");
     }
     Ok(())
-}
-
-fn comparison_multisets_match(
-    original: &[String],
-    scrambled: &[String],
-    prettier_original: &[String],
-    prettier_scrambled: &[String],
-    rustywind: &[String],
-) -> bool {
-    same_token_multiset(original, scrambled)
-        && [prettier_scrambled, rustywind]
-            .into_iter()
-            .all(|tokens| same_token_multiset(prettier_original, tokens))
 }
 
 fn same_token_multiset(left: &[String], right: &[String]) -> bool {
@@ -1163,11 +1268,35 @@ fn same_token_multiset(left: &[String], right: &[String]) -> bool {
     left == right
 }
 
-fn validate_unknown_tokens(unknown: &[String], rustywind: &[String]) -> Result<()> {
-    if unknown.iter().any(|token| !rustywind.contains(token)) {
-        bail!("detail unknown token is absent from the RustyWind tokens");
+fn validate_known_token_order(
+    tokens: ComparisonTokens<'_>,
+    unknown: &[String],
+    expected: ExpectedKnownTokenOrder,
+) -> Result<()> {
+    let unknown_set = unknown.iter().map(String::as_str).collect::<HashSet<_>>();
+    if unknown_set.len() != unknown.len() {
+        bail!("detail unknown token list contains duplicates");
     }
-    Ok(())
+    if unknown.iter().any(|token| {
+        !tokens.prettier_scrambled.contains(token) || !tokens.rustywind.contains(token)
+    }) {
+        bail!("detail unknown token is absent from the comparison tokens");
+    }
+
+    match (
+        expected,
+        tokens.known_token_order_is_preserved(&unknown_set),
+    ) {
+        (ExpectedKnownTokenOrder::Preserved, true) | (ExpectedKnownTokenOrder::Changed, false) => {
+            Ok(())
+        }
+        (ExpectedKnownTokenOrder::Preserved, false) => {
+            bail!("custom-only detail changes the order of known Tailwind tokens")
+        }
+        (ExpectedKnownTokenOrder::Changed, true) => {
+            bail!("known-order detail preserves the order of known Tailwind tokens")
+        }
+    }
 }
 
 fn validate_failures(report: &NodeReport) -> Result<()> {
@@ -1468,6 +1597,35 @@ mod tests {
     const FINGERPRINT: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     #[test]
+    fn revision_fetch_retries_without_a_depth_limit() {
+        let mut attempts = Vec::new();
+
+        RevisionFetch::new(Path::new("/repository"), "abc123")
+            .run_with(|command, _| {
+                attempts.push(
+                    command
+                        .get_args()
+                        .map(|argument| argument.to_string_lossy().into_owned())
+                        .collect::<Vec<_>>(),
+                );
+                if attempts.len() == 1 {
+                    Err(eyre!("shallow fetch rejected"))
+                } else {
+                    Ok(())
+                }
+            })
+            .unwrap();
+
+        assert_eq!(
+            attempts,
+            vec![
+                vec!["fetch", "--quiet", "--depth=1", "origin", "abc123"],
+                vec!["fetch", "--quiet", "origin", "abc123"],
+            ]
+        );
+    }
+
+    #[test]
     fn binary_resolution_uses_cargo_reported_executable() {
         let expected = PathBuf::from(
             "/custom-target/aarch64-unknown-linux-gnu/release/rustywind-custom-suffix",
@@ -1491,8 +1649,11 @@ mod tests {
             selected.iter().map(|spec| spec.name).collect::<Vec<_>>(),
             vec![
                 CorpusName::ShadcnUi,
+                CorpusName::Tremor,
                 CorpusName::ShadcnSvelte,
-                CorpusName::Astrowind
+                CorpusName::FlowbiteSvelte,
+                CorpusName::Astrowind,
+                CorpusName::AstroPaper,
             ]
         );
     }
@@ -1604,9 +1765,10 @@ mod tests {
         ];
         let formatted = vec!["flex".to_string(), "rtl:mr-0".to_string()];
 
-        assert!(comparison_multisets_match(
-            &original, &scrambled, &formatted, &formatted, &formatted,
-        ));
+        assert!(
+            ComparisonTokens::new(&original, &scrambled, &formatted, &formatted, &formatted)
+                .multisets_match()
+        );
     }
 
     #[test]
@@ -1706,6 +1868,73 @@ mod tests {
         report.summary.exact = 0;
         report.summary.known_order_mismatch = 1;
         assert!(validate_details(&report).is_ok());
+    }
+
+    #[test]
+    fn custom_only_and_known_order_require_distinct_known_token_orders() {
+        let original = vec!["flex".to_string(), "px-2".to_string()];
+        let scrambled = vec![
+            "brand-card".to_string(),
+            "flex".to_string(),
+            "px-2".to_string(),
+        ];
+        let prettier_original = original.clone();
+        let prettier_scrambled = scrambled.clone();
+        let preserved = vec![
+            "flex".to_string(),
+            "brand-card".to_string(),
+            "px-2".to_string(),
+        ];
+        let changed = vec![
+            "px-2".to_string(),
+            "brand-card".to_string(),
+            "flex".to_string(),
+        ];
+        let unknown = vec!["brand-card".to_string()];
+
+        let preserved_tokens = ComparisonTokens::new(
+            &original,
+            &scrambled,
+            &prettier_original,
+            &prettier_scrambled,
+            &preserved,
+        );
+        assert!(
+            validate_known_token_order(
+                preserved_tokens,
+                &unknown,
+                ExpectedKnownTokenOrder::Preserved,
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_known_token_order(
+                preserved_tokens,
+                &unknown,
+                ExpectedKnownTokenOrder::Changed,
+            )
+            .is_err()
+        );
+
+        let changed_tokens = ComparisonTokens::new(
+            &original,
+            &scrambled,
+            &prettier_original,
+            &prettier_scrambled,
+            &changed,
+        );
+        assert!(
+            validate_known_token_order(changed_tokens, &unknown, ExpectedKnownTokenOrder::Changed,)
+                .is_ok()
+        );
+        assert!(
+            validate_known_token_order(
+                changed_tokens,
+                &unknown,
+                ExpectedKnownTokenOrder::Preserved,
+            )
+            .is_err()
+        );
     }
 
     #[test]
