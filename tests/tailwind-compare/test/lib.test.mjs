@@ -72,6 +72,25 @@ const sample = '<div class="fake string">';
   }
 });
 
+test("preserves Astro attribute positions after multibyte text", () => {
+  const source = `---
+// →
+---
+<div class="flex p-4"></div>
+<span class="grid gap-2"></span>
+`;
+  const scrambled = scrambleAttributes(source, "astro");
+
+  assert.deepEqual(extractAttributes(source, "astro"), [
+    "flex p-4",
+    "grid gap-2",
+  ]);
+  assert.deepEqual(extractAttributes(scrambled, "astro"), [
+    "p-4 flex",
+    "gap-2 grid",
+  ]);
+});
+
 test("splits whitespace outside arbitrary-value brackets", () => {
   const value = String.raw`sm:hover:flex [grid-template-columns:1fr_2fr] content-['hello world'] [--value:'a \' b'] p-4`;
 

@@ -76,9 +76,33 @@ function findSvelteAttributes(source) {
   return attributes;
 }
 
+function stringIndicesByUtf8Offset(source, byteOffsets) {
+  const indices = new Map();
+  const pending = [...new Set(byteOffsets)].sort((left, right) => left - right);
+  let byteOffset = 0;
+  let stringIndex = 0;
+
+  for (const target of pending) {
+    while (byteOffset < target) {
+      const codePoint = source.codePointAt(stringIndex);
+      if (codePoint === undefined) {
+        throw new Error(`Astro source position ${target} is outside the source`);
+      }
+      byteOffset += Buffer.byteLength(String.fromCodePoint(codePoint), "utf8");
+      stringIndex += codePoint > 0xffff ? 2 : 1;
+    }
+    if (byteOffset !== target) {
+      throw new Error(`Astro source position ${target} splits a UTF-8 character`);
+    }
+    indices.set(target, stringIndex);
+  }
+
+  return indices;
+}
+
 function findAstroAttributes(source) {
   const { ast } = parseAstro(source, { position: true });
-  const attributes = [];
+  const candidates = [];
   walk(ast, (node) => {
     if (
       node.type !== "attribute" ||
@@ -91,17 +115,35 @@ function findAstroAttributes(source) {
     if ((quote !== '"' && quote !== "'") || node.raw.at(-1) !== quote) {
       return;
     }
-    const rawStart = source.indexOf(
-      node.raw,
-      node.position.start.offset + node.name.length,
-    );
-    if (rawStart === -1) return;
-    attributes.push({
-      end: rawStart + node.raw.length - 1,
-      start: rawStart + 1,
-    });
+    const offset = node.position?.start?.offset;
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+      throw new Error(`Astro ${node.name} attribute has an invalid position`);
+    }
+    candidates.push({ name: node.name, offset, raw: node.raw });
   });
-  return attributes;
+
+  const stringIndices = stringIndicesByUtf8Offset(
+    source,
+    candidates.map(({ offset }) => offset),
+  );
+  return candidates.map(({ name, offset, raw }) => {
+    const attributeStart = stringIndices.get(offset);
+    if (attributeStart === undefined) {
+      throw new Error(`Could not resolve Astro ${name} attribute position`);
+    }
+    const assignmentStart = attributeStart + name.length;
+    const rawStart = source.indexOf(raw, assignmentStart);
+    if (
+      rawStart === -1 ||
+      !/^\s*=\s*$/u.test(source.slice(assignmentStart, rawStart))
+    ) {
+      throw new Error(`Could not resolve Astro ${name} attribute value`);
+    }
+    return {
+      end: rawStart + raw.length - 1,
+      start: rawStart + 1,
+    };
+  });
 }
 
 function findStaticAttributes(source, kind) {
