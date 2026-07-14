@@ -11,7 +11,7 @@ export const kinds = Object.freeze({
 });
 
 export function isStaticCandidate(value) {
-  return !/[{}]/u.test(value) && !value.includes("<%") && !value.includes("<?");
+  return !value.includes("<%") && !value.includes("<?");
 }
 
 function walk(root, visit) {
@@ -259,9 +259,8 @@ export function classifyDifference(comparison, known) {
   } = comparison;
   if (
     !sameMultiset(original, scrambled) ||
-    !sameMultiset(original, prettierOriginal) ||
-    !sameMultiset(scrambled, prettierScrambled) ||
-    !sameMultiset(scrambled, rustywind)
+    !sameMultiset(prettierOriginal, prettierScrambled) ||
+    !sameMultiset(prettierOriginal, rustywind)
   ) {
     return "token-multiset";
   }

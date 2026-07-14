@@ -207,6 +207,59 @@ struct CompareRunner {
 
 struct RustywindBinary(PathBuf);
 
+#[derive(Clone, Copy)]
+enum RevisionFetchMode {
+    Shallow,
+    Complete,
+}
+
+#[derive(Clone, Copy)]
+struct RevisionFetch<'a> {
+    repository: &'a Path,
+    revision: &'a str,
+}
+
+impl<'a> RevisionFetch<'a> {
+    fn new(repository: &'a Path, revision: &'a str) -> Self {
+        Self {
+            repository,
+            revision,
+        }
+    }
+
+    fn run(self) -> Result<()> {
+        self.run_with(run_checked)
+    }
+
+    fn run_with(self, mut run: impl FnMut(&mut Command, &str) -> Result<()>) -> Result<()> {
+        let mut shallow = self.command(RevisionFetchMode::Shallow);
+        let shallow_error = match run(&mut shallow, "fetch pinned corpus revision shallowly") {
+            Ok(()) => return Ok(()),
+            Err(error) => error,
+        };
+
+        eprintln!("Shallow corpus fetch failed; retrying without a depth limit: {shallow_error:#}");
+        let mut complete = self.command(RevisionFetchMode::Complete);
+        run(
+            &mut complete,
+            "fetch pinned corpus revision without a depth limit",
+        )
+        .wrap_err_with(|| format!("shallow corpus fetch also failed: {shallow_error:#}"))
+    }
+
+    fn command(self, mode: RevisionFetchMode) -> Command {
+        let mut command = Command::new("git");
+        command
+            .current_dir(self.repository)
+            .args(["fetch", "--quiet"]);
+        if matches!(mode, RevisionFetchMode::Shallow) {
+            command.arg("--depth=1");
+        }
+        command.args(["origin", self.revision]);
+        command
+    }
+}
+
 impl RustywindBinary {
     fn build(workspace: &Path, offline: bool) -> Result<Self> {
         let mut build = Command::new("cargo");
@@ -372,15 +425,7 @@ impl CompareRunner {
 
         if !self.offline {
             self.configure_remote(&repository, spec)?;
-            let mut fetch = Command::new("git");
-            fetch.current_dir(&repository).args([
-                "fetch",
-                "--quiet",
-                "--depth=1",
-                "origin",
-                spec.revision,
-            ]);
-            run_checked(&mut fetch, "fetch pinned corpus revision")?;
+            RevisionFetch::new(&repository, spec.revision).run()?;
         }
 
         let mut checkout = Command::new("git");
@@ -962,6 +1007,22 @@ impl<'a> ComparisonTokens<'a> {
                 .into_iter()
                 .all(|tokens| same_token_multiset(self.prettier_original, tokens))
     }
+
+    fn known_token_order_is_preserved(self, unknown: &HashSet<&str>) -> bool {
+        self.prettier_scrambled
+            .iter()
+            .filter(|token| !unknown.contains(token.as_str()))
+            .eq(self
+                .rustywind
+                .iter()
+                .filter(|token| !unknown.contains(token.as_str())))
+    }
+}
+
+#[derive(Clone, Copy)]
+enum ExpectedKnownTokenOrder {
+    Preserved,
+    Changed,
 }
 
 fn validate_details(report: &NodeReport) -> Result<()> {
@@ -1100,7 +1161,11 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                     &mut attribute_details,
                 )?;
                 validate_convergent_mismatch(tokens)?;
-                validate_unknown_tokens(prettier_unknown, rustywind)?;
+                validate_known_token_order(
+                    tokens,
+                    prettier_unknown,
+                    ExpectedKnownTokenOrder::Preserved,
+                )?;
                 custom_only = custom_only
                     .checked_add(1)
                     .ok_or_else(|| eyre!("custom-only detail count overflow"))?;
@@ -1130,7 +1195,11 @@ fn validate_details(report: &NodeReport) -> Result<()> {
                     &mut attribute_details,
                 )?;
                 validate_convergent_mismatch(tokens)?;
-                validate_unknown_tokens(prettier_unknown, rustywind)?;
+                validate_known_token_order(
+                    tokens,
+                    prettier_unknown,
+                    ExpectedKnownTokenOrder::Changed,
+                )?;
                 known_order = known_order
                     .checked_add(1)
                     .ok_or_else(|| eyre!("known-order detail count overflow"))?;
@@ -1199,11 +1268,35 @@ fn same_token_multiset(left: &[String], right: &[String]) -> bool {
     left == right
 }
 
-fn validate_unknown_tokens(unknown: &[String], rustywind: &[String]) -> Result<()> {
-    if unknown.iter().any(|token| !rustywind.contains(token)) {
-        bail!("detail unknown token is absent from the RustyWind tokens");
+fn validate_known_token_order(
+    tokens: ComparisonTokens<'_>,
+    unknown: &[String],
+    expected: ExpectedKnownTokenOrder,
+) -> Result<()> {
+    let unknown_set = unknown.iter().map(String::as_str).collect::<HashSet<_>>();
+    if unknown_set.len() != unknown.len() {
+        bail!("detail unknown token list contains duplicates");
     }
-    Ok(())
+    if unknown.iter().any(|token| {
+        !tokens.prettier_scrambled.contains(token) || !tokens.rustywind.contains(token)
+    }) {
+        bail!("detail unknown token is absent from the comparison tokens");
+    }
+
+    match (
+        expected,
+        tokens.known_token_order_is_preserved(&unknown_set),
+    ) {
+        (ExpectedKnownTokenOrder::Preserved, true) | (ExpectedKnownTokenOrder::Changed, false) => {
+            Ok(())
+        }
+        (ExpectedKnownTokenOrder::Preserved, false) => {
+            bail!("custom-only detail changes the order of known Tailwind tokens")
+        }
+        (ExpectedKnownTokenOrder::Changed, true) => {
+            bail!("known-order detail preserves the order of known Tailwind tokens")
+        }
+    }
 }
 
 fn validate_failures(report: &NodeReport) -> Result<()> {
@@ -1504,6 +1597,35 @@ mod tests {
     const FINGERPRINT: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     #[test]
+    fn revision_fetch_retries_without_a_depth_limit() {
+        let mut attempts = Vec::new();
+
+        RevisionFetch::new(Path::new("/repository"), "abc123")
+            .run_with(|command, _| {
+                attempts.push(
+                    command
+                        .get_args()
+                        .map(|argument| argument.to_string_lossy().into_owned())
+                        .collect::<Vec<_>>(),
+                );
+                if attempts.len() == 1 {
+                    Err(eyre!("shallow fetch rejected"))
+                } else {
+                    Ok(())
+                }
+            })
+            .unwrap();
+
+        assert_eq!(
+            attempts,
+            vec![
+                vec!["fetch", "--quiet", "--depth=1", "origin", "abc123"],
+                vec!["fetch", "--quiet", "origin", "abc123"],
+            ]
+        );
+    }
+
+    #[test]
     fn binary_resolution_uses_cargo_reported_executable() {
         let expected = PathBuf::from(
             "/custom-target/aarch64-unknown-linux-gnu/release/rustywind-custom-suffix",
@@ -1746,6 +1868,73 @@ mod tests {
         report.summary.exact = 0;
         report.summary.known_order_mismatch = 1;
         assert!(validate_details(&report).is_ok());
+    }
+
+    #[test]
+    fn custom_only_and_known_order_require_distinct_known_token_orders() {
+        let original = vec!["flex".to_string(), "px-2".to_string()];
+        let scrambled = vec![
+            "brand-card".to_string(),
+            "flex".to_string(),
+            "px-2".to_string(),
+        ];
+        let prettier_original = original.clone();
+        let prettier_scrambled = scrambled.clone();
+        let preserved = vec![
+            "flex".to_string(),
+            "brand-card".to_string(),
+            "px-2".to_string(),
+        ];
+        let changed = vec![
+            "px-2".to_string(),
+            "brand-card".to_string(),
+            "flex".to_string(),
+        ];
+        let unknown = vec!["brand-card".to_string()];
+
+        let preserved_tokens = ComparisonTokens::new(
+            &original,
+            &scrambled,
+            &prettier_original,
+            &prettier_scrambled,
+            &preserved,
+        );
+        assert!(
+            validate_known_token_order(
+                preserved_tokens,
+                &unknown,
+                ExpectedKnownTokenOrder::Preserved,
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_known_token_order(
+                preserved_tokens,
+                &unknown,
+                ExpectedKnownTokenOrder::Changed,
+            )
+            .is_err()
+        );
+
+        let changed_tokens = ComparisonTokens::new(
+            &original,
+            &scrambled,
+            &prettier_original,
+            &prettier_scrambled,
+            &changed,
+        );
+        assert!(
+            validate_known_token_order(changed_tokens, &unknown, ExpectedKnownTokenOrder::Changed,)
+                .is_ok()
+        );
+        assert!(
+            validate_known_token_order(
+                changed_tokens,
+                &unknown,
+                ExpectedKnownTokenOrder::Preserved,
+            )
+            .is_err()
+        );
     }
 
     #[test]

@@ -27,6 +27,7 @@ test("extracts only static quoted class attributes", () => {
   assert.deepEqual(extractAttributes(source, "astro"), [
     "flex p-4",
     "grid gap-2",
+    "before:content-['{']",
   ]);
 });
 
@@ -208,7 +209,7 @@ test("rejects order classification without a result for every token", () => {
   );
 });
 
-test("rejects convergent token removal by both formatters", () => {
+test("compares ordering after matching formatter deduplication", () => {
   assert.equal(
     classifyDifference({
       original: ["rtl:mr-0", "flex", "rtl:mr-0"],
@@ -217,7 +218,7 @@ test("rejects convergent token removal by both formatters", () => {
       prettierScrambled: ["flex", "rtl:mr-0"],
       rustywind: ["flex", "rtl:mr-0"],
     }),
-    "token-multiset",
+    "exact",
   );
 });
 
