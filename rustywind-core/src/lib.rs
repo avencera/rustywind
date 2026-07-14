@@ -3,6 +3,7 @@
 //! Use [`RustyWind::sort_document`] with a [`SourceDocument`] so RustyWind can
 //! distinguish static class text from embedded template code
 pub mod app;
+mod class_name;
 pub mod class_wrapping;
 pub mod consts;
 pub mod defaults;

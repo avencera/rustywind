@@ -28,6 +28,7 @@
 
 use std::cmp::Ordering;
 
+use crate::class_name::ClassSegments;
 use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
 use crate::tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value};
@@ -327,19 +328,7 @@ fn compare_alphanumeric(a: &str, z: &str) -> Ordering {
 }
 
 fn utility_part(class: &str) -> &str {
-    let mut start = 0;
-    let mut bracket_depth: u32 = 0;
-
-    for (index, character) in class.char_indices() {
-        match character {
-            '[' => bracket_depth += 1,
-            ']' => bracket_depth = bracket_depth.saturating_sub(1),
-            ':' if bracket_depth == 0 => start = index + 1,
-            _ => {}
-        }
-    }
-
-    let utility = &class[start..];
+    let utility = ClassSegments::parse(class).map_or(class, |segments| segments.utility());
     let utility = utility.strip_prefix('!').unwrap_or(utility);
     utility.strip_suffix('!').unwrap_or(utility)
 }
