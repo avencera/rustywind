@@ -14,6 +14,19 @@ use crate::{
 };
 
 type Input<'a> = LocatingSlice<&'a str>;
+const MAX_RECURSION_DEPTH: usize = 128;
+
+#[derive(Clone, Copy)]
+struct RecursionDepth(usize);
+
+impl RecursionDepth {
+    const ROOT: Self = Self(0);
+
+    fn descend(self) -> Option<Self> {
+        let depth = self.0.checked_add(1)?;
+        (depth <= MAX_RECURSION_DEPTH).then_some(Self(depth))
+    }
+}
 
 pub(crate) fn class_attributes(source: &str) -> Option<Vec<ClassAttribute>> {
     JsxParser::new(source).parse()
@@ -22,6 +35,7 @@ pub(crate) fn class_attributes(source: &str) -> Option<Vec<ClassAttribute>> {
 struct JsxParser<'a> {
     source: &'a str,
     attributes: Vec<ClassAttribute>,
+    recursion_limit_reached: bool,
 }
 
 impl<'a> JsxParser<'a> {
@@ -29,16 +43,22 @@ impl<'a> JsxParser<'a> {
         Self {
             source,
             attributes: Vec::new(),
+            recursion_limit_reached: false,
         }
     }
 
     fn parse(mut self) -> Option<Vec<ClassAttribute>> {
         let mut input = Input::new(self.source);
-        self.parse_javascript(&mut input, None)?;
+        self.parse_javascript(&mut input, None, RecursionDepth::ROOT)?;
         Some(self.attributes)
     }
 
-    fn parse_javascript(&mut self, input: &mut Input<'a>, closing: Option<char>) -> Option<()> {
+    fn parse_javascript(
+        &mut self,
+        input: &mut Input<'a>,
+        closing: Option<char>,
+        depth: RecursionDepth,
+    ) -> Option<()> {
         let mut can_start_expression = true;
 
         loop {
@@ -70,7 +90,8 @@ impl<'a> JsxParser<'a> {
                 continue;
             }
             if character == '`' {
-                self.parse_template_literal(input)?;
+                let nested_depth = self.descend(depth)?;
+                self.parse_template_literal(input, nested_depth)?;
                 can_start_expression = false;
                 continue;
             }
@@ -87,7 +108,7 @@ impl<'a> JsxParser<'a> {
             }
 
             if character == '<' && can_start_expression && is_jsx_opening_start(source.as_bytes()) {
-                if self.try_parse_jsx(input) {
+                if self.try_parse_jsx(input, depth)? {
                     can_start_expression = false;
                     continue;
                 }
@@ -98,7 +119,8 @@ impl<'a> JsxParser<'a> {
 
             if let Some(group_closing) = group_closing(character) {
                 consume_character(input, character)?;
-                self.parse_javascript(input, Some(group_closing))?;
+                let nested_depth = self.descend(depth)?;
+                self.parse_javascript(input, Some(group_closing), nested_depth)?;
                 can_start_expression = false;
                 continue;
             }
@@ -135,7 +157,11 @@ impl<'a> JsxParser<'a> {
         }
     }
 
-    fn parse_template_literal(&mut self, input: &mut Input<'a>) -> Option<()> {
+    fn parse_template_literal(
+        &mut self,
+        input: &mut Input<'a>,
+        depth: RecursionDepth,
+    ) -> Option<()> {
         consume_character(input, '`')?;
         loop {
             let source = remaining(input);
@@ -148,7 +174,8 @@ impl<'a> JsxParser<'a> {
                 '$' if source.starts_with("${") => {
                     consume_character(input, '$')?;
                     consume_character(input, '{')?;
-                    self.parse_javascript(input, Some('}'))?;
+                    let nested_depth = self.descend(depth)?;
+                    self.parse_javascript(input, Some('}'), nested_depth)?;
                 }
                 _ => {
                     any::<_, winnow::error::ContextError>
@@ -160,33 +187,38 @@ impl<'a> JsxParser<'a> {
         }
     }
 
-    fn try_parse_jsx(&mut self, input: &mut Input<'a>) -> bool {
+    fn try_parse_jsx(&mut self, input: &mut Input<'a>, depth: RecursionDepth) -> Option<bool> {
+        let nested_depth = self.descend(depth)?;
         let checkpoint = input.checkpoint();
         let attribute_count = self.attributes.len();
-        if self.parse_jsx(input).is_some() {
-            return true;
+        if self.parse_jsx(input, nested_depth).is_some() {
+            return Some(true);
         }
 
         self.attributes.truncate(attribute_count);
         input.reset(&checkpoint);
-        false
+        (!self.recursion_limit_reached).then_some(false)
     }
 
-    fn parse_jsx(&mut self, input: &mut Input<'a>) -> Option<()> {
+    fn parse_jsx(&mut self, input: &mut Input<'a>, depth: RecursionDepth) -> Option<()> {
         consume_literal(input, "<")?;
         if remaining(input).starts_with('>') {
             consume_literal(input, ">")?;
-            return self.parse_jsx_children(input, None);
+            return self.parse_jsx_children(input, None, depth);
         }
 
         let name = self.parse_jsx_name(input)?;
-        if self.parse_jsx_attributes(input)? {
+        if self.parse_jsx_attributes(input, depth)? {
             return Some(());
         }
-        self.parse_jsx_children(input, Some(name))
+        self.parse_jsx_children(input, Some(name), depth)
     }
 
-    fn parse_jsx_attributes(&mut self, input: &mut Input<'a>) -> Option<bool> {
+    fn parse_jsx_attributes(
+        &mut self,
+        input: &mut Input<'a>,
+        depth: RecursionDepth,
+    ) -> Option<bool> {
         loop {
             let whitespace: &str = multispace0::<_, winnow::error::ContextError>
                 .parse_next(input)
@@ -214,7 +246,8 @@ impl<'a> JsxParser<'a> {
 
             if remaining(input).starts_with('{') {
                 consume_character(input, '{')?;
-                self.parse_javascript(input, Some('}'))?;
+                let nested_depth = self.descend(depth)?;
+                self.parse_javascript(input, Some('}'), nested_depth)?;
                 continue;
             }
 
@@ -238,11 +271,13 @@ impl<'a> JsxParser<'a> {
                 quote @ ('\'' | '"') => Some(self.parse_quoted_attribute(input, quote)?),
                 '{' => {
                     consume_character(input, '{')?;
-                    self.parse_javascript(input, Some('}'))?;
+                    let nested_depth = self.descend(depth)?;
+                    self.parse_javascript(input, Some('}'), nested_depth)?;
                     None
                 }
                 '<' if is_jsx_opening_start(remaining(input).as_bytes()) => {
-                    self.parse_jsx(input)?;
+                    let nested_depth = self.descend(depth)?;
+                    self.parse_jsx(input, nested_depth)?;
                     None
                 }
                 _ => return None,
@@ -276,6 +311,7 @@ impl<'a> JsxParser<'a> {
         &mut self,
         input: &mut Input<'a>,
         expected_name: Option<&'a str>,
+        depth: RecursionDepth,
     ) -> Option<()> {
         loop {
             let source = remaining(input);
@@ -294,12 +330,14 @@ impl<'a> JsxParser<'a> {
                 return Some(());
             }
             if source.starts_with('<') {
-                self.parse_jsx(input)?;
+                let nested_depth = self.descend(depth)?;
+                self.parse_jsx(input, nested_depth)?;
                 continue;
             }
             if source.starts_with('{') {
                 consume_character(input, '{')?;
-                self.parse_javascript(input, Some('}'))?;
+                let nested_depth = self.descend(depth)?;
+                self.parse_javascript(input, Some('}'), nested_depth)?;
                 continue;
             }
 
@@ -342,6 +380,16 @@ impl<'a> JsxParser<'a> {
             self.parse_jsx_name_segment(input)?;
         }
         Some(&self.source[start..input.current_token_start()])
+    }
+
+    fn descend(&mut self, depth: RecursionDepth) -> Option<RecursionDepth> {
+        match depth.descend() {
+            Some(depth) => Some(depth),
+            None => {
+                self.recursion_limit_reached = true;
+                None
+            }
+        }
     }
 }
 
@@ -396,7 +444,7 @@ fn consume_character(input: &mut Input<'_>, expected: char) -> Option<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::class_attributes;
+    use super::{MAX_RECURSION_DEPTH, class_attributes};
 
     fn values(source: &str) -> Option<Vec<&str>> {
         class_attributes(source).map(|attributes| {
@@ -486,5 +534,41 @@ mod tests {
             values("const view = <div className=\"fake\">"),
             Some(Vec::new())
         );
+    }
+
+    #[test]
+    fn recursion_limit_fails_closed_across_every_recursive_syntax() {
+        let excessive_depth = MAX_RECURSION_DEPTH + 1;
+        let groups = format!(
+            "{}0{}",
+            "(".repeat(excessive_depth),
+            ")".repeat(excessive_depth)
+        );
+        let jsx = format!(
+            "{}content{}",
+            "<div>".repeat(excessive_depth),
+            "</div>".repeat(excessive_depth)
+        );
+        let templates = format!(
+            "{}0{}",
+            "`${".repeat(excessive_depth),
+            "}`".repeat(excessive_depth)
+        );
+
+        for source in [groups, jsx, templates] {
+            assert_eq!(values(&source), None);
+        }
+    }
+
+    #[test]
+    fn recursion_depth_is_restored_for_shallow_siblings() {
+        let nested_groups = MAX_RECURSION_DEPTH - 1;
+        let source = format!(
+            "{}0{}, <div className=\"p-4 flex\" />",
+            "(".repeat(nested_groups),
+            ")".repeat(nested_groups)
+        );
+
+        assert_eq!(values(&source), Some(vec!["p-4 flex"]));
     }
 }
