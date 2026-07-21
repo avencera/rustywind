@@ -7,6 +7,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
 import { allClasses, variants, variantStackingPatterns, opacityClasses, arbitraryValueClasses } from './tailwind-classes.js';
 import { filterLegacyClasses } from './legacy-classes.js';
 import { existsSync, readFileSync } from 'fs';
@@ -14,6 +15,9 @@ import prettier from 'prettier';
 import seedrandom from 'seedrandom';
 
 const execAsync = promisify(exec);
+
+// plugin 0.8.x needs a v4 stylesheet entry point, otherwise it falls back to legacy ordering
+const tailwindStylesheet = fileURLToPath(new URL('./tailwind.css', import.meta.url));
 
 // Configuration
 const NUM_TESTS = 100; // Number of test cases
@@ -185,6 +189,7 @@ async function sortWithPrettier(classes) {
   const formatted = await prettier.format(html, {
     parser: 'html',
     plugins: ['prettier-plugin-tailwindcss'],
+    tailwindStylesheet,
     printWidth: 10000,
   });
 
