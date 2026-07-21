@@ -47,3 +47,7 @@ serde_json = "1.0"
 
 # parallelism
 rayon = "1.10"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.10"
