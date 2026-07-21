@@ -1,0 +1,37 @@
+name: Compare Tailwind
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  compare-tailwind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/tailwind-compare/package-lock.json
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Compare RustyWind with Prettier Tailwind plugin
+        run: just compare-tailwind
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tailwind-compare-results
+          path: target/tailwind-compare/results/
+          if-no-files-found: ignore
