@@ -1494,7 +1494,6 @@ dependencies = [
  "rustywind_vite",
  "serde",
  "serde_json",
- "shlex",
  "tempfile",
 ]
 

@@ -1,4 +1,3 @@
-use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
@@ -6,26 +5,17 @@ use std::process::{Command, Output, Stdio};
 use serde_json::Value;
 use tempfile::TempDir;
 
-fn command(current_dir: &Path) -> Command {
-    let binary = assert_cmd::cargo::cargo_bin!("rustywind");
-    let mut command = target_command(binary, std::env::var_os("CROSS_TARGET_RUNNER"));
-    command.current_dir(current_dir);
-    command
+// cross runs the test harness itself under qemu, which cannot reliably spawn the
+// target binary as a child process, so these end-to-end tests only run on a
+// native target. cross sets `CROSS_RUNNER` inside its container; the tests.yml
+// job exercises the same tests natively on x86_64 Linux, macOS, and Windows
+fn emulated_under_cross() -> bool {
+    std::env::var_os("CROSS_RUNNER").is_some()
 }
 
-fn target_command(binary: &Path, runner: Option<OsString>) -> Command {
-    let Some(runner) = runner else {
-        return Command::new(binary);
-    };
-    let runner = runner
-        .into_string()
-        .expect("target runner should be valid Unicode");
-    let parts = shlex::split(&runner).expect("target runner should have valid shell quoting");
-    let Some((program, args)) = parts.split_first() else {
-        panic!("target runner should not be empty");
-    };
-    let mut command = Command::new(program);
-    command.args(args).arg(binary);
+fn command(current_dir: &Path) -> Command {
+    let mut command = Command::new(assert_cmd::cargo::cargo_bin!("rustywind"));
+    command.current_dir(current_dir);
     command
 }
 
@@ -65,25 +55,10 @@ fn write_unsorted(path: impl AsRef<Path>) {
 }
 
 #[test]
-fn target_command_wraps_binary_with_configured_runner() {
-    let command = target_command(
-        Path::new("/target/debug/rustywind"),
-        Some(OsString::from("/linux-runner aarch64 'runner option'")),
-    );
-
-    assert_eq!(command.get_program(), OsStr::new("/linux-runner"));
-    assert_eq!(
-        command.get_args().collect::<Vec<_>>(),
-        [
-            OsStr::new("aarch64"),
-            OsStr::new("runner option"),
-            OsStr::new("/target/debug/rustywind")
-        ]
-    );
-}
-
-#[test]
 fn check_json_reports_changes_in_deterministic_order() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     write_unsorted(directory.path().join("b.html"));
     write_unsorted(directory.path().join("a.html"));
@@ -111,6 +86,9 @@ fn check_json_reports_changes_in_deterministic_order() {
 
 #[test]
 fn dry_run_and_bare_json_include_full_formatted_content() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     write_unsorted(directory.path().join("input.html"));
 
@@ -143,6 +121,9 @@ fn dry_run_and_bare_json_include_full_formatted_content() {
 
 #[test]
 fn write_json_reports_and_applies_changes() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     write_unsorted(directory.path().join("input.html"));
 
@@ -170,6 +151,9 @@ fn write_json_reports_and_applies_changes() {
 
 #[test]
 fn stdin_json_reports_formatted_content_without_human_warning() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     let output = run_with_stdin(
         directory.path(),
@@ -199,6 +183,9 @@ fn stdin_json_reports_formatted_content_without_human_warning() {
 
 #[test]
 fn json_continues_after_missing_input_and_returns_partial_results() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     write_unsorted(directory.path().join("valid.html"));
 
@@ -223,6 +210,9 @@ fn json_continues_after_missing_input_and_returns_partial_results() {
 
 #[test]
 fn missing_directory_is_a_walk_error() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     let output = run(
         directory.path(),
@@ -238,6 +228,9 @@ fn missing_directory_is_a_walk_error() {
 
 #[test]
 fn invalid_utf8_is_skipped_without_an_error() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     fs::write(directory.path().join("binary.html"), [0xff, 0xfe]).unwrap();
 
@@ -256,6 +249,9 @@ fn invalid_utf8_is_skipped_without_an_error() {
 
 #[test]
 fn overlapping_paths_are_processed_once() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     fs::create_dir(directory.path().join("nested")).unwrap();
     write_unsorted(directory.path().join("nested/input.html"));
@@ -276,6 +272,9 @@ fn overlapping_paths_are_processed_once() {
 
 #[test]
 fn colliding_human_paths_fall_back_to_cwd_relative_paths() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     for root in ["left/src", "right/src"] {
         fs::create_dir_all(directory.path().join(root)).unwrap();
@@ -302,6 +301,9 @@ fn colliding_human_paths_fall_back_to_cwd_relative_paths() {
 
 #[test]
 fn quiet_dry_run_is_allowed_only_for_json() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     write_unsorted(directory.path().join("input.html"));
 
@@ -320,6 +322,9 @@ fn quiet_dry_run_is_allowed_only_for_json() {
 
 #[test]
 fn representative_human_modes_keep_their_output() {
+    if emulated_under_cross() {
+        return;
+    }
     let directory = TempDir::new().unwrap();
     write_unsorted(directory.path().join("input.html"));
 
