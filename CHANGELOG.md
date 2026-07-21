@@ -2,14 +2,19 @@
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-07-21
+
 ### Added
 
-- Add language-aware class extraction for HTML, Svelte, Django, Jinja, Twig,
-  Liquid, Handlebars, ERB, EJS, PHP, Blade, Lit, Ruby, JSX, and TSX
+- Add language-aware class extraction for HTML, Svelte, Astro, Django, Jinja,
+  Twig, Liquid, Handlebars, ERB, EJS, PHP, Blade, Lit, Ruby, JSX, and TSX
 - Parse JSX and TSX with Winnow so only directly quoted `class` and `className`
   attributes in real JSX elements are sorted
-- Add `--language` to override source-language inference and
-  `--stdin-filename` to infer the language of standard input
+- Add first-class Astro parsing for static quoted class attributes while
+  preserving frontmatter, expressions, `class:list`, and raw content
+- Add `--language` / `-l` to override source-language inference and
+  `--stdin-filename` / `-f` to infer the language of standard input
+- Add `-p` as a short alias for `--tailwind-prefix`
 - Preserve template expressions as opaque boundaries while independently
   sorting adjacent static class runs
 
@@ -28,6 +33,11 @@
 - Preserve nested class attributes inside capitalized Svelte components
 - Continue accepting the first positional capture in `--custom-regex`, as in
   RustyWind 0.24 and earlier, while also supporting a named `classes` capture
+- Sort parenthesized ring color utilities and typed ring length custom
+  properties with Tailwind ring ordering (for example `ring-(--color)` and
+  `ring-(length:--width)`)
+- Order container-query variants—including default, named, and arbitrary
+  breakpoints—by direction and resolved size to match Tailwind / Prettier
 
 ### Performance
 
@@ -46,8 +56,8 @@
 - Recognized markup languages only sort literal `class` and `className`
   attributes in actual tags. Class-like text in comments, raw-text elements,
   program strings, and dynamic or namespaced attributes is no longer rewritten
-- `SourceLanguage` now includes a `Jsx` variant used for both JSX and TSX.
-  Downstream exhaustive matches must handle it
+- `SourceLanguage` now includes `Astro` and `Jsx` (shared by JSX and TSX).
+  Downstream exhaustive matches must handle both variants
 
 ## [0.25.2] - 2026-07-08
 

@@ -1,6 +1,6 @@
 {
   "name": "rustywind-linux-x64-musl",
-  "version": "0.25.2",
+  "version": "0.26.0",
   "cpu": [
     "x64"
   ],

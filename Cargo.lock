@@ -1419,7 +1419,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustywind"
-version = "0.25.2"
+version = "0.26.0"
 dependencies = [
  "ahash",
  "anstyle",
@@ -1442,7 +1442,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind_core"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "ahash",
  "aho-corasick",
@@ -1460,7 +1460,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind_vite"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "color-eyre",
  "eyre",
