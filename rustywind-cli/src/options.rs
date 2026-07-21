@@ -132,6 +132,7 @@ impl Options {
             allow_duplicates: cli.allow_duplicates,
             class_wrapping: get_class_wrapping_from_cli(&cli),
             tailwind_prefix: cli.tailwind_prefix.clone(),
+            infer_named_colors: !cli.no_named_colors,
         };
 
         Ok(Options {

@@ -4,6 +4,9 @@
 
 ### Added
 
+- Add `--no-named-colors` to keep ambiguous project-defined names such as
+  `text-display` unknown instead of inferring them as colors; the option applies
+  to pattern sorting and preserves named-color inference as the default
 - Add `--json` to the check, dry-run, bare, write, and stdin modes to emit one
   machine-readable JSON document with changed files, changed class-group counts,
   proposed or written content, and structured `{path, message}` errors for
@@ -31,6 +34,12 @@
 ### Fixed
 
 - Replace the panic on unreadable stdin with a normal error message
+
+### Breaking changes
+
+- `RustyWind` now includes an `infer_named_colors` option. Code constructing
+  `RustyWind` with a struct literal must set `infer_named_colors: true` to keep
+  the default behavior, or use `RustyWind::new` or `RustyWind::default`.
 
 ## [0.26.0] - 2026-07-21
 

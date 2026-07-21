@@ -32,6 +32,7 @@ use crate::class_name::ClassSegments;
 use crate::class_parser::parse_class;
 use crate::property_order::get_property_index;
 use crate::tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value};
+use crate::utility_map::UTILITY_MAP;
 use crate::variant_order::{
     ARBITRARY_VARIANT_BIT, VariantInfo, calculate_variant_order, compare_variant_lists,
     parse_variants,
@@ -1131,6 +1132,7 @@ impl PartialOrd for SortKey {
 /// collections of classes according to Tailwind's canonical ordering.
 pub struct PatternSorter {
     tailwind_prefix: Option<compact_str::CompactString>,
+    infer_named_colors: bool,
 }
 
 impl PatternSorter {
@@ -1138,6 +1140,7 @@ impl PatternSorter {
     pub fn new() -> Self {
         Self {
             tailwind_prefix: None,
+            infer_named_colors: true,
         }
     }
 
@@ -1147,7 +1150,14 @@ impl PatternSorter {
             tailwind_prefix: tailwind_prefix
                 .and_then(normalize_tailwind_prefix_value)
                 .map(compact_str::CompactString::new),
+            infer_named_colors: true,
         }
+    }
+
+    /// Configure whether project-defined named values are inferred to be colors
+    pub fn with_named_color_inference(mut self, infer_named_colors: bool) -> Self {
+        self.infer_named_colors = infer_named_colors;
+        self
     }
 
     /// Get the sort key for a class string.
@@ -1192,7 +1202,10 @@ impl PatternSorter {
             .collect();
 
         // get the CSS properties this utility generates
-        let properties = parsed.get_properties()?;
+        let properties = UTILITY_MAP.get_properties_with_named_color_inference(
+            &parsed.full_utility(),
+            self.infer_named_colors,
+        )?;
 
         // get ALL property indices (not just minimum) for proper multi-property tiebreaking
         // this is crucial for utilities like rounded-t vs rounded-l that share the first property

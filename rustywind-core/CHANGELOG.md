@@ -4,10 +4,18 @@
 
 ### Added
 
+- Add configurable named-color inference through `RustyWind`, `PatternSorter`,
+  `HybridSorter`, and `UtilityMap`; inference remains enabled by default
 - Add `SortReport` and `RustyWind::sort_document_with_report`, which return the
   sorted contents together with the number of class groups (attribute values or
   custom-regex captures) whose text changed; `sort_document` is now a thin
   wrapper over the report
+
+### Breaking changes
+
+- `RustyWind` now includes an `infer_named_colors` option. Code constructing
+  `RustyWind` with a struct literal must set it explicitly or use an existing
+  constructor.
 
 ## [0.5.0] - 2026-07-21
 

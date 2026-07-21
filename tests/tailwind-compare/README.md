@@ -71,3 +71,14 @@ sentinels using a Tailwind 4 stylesheet that layers a shadcn-style semantic
 `chart-5`, and others) over the defaults so design-system color tokens are
 graded as known utilities. Differences that preserve the order of known tokens
 are reported separately as `custom-only`.
+
+RustyWind's named-color fallback is configuration-blind, which carries two
+known limitations. A project theme key in another namespace that shares a
+color-capable prefix (for example `--text-display`, making `text-display` a
+font-size utility) is still sorted as a color by default; `--no-named-colors`
+keeps ambiguous names unknown, while deriving order from the project's real CSS
+via `--output-css-file` or `--vite-css` provides exact project-specific order.
+Invalid opacity modifiers such as `bg-muted/foo` are sorted as their base
+color even though Tailwind rejects the candidate; modifier validation is
+per-utility (`text-sm/tight` and `group/name` are valid) and is out of scope
+for the comparison engine.

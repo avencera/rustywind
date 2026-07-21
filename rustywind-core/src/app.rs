@@ -19,8 +19,17 @@ use std::sync::{Arc, LazyLock, RwLock};
 
 /// Global instance of the HybridSorter for pattern-based sorting
 static PATTERN_SORTER: LazyLock<HybridSorter> = LazyLock::new(HybridSorter::new);
-static PREFIXED_PATTERN_SORTERS: LazyLock<RwLock<HashMap<String, Arc<HybridSorter>>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
+static PATTERN_SORTER_WITHOUT_NAMED_COLORS: LazyLock<HybridSorter> =
+    LazyLock::new(|| HybridSorter::new().with_named_color_inference(false));
+static PREFIXED_PATTERN_SORTERS: LazyLock<
+    RwLock<HashMap<PatternSorterCacheKey, Arc<HybridSorter>>>,
+> = LazyLock::new(|| RwLock::new(HashMap::new()));
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct PatternSorterCacheKey {
+    tailwind_prefix: String,
+    infer_named_colors: bool,
+}
 
 struct SortCandidate<'a> {
     original: &'a str,
@@ -164,6 +173,8 @@ pub struct RustyWind {
     pub class_wrapping: ClassWrapping,
     /// Tailwind prefix normalized while computing sort order
     pub tailwind_prefix: Option<String>,
+    /// Whether project-defined named values are inferred to be colors
+    pub infer_named_colors: bool,
 }
 
 impl Default for RustyWind {
@@ -174,6 +185,7 @@ impl Default for RustyWind {
             allow_duplicates: false,
             class_wrapping: ClassWrapping::NoWrapping,
             tailwind_prefix: None,
+            infer_named_colors: true,
         }
     }
 }
@@ -203,7 +215,14 @@ impl RustyWind {
             allow_duplicates,
             class_wrapping,
             tailwind_prefix,
+            infer_named_colors: true,
         }
+    }
+
+    /// Configure whether project-defined named values are inferred to be colors
+    pub fn with_named_color_inference(mut self, infer_named_colors: bool) -> Self {
+        self.infer_named_colors = infer_named_colors;
+        self
     }
 
     /// Checks whether a source document contains a sortable static class run
@@ -436,9 +455,13 @@ impl RustyWind {
                 .as_deref()
                 .and_then(normalize_tailwind_prefix_value)
             {
-                return prefixed_pattern_sorter(tailwind_prefix).sort_classes(&classes_vec);
+                return prefixed_pattern_sorter(tailwind_prefix, self.infer_named_colors)
+                    .sort_classes(&classes_vec);
             }
-            return PATTERN_SORTER.sort_classes(&classes_vec);
+            if self.infer_named_colors {
+                return PATTERN_SORTER.sort_classes(&classes_vec);
+            }
+            return PATTERN_SORTER_WITHOUT_NAMED_COLORS.sort_classes(&classes_vec);
         }
 
         // otherwise, use the old HashMap-based approach
@@ -554,11 +577,16 @@ impl RustyWind {
     }
 }
 
-fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
+fn prefixed_pattern_sorter(tailwind_prefix: &str, infer_named_colors: bool) -> Arc<HybridSorter> {
+    let key = PatternSorterCacheKey {
+        tailwind_prefix: tailwind_prefix.to_string(),
+        infer_named_colors,
+    };
+
     if let Some(sorter) = PREFIXED_PATTERN_SORTERS
         .read()
         .expect("prefixed pattern sorter cache should not be poisoned")
-        .get(tailwind_prefix)
+        .get(&key)
     {
         return Arc::clone(sorter);
     }
@@ -567,15 +595,12 @@ fn prefixed_pattern_sorter(tailwind_prefix: &str) -> Arc<HybridSorter> {
         .write()
         .expect("prefixed pattern sorter cache should not be poisoned");
 
-    Arc::clone(
-        sorters
-            .entry(tailwind_prefix.to_string())
-            .or_insert_with(|| {
-                Arc::new(HybridSorter::new_with_tailwind_prefix(Some(
-                    tailwind_prefix,
-                )))
-            }),
-    )
+    Arc::clone(sorters.entry(key).or_insert_with(|| {
+        Arc::new(
+            HybridSorter::new_with_tailwind_prefix(Some(tailwind_prefix))
+                .with_named_color_inference(infer_named_colors),
+        )
+    }))
 }
 
 fn has_attribute_name_prefix(source: &str, match_start: usize) -> bool {
@@ -709,6 +734,7 @@ mod tests {
         allow_duplicates: false,
         class_wrapping: ClassWrapping::NoWrapping,
         tailwind_prefix: None,
+        infer_named_colors: true,
     };
 
     trait TestRustyWindExt {
@@ -911,6 +937,37 @@ mod tests {
     // Note: Removed old static-list ordering tests. Pattern-based sorting follows
     // Tailwind v4's canonical property order, tested in integration_tests.rs
 
+    #[test]
+    fn named_color_inference_is_configurable() {
+        let classes = PlainClassList::parse("text-display flex").unwrap();
+
+        assert_eq!(
+            RUSTYWIND_DEFAULT.sort_class_list(classes),
+            "flex text-display"
+        );
+        assert_eq!(
+            RUSTYWIND_DEFAULT
+                .clone()
+                .with_named_color_inference(false)
+                .sort_class_list(classes),
+            "text-display flex"
+        );
+    }
+
+    #[test]
+    fn prefixed_sorter_caches_are_isolated_by_named_color_inference() {
+        let classes = PlainClassList::parse("tw:text-display tw:flex").unwrap();
+        let enabled = RustyWind {
+            tailwind_prefix: Some("tw".to_string()),
+            ..RUSTYWIND_DEFAULT
+        };
+        let disabled = enabled.clone().with_named_color_inference(false);
+
+        assert_eq!(enabled.sort_class_list(classes), "tw:flex tw:text-display");
+        assert_eq!(disabled.sort_class_list(classes), "tw:text-display tw:flex");
+        assert_eq!(enabled.sort_class_list(classes), "tw:flex tw:text-display");
+    }
+
     // SORT_FILE_CONTENTS -------------------------------------------------------------------------
     // test behavioral properties, not exact ordering (which is tested in integration_tests.rs)
 
@@ -999,6 +1056,7 @@ mod tests {
             regex: FinderRegex::DefaultRegex,
             class_wrapping: ClassWrapping::NoWrapping,
             tailwind_prefix: None,
+            infer_named_colors: true,
         };
 
         let input = r#"<div class="flex flex m-4 m-4"></div>"#;
@@ -1338,6 +1396,7 @@ mod tests {
             allow_duplicates: false,
             class_wrapping,
             tailwind_prefix: None,
+            infer_named_colors: true,
         };
 
         assert_eq!(app.sort_file_contents(input), output);
@@ -1351,6 +1410,7 @@ mod tests {
             allow_duplicates: false,
             class_wrapping: ClassWrapping::NoWrapping,
             tailwind_prefix: None,
+            infer_named_colors: true,
         };
         let input = "even-columns empty-state hovercraft event.status status_color even:flex";
 

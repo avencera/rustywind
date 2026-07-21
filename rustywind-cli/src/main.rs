@@ -69,6 +69,12 @@ pub struct Cli {
     /// When set, RustyWind will not delete duplicated classes.
     #[arg(long)]
     allow_duplicates: bool,
+    /// Do not infer project-defined named values as colors
+    #[arg(
+        long,
+        conflicts_with_all = &["config_file", "output_css_file", "vite_css"]
+    )]
+    no_named_colors: bool,
     /// When set, RustyWind will use the config file to derive configurations. The config file
     /// current only supports json with one property sortOrder, e.g.
     /// { "sortOrder": ["class1", ...] }.
@@ -428,5 +434,26 @@ mod tests {
             .expect("tailwind prefix should parse");
 
         assert_eq!(cli.tailwind_prefix.as_deref(), Some("tw"));
+    }
+
+    #[test]
+    fn parses_no_named_colors() {
+        let cli = Cli::try_parse_from(["rustywind", "--no-named-colors", "index.html"])
+            .expect("named-color opt-out should parse");
+
+        assert!(cli.no_named_colors);
+    }
+
+    #[test]
+    fn no_named_colors_rejects_custom_sorters() {
+        for sorter_args in [
+            &["--config-file", "sorter.json"][..],
+            &["--output-css-file", "tailwind.css"][..],
+            &["--vite-css", "http://localhost/main.css"][..],
+        ] {
+            let mut args = vec!["rustywind", "--no-named-colors", "index.html"];
+            args.extend_from_slice(sorter_args);
+            assert!(Cli::try_parse_from(args).is_err());
+        }
     }
 }

@@ -82,6 +82,16 @@ impl HybridSorter {
         }
     }
 
+    /// Configure whether project-defined named values are inferred to be colors
+    ///
+    /// Any existing cache entries are cleared so sort keys cannot cross inference modes
+    pub fn with_named_color_inference(mut self, infer_named_colors: bool) -> Self {
+        self.pattern_sorter =
+            std::mem::take(&mut self.pattern_sorter).with_named_color_inference(infer_named_colors);
+        self.cache.clear();
+        self
+    }
+
     /// Get the sort key for a class string
     ///
     /// Uses two-tier lookup:
@@ -351,6 +361,29 @@ mod tests {
             sorter.sort_classes(&classes),
             vec!["unknown-class", "flex", "bg-muted"]
         );
+    }
+
+    #[test]
+    fn test_named_color_inference_can_be_disabled() {
+        let sorter = HybridSorter::new().with_named_color_inference(false);
+
+        assert_eq!(sorter.get_sort_key("text-display"), None);
+        assert!(sorter.get_sort_key("bg-red-500").is_some());
+        assert_eq!(
+            sorter.sort_classes(&["flex", "text-display"]),
+            vec!["text-display", "flex"]
+        );
+    }
+
+    #[test]
+    fn changing_named_color_inference_clears_cached_keys() {
+        let sorter = HybridSorter::new();
+        assert!(sorter.get_sort_key("text-display").is_some());
+        assert_eq!(sorter.cache_stats().0, 1);
+
+        let sorter = sorter.with_named_color_inference(false);
+        assert_eq!(sorter.cache_stats().0, 0);
+        assert_eq!(sorter.get_sort_key("text-display"), None);
     }
 
     #[test]
