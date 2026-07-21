@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Add `SortReport` and `RustyWind::sort_document_with_report`, which return the
+  sorted contents together with the number of class groups (attribute values or
+  custom-regex captures) whose text changed; `sort_document` is now a thin
+  wrapper over the report
+
 ## [0.5.0] - 2026-07-21
 
 ### Added

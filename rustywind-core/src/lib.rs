@@ -24,5 +24,5 @@ pub mod property_order;
 pub mod utility_map;
 pub mod variant_order;
 
-pub use app::{InvalidClassList, PlainClassList, RustyWind};
+pub use app::{InvalidClassList, PlainClassList, RustyWind, SortReport};
 pub use source::{SourceDocument, SourceLanguage};

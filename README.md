@@ -83,6 +83,22 @@ Run in CI, exit with error if unsorted classes are found:
 
 - `rustywind --check-formatted .`
 
+Add `--json` to any of these modes to print a single machine-readable JSON document instead of the
+human output:
+
+- `rustywind --check-formatted --json .`
+- `rustywind --dry-run --json .`
+- `rustywind --write --json .`
+- `echo "<FILE CONTENTS>" | rustywind --stdin --json`
+
+Bare `rustywind --json .` behaves like `--dry-run --json` and never writes files. Unlike the human
+dry run, dry-run JSON includes the full formatted content of every file that would change under
+`proposed_changes`, so automation can apply the result without a second run. Each document reports
+`ok` (formatting is clean and nothing failed; for `--write`, every write succeeded) and an `errors`
+array of `{path, message}` entries for unreadable files or failed directory walks. The exit code is
+`1` when `--check-formatted` finds unformatted files, and in every JSON mode when `errors` is
+non-empty; dry-run and stdin JSON still exit `0` when changes are merely proposed.
+
 Run RustyWind with a custom sorter. The `config_file.json` should have a top level entry of `sortOrder`
 which is an array with the classes listed in the order you want them sorted.
 
@@ -109,6 +125,9 @@ To print only the file names that would be changed run with the `--check-formatt
 If you want to run it on your STDIN, you can do:
   echo "<FILE CONTENTS>" | rustywind --stdin
 
+Add `--json` to check, preview, write, or stdin modes for machine-readable output
+  rustywind --check-formatted --json .
+
 Arguments:
   [PATH]...
           A file or directory to run on
@@ -125,6 +144,9 @@ Options:
 
       --check-formatted
           Checks if the files are already formatted, exits with 1 if not formatted
+
+      --json
+          Emits one machine-readable JSON document
 
       --allow-duplicates
           When set, RustyWind will not delete duplicated classes

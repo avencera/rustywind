@@ -1,13 +1,13 @@
 mod cli;
+mod json;
 mod options;
 
 use ahash::AHashSet as HashSet;
-use clap::Parser;
-use eyre::Result;
+use clap::{CommandFactory, Parser, error::ErrorKind};
+use eyre::{Context, Result};
 use indoc::indoc;
 use once_cell::sync::Lazy;
-use options::Options;
-use options::WriteMode;
+use options::{Options, OutputFormat, WriteMode};
 use rayon::ThreadPoolBuilder;
 use rayon::iter::IntoParallelRefIterator as _;
 use rayon::iter::ParallelIterator;
@@ -39,7 +39,10 @@ static GRAY: Lazy<colored::CustomColor> = Lazy::new(|| colored::CustomColor::new
       rustywind --check-formatted .
 
     If you want to run it on your STDIN, you can do:
-      echo \"<FILE CONTENTS>\" | rustywind --stdin"))]
+      echo \"<FILE CONTENTS>\" | rustywind --stdin
+
+    Add `--json` to check, preview, write, or stdin modes for machine-readable output
+      rustywind --check-formatted --json ."))]
 pub struct Cli {
     /// A file or directory to run on.
     #[arg(value_name = "PATH", required_unless_present = "stdin")]
@@ -60,6 +63,9 @@ pub struct Cli {
     /// Checks if the files are already formatted, exits with 1 if not formatted.
     #[arg(long, conflicts_with_all = &["stdin", "write", "dry_run"])]
     check_formatted: bool,
+    /// Emits one machine-readable JSON document.
+    #[arg(long)]
+    json: bool,
     /// When set, RustyWind will not delete duplicated classes.
     #[arg(long)]
     allow_duplicates: bool,
@@ -108,8 +114,21 @@ pub struct Cli {
     )]
     stdin_filename: Option<PathBuf>,
     /// Do not print log messages
-    #[arg(long, default_value = "false", conflicts_with_all = &["dry_run"])]
+    #[arg(long, default_value = "false")]
     quiet: bool,
+}
+
+impl Cli {
+    fn validate(&self) -> std::result::Result<(), clap::Error> {
+        if self.quiet && self.dry_run && !self.json {
+            return Err(Cli::command().error(
+                ErrorKind::ArgumentConflict,
+                "the argument '--quiet' cannot be used with '--dry-run'",
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 fn main() -> Result<()> {
@@ -117,8 +136,17 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
     let cli = Cli::parse();
+    cli.validate().unwrap_or_else(|error| error.exit());
 
     let mut options = Options::new_from_cli(cli)?;
+
+    if options.output_format == OutputFormat::Json {
+        let failed = json::run(&options);
+        if failed {
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
 
     let search_paths = std::mem::take(&mut options.search_paths);
 
@@ -145,7 +173,7 @@ fn main() -> Result<()> {
     }
 
     if let WriteMode::ToStdOut = &options.write_mode {
-        let contents = options.stdin.clone().unwrap_or_default();
+        let contents = read_input(std::io::stdin()).wrap_err("Unable to read STDIN")?;
         let language = options.stdin_source_language();
 
         if rustywind.has_classes(SourceDocument::new(&contents, language)) {
@@ -238,6 +266,12 @@ fn print_changed_files(file_path: &Path, contents_changed: bool, options: &Optio
             eprintln!("  * [UNFORMATTED FILE] {file_name}")
         }
     }
+}
+
+fn read_input(mut reader: impl std::io::Read) -> std::io::Result<String> {
+    let mut contents = String::new();
+    reader.read_to_string(&mut contents)?;
+    Ok(contents)
 }
 
 /// Return a boolean indicating whether the file should be ignored
@@ -355,6 +389,37 @@ mod tests {
     #[test]
     fn rejects_unknown_source_language() {
         assert!(Cli::try_parse_from(["rustywind", "--language", "unknown", "input.html"]).is_err());
+    }
+
+    #[test]
+    fn quiet_dry_run_requires_json() {
+        let human = Cli::try_parse_from(["rustywind", "--quiet", "--dry-run", "input.html"])
+            .expect("post-parse validation owns the conditional conflict");
+        assert!(human.validate().is_err());
+
+        let json =
+            Cli::try_parse_from(["rustywind", "--quiet", "--dry-run", "--json", "input.html"])
+                .expect("JSON dry-run should parse");
+        assert!(json.validate().is_ok());
+    }
+
+    #[test]
+    fn read_input_exposes_acquisition_errors() {
+        use std::io::{Cursor, ErrorKind, Read};
+
+        struct FailingReader;
+
+        impl Read for FailingReader {
+            fn read(&mut self, _buffer: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::new(ErrorKind::BrokenPipe, "stdin failed"))
+            }
+        }
+
+        assert_eq!(super::read_input(Cursor::new("input")).unwrap(), "input");
+        assert_eq!(
+            super::read_input(FailingReader).unwrap_err().to_string(),
+            "stdin failed"
+        );
     }
 
     #[test]

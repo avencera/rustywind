@@ -9,7 +9,6 @@ use rustywind_core::{RustyWind, SourceLanguage};
 use rustywind_vite::create_vite_sorter;
 use serde::Deserialize;
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -18,13 +17,19 @@ use ahash::AHashSet as HashSet;
 
 use crate::Cli;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WriteMode {
     ToFile,
     DryRun,
     ToConsole,
     ToStdOut,
     CheckFormatted,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OutputFormat {
+    Human,
+    Json,
 }
 
 #[derive(Deserialize)]
@@ -96,7 +101,6 @@ impl From<CliSourceLanguage> for SourceLanguage {
 
 #[derive(Debug)]
 pub struct Options {
-    pub stdin: Option<String>,
     pub language: Option<SourceLanguage>,
     pub stdin_filename: Option<PathBuf>,
     pub rustywind: RustyWind,
@@ -105,21 +109,22 @@ pub struct Options {
     pub search_paths: Vec<PathBuf>,
     pub ignored_files: HashSet<PathBuf>,
     pub quiet: bool,
+    pub output_format: OutputFormat,
 }
 
 impl Options {
     pub fn new_from_cli(cli: Cli) -> Result<Options> {
-        let stdin = if cli.stdin {
-            let mut buffer = String::new();
-            let mut stdin = std::io::stdin(); // We get `Stdin` here.
-            stdin.read_to_string(&mut buffer).unwrap();
-            Some(buffer.to_string())
-        } else {
-            None
-        };
-
         let starting_paths = get_starting_path_from_cli(&cli);
-        let search_paths = get_search_paths_from_starting_paths(&starting_paths);
+        let output_format = if cli.json {
+            OutputFormat::Json
+        } else {
+            OutputFormat::Human
+        };
+        let search_paths = if output_format == OutputFormat::Human {
+            get_search_paths_from_starting_paths(&starting_paths)
+        } else {
+            Vec::new()
+        };
 
         let rustywind = RustyWind {
             regex: get_custom_regex_from_cli(&cli)?,
@@ -130,7 +135,6 @@ impl Options {
         };
 
         Ok(Options {
-            stdin,
             language: cli.language.map(Into::into),
             stdin_filename: cli.stdin_filename.clone(),
             rustywind,
@@ -139,6 +143,7 @@ impl Options {
             write_mode: get_write_mode_from_cli(&cli),
             ignored_files: get_ignored_files_from_cli(&cli),
             quiet: cli.quiet,
+            output_format,
         })
     }
 
@@ -230,6 +235,8 @@ fn get_write_mode_from_cli(cli: &Cli) -> WriteMode {
         WriteMode::CheckFormatted
     } else if cli.stdin {
         WriteMode::ToStdOut
+    } else if cli.json {
+        WriteMode::DryRun
     } else {
         WriteMode::ToConsole
     }

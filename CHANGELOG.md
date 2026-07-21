@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `--json` to the check, dry-run, bare, write, and stdin modes to emit one
+  machine-readable JSON document with changed files, changed class-group counts,
+  proposed or written content, and structured `{path, message}` errors for
+  unreadable files and failed directory walks
+- Bare `rustywind --json PATH` behaves like `--dry-run --json` and never writes
+  files; dry-run JSON includes the full formatted content of each changed file
+
+### Fixed
+
+- Replace the panic on unreadable stdin with a normal error message
+
 ## [0.26.0] - 2026-07-21
 
 ### Added
