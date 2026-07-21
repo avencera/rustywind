@@ -63,8 +63,11 @@ Prettier nonconvergence and custom-only differences do not fail a corpus.
 
 Only quoted `class` and `className` literals without template delimiters are in
 scope. Dynamic expressions, `class:list`, helper calls such as `cn` and `cva`,
-and project-specific Tailwind configuration are outside this comparison. A
-token is Tailwind-known when the pinned Prettier plugin moves it past two
-unknown sentinels using the supplied minimal Tailwind 4 stylesheet. Differences
-that preserve the order of known tokens are reported separately as
-`custom-only`.
+and project-specific Tailwind configuration are outside this comparison; the
+shared shadcn-style semantic palette is the one deliberate exception. A token
+is Tailwind-known when the pinned Prettier plugin moves it past two unknown
+sentinels using a Tailwind 4 stylesheet that layers a shadcn-style semantic
+`@theme` palette (background/foreground, card, muted, `sidebar-*`, `chart-1`…
+`chart-5`, and others) over the defaults so design-system color tokens are
+graded as known utilities. Differences that preserve the order of known tokens
+are reported separately as `custom-only`.

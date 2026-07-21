@@ -41,6 +41,25 @@ test("classifies known-order differences for utilities containing both quotes", 
   );
 });
 
+test("probes shared design-system colors as known utilities", async () => {
+  const known = await probeKnownClasses(
+    [
+      "bg-muted",
+      "text-foreground",
+      "border-input",
+      "bg-card/90",
+      "bg-lightPrimary",
+    ],
+    resolve(engineDirectory, "tailwind.css"),
+  );
+
+  assert.equal(known.get("bg-muted"), true);
+  assert.equal(known.get("text-foreground"), true);
+  assert.equal(known.get("border-input"), true);
+  assert.equal(known.get("bg-card/90"), true);
+  assert.equal(known.get("bg-lightPrimary"), false);
+});
+
 test("scrubs configured paths from invocation errors", (context) => {
   const directory = mkdtempSync(join(tmpdir(), "rustywind-compare-"));
   context.after(() => rmSync(directory, { force: true, recursive: true }));

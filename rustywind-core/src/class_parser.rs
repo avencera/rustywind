@@ -651,11 +651,11 @@ mod tests {
         assert_eq!(parsed.value, "red-500/50");
         assert_eq!(parsed.get_properties(), Some(&["background-color"][..]));
 
-        // test custom color with opacity (should be unknown)
+        // named design-system colors resolve through the named-color fallback
         let parsed = parse_class("bg-primary/20").unwrap();
         assert_eq!(parsed.utility, "bg");
         assert_eq!(parsed.value, "primary/20");
-        assert_eq!(parsed.get_properties(), None); // Custom color = unknown
+        assert_eq!(parsed.get_properties(), Some(&["background-color"][..]));
 
         // test variant + opacity
         let parsed = parse_class("dark:text-white/90").unwrap();

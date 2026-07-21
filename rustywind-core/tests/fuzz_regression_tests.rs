@@ -51,13 +51,14 @@ mod opacity_sorting_demo {
         println!("  Output: {:?}", sorted);
         println!();
 
-        // Test 2: Custom colors with opacity are treated as unknown (sort first)
+        // Test 2: named design-system colors with opacity sort as color utilities
         let input = vec!["flex", "bg-primary/20", "p-4"];
         let sorted = sort_classes(&input);
-        println!("Test 2 - Custom colors with opacity (unknown):");
+        println!("Test 2 - Named design-system colors with opacity:");
         println!("  Input:  {:?}", input);
         println!("  Output: {:?}", sorted);
-        assert_eq!(sorted[0], "bg-primary/20"); // Unknown class sorts first
+        // matches prettier-plugin-tailwindcss with `primary` defined as a theme color
+        assert_eq!(sorted, vec!["flex", "bg-primary/20", "p-4"]);
         println!();
 
         // Test 3: Variants with opacity work correctly

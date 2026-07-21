@@ -28,7 +28,11 @@ fn parenthesized_ring_colors_map_to_color_properties() {
         map.get_properties("inset-ring-(color:--color)"),
         Some(&["--tw-inset-ring-color"][..])
     );
-    assert_eq!(map.get_properties("ring-offset-background"), None);
+    // named design-system colors resolve through the named-color fallback
+    assert_eq!(
+        map.get_properties("ring-offset-background"),
+        Some(&["--tw-ring-offset-color"][..])
+    );
 }
 
 #[test]
@@ -77,11 +81,12 @@ fn parenthesized_ring_colors_sort_with_ring_color_utilities() {
 
     assert!(sorter.get_sort_key("ring-(--color)").is_some());
     assert!(sorter.get_sort_key("ring-offset-(--color)").is_some());
-    assert!(sorter.get_sort_key("ring-offset-background").is_none());
+    // ring-offset-background is a named design-system color, no longer unknown
+    assert!(sorter.get_sort_key("ring-offset-background").is_some());
+    // matches prettier-plugin-tailwindcss with `background` defined as a theme color
     assert_eq!(
         sorter.sort_classes(&classes),
         vec![
-            "group-data-[checked=true]/button:ring-offset-background",
             "size-5",
             "rounded-full",
             "bg-(--color)",
@@ -90,6 +95,7 @@ fn parenthesized_ring_colors_sort_with_ring_color_utilities() {
             "ring-offset-2",
             "ring-offset-(--color)",
             "group-data-[checked=true]/button:ring-(--color)",
+            "group-data-[checked=true]/button:ring-offset-background",
         ]
     );
 }

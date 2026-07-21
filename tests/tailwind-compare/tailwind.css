@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+/* shadcn-style semantic palette so the pinned plugin grades design-system color tokens as known utilities; declaration order verified inert */
+@theme {
+  --color-accent: #000001;
+  --color-accent-foreground: #000002;
+  --color-background: #000003;
+  --color-border: #000004;
+  --color-card: #000005;
+  --color-card-foreground: #000006;
+  --color-chart-1: #000007;
+  --color-chart-2: #000008;
+  --color-chart-3: #000009;
+  --color-chart-4: #000010;
+  --color-chart-5: #000011;
+  --color-destructive: #000012;
+  --color-destructive-foreground: #000013;
+  --color-foreground: #000014;
+  --color-input: #000015;
+  --color-muted: #000016;
+  --color-muted-foreground: #000017;
+  --color-popover: #000018;
+  --color-popover-foreground: #000019;
+  --color-primary: #000020;
+  --color-primary-foreground: #000021;
+  --color-ring: #000022;
+  --color-secondary: #000023;
+  --color-secondary-foreground: #000024;
+  --color-sidebar: #000025;
+  --color-sidebar-accent: #000026;
+  --color-sidebar-accent-foreground: #000027;
+  --color-sidebar-border: #000028;
+  --color-sidebar-foreground: #000029;
+  --color-sidebar-primary: #000030;
+  --color-sidebar-primary-foreground: #000031;
+  --color-sidebar-ring: #000032;
+}

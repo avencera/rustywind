@@ -1110,6 +1110,8 @@ impl UtilityMap {
             "bg-size" => Some(&["background-size"][..]),
             "bg" if is_color_like_value(value) => Some(&["background-color"][..]),
             "bg" if value.starts_with('[') => Some(&["background-color"][..]), // arbitrary value
+            // known non-color forms win before this denylist fallback
+            "bg" if is_named_color_value(value) => Some(&["background-color"][..]),
 
             // border width
             "border-bs" | "border-be" | "border-is" | "border-ie" => None,
@@ -1121,14 +1123,30 @@ impl UtilityMap {
             {
                 Some(&["border-width"][..])
             }
-            "border-x" if is_color_like_value(value) => Some(&["border-inline-color"][..]),
-            "border-y" if is_color_like_value(value) => Some(&["border-block-color"][..]),
-            "border-s" if is_color_like_value(value) => Some(&["border-inline-start-color"][..]),
-            "border-e" if is_color_like_value(value) => Some(&["border-inline-end-color"][..]),
-            "border-t" if is_color_like_value(value) => Some(&["border-top-color"][..]),
-            "border-r" if is_color_like_value(value) => Some(&["border-right-color"][..]),
-            "border-b" if is_color_like_value(value) => Some(&["border-bottom-color"][..]),
-            "border-l" if is_color_like_value(value) => Some(&["border-left-color"][..]),
+            "border-x" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-inline-color"][..])
+            }
+            "border-y" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-block-color"][..])
+            }
+            "border-s" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-inline-start-color"][..])
+            }
+            "border-e" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-inline-end-color"][..])
+            }
+            "border-t" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-top-color"][..])
+            }
+            "border-r" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-right-color"][..])
+            }
+            "border-b" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-bottom-color"][..])
+            }
+            "border-l" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["border-left-color"][..])
+            }
             "border-x" => Some(&["border-inline-width"][..]), // Use border-inline-width for left+right
             "border-y" => Some(&["border-block-width"][..]), // Use border-block-width for top+bottom
             "border-s" => Some(&["border-inline-start-width"][..]),
@@ -1140,6 +1158,7 @@ impl UtilityMap {
 
             // border color
             "border" if is_color_like_value(value) => Some(&["border-color"][..]),
+            "border" if is_named_color_value(value) => Some(&["border-color"][..]),
 
             // border radius
             "rounded"
@@ -1172,6 +1191,7 @@ impl UtilityMap {
             "text" if value.starts_with('(') => Some(&["color"][..]),
             "text" if is_size_keyword(value) => Some(&["font-size"][..]),
             "text" if value.starts_with('[') => Some(&["font-size"][..]), // arbitrary text size
+            "text" if is_named_color_value(value) => Some(&["color"][..]),
 
             // font
             "font" if is_weight_keyword(value) => Some(&["font-weight"][..]),
@@ -1216,6 +1236,7 @@ impl UtilityMap {
                 )
             }
             "ring" if is_ring_color_value(value) => Some(&["--tw-ring-color"][..]),
+            "ring" if is_named_color_value(value) => Some(&["--tw-ring-color"][..]),
             "ring-offset"
                 if value.parse::<u32>().is_ok()
                     || ParenthesizedRingValueKind::parse(value)
@@ -1224,6 +1245,7 @@ impl UtilityMap {
                 Some(&["--tw-ring-offset-width"][..])
             }
             "ring-offset" if is_ring_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
+            "ring-offset" if is_named_color_value(value) => Some(&["--tw-ring-offset-color"][..]),
             "inset-ring"
                 if value.is_empty()
                     || value.parse::<u32>().is_ok()
@@ -1233,6 +1255,7 @@ impl UtilityMap {
                 Some(&["--tw-inset-ring-shadow"][..])
             }
             "inset-ring" if is_ring_color_value(value) => Some(&["--tw-inset-ring-color"][..]),
+            "inset-ring" if is_named_color_value(value) => Some(&["--tw-inset-ring-color"][..]),
 
             // transitions
             "transition" => Some(&["transition-property"][..]),
@@ -1357,25 +1380,40 @@ impl UtilityMap {
                 Some(&["outline-width"][..])
             }
             "outline" if is_color_value(value) => Some(&["outline-color"][..]),
+            "outline" if is_named_color_value(value) => Some(&["outline-color"][..]),
             "outline-offset" => Some(&["outline-offset"][..]),
 
             // accent color
-            "accent" if is_color_value(value) || value == "auto" || value == "current" => {
+            "accent"
+                if is_color_value(value)
+                    || is_named_color_value(value)
+                    || value == "auto"
+                    || value == "current" =>
+            {
                 Some(&["accent-color"][..])
             }
 
             // caret color
-            "caret" if is_color_value(value) || value == "current" => Some(&["caret-color"][..]),
+            "caret"
+                if is_color_value(value) || is_named_color_value(value) || value == "current" =>
+            {
+                Some(&["caret-color"][..])
+            }
 
             // placeholder color
-            "placeholder" if is_color_like_value(value) => Some(&["placeholder-color"][..]),
+            "placeholder" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["placeholder-color"][..])
+            }
 
             // svg paint
-            "fill" if is_color_like_value(value) => Some(&["fill"][..]),
+            "fill" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["fill"][..])
+            }
             "stroke" if value.parse::<u32>().is_ok() || is_arbitrary_like_value(value) => {
                 Some(&["stroke-width"][..])
             }
             "stroke" if is_color_like_value(value) => Some(&["stroke"][..]),
+            "stroke" if is_named_color_value(value) => Some(&["stroke"][..]),
             "object" if is_arbitrary_like_value(value) => Some(&["object-position"][..]),
 
             // space between
@@ -1386,8 +1424,12 @@ impl UtilityMap {
             "space-y" => Some(&["column-gap"][..]),
 
             // divide
-            "divide-x" if is_color_like_value(value) => Some(&["--tw-divide-color-sort"][..]),
-            "divide-y" if is_color_like_value(value) => Some(&["--tw-divide-color-sort"][..]),
+            "divide-x" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["--tw-divide-color-sort"][..])
+            }
+            "divide-y" if is_color_like_value(value) || is_named_color_value(value) => {
+                Some(&["--tw-divide-color-sort"][..])
+            }
             "divide-x" if value.is_empty() || value.parse::<u32>().is_ok() => {
                 Some(&["divide-x-width"][..])
             }
@@ -1395,6 +1437,7 @@ impl UtilityMap {
                 Some(&["divide-y-width"][..])
             }
             "divide" if is_color_value(value) => Some(&["divide-color"][..]),
+            "divide" if is_named_color_value(value) => Some(&["divide-color"][..]),
             "divide-opacity" => Some(&["border-opacity"][..]),
 
             // leading (line-height)
@@ -1415,6 +1458,9 @@ impl UtilityMap {
             "from" if is_gradient_position(value) => Some(&["--tw-gradient-from-position"][..]),
             "via" if is_gradient_position(value) => Some(&["--tw-gradient-via-position"][..]),
             "to" if is_gradient_position(value) => Some(&["--tw-gradient-to-position"][..]),
+            "from" if is_named_color_value(value) => Some(&["--tw-gradient-from"][..]),
+            "via" if is_named_color_value(value) => Some(&["--tw-gradient-via"][..]),
+            "to" if is_named_color_value(value) => Some(&["--tw-gradient-to"][..]),
 
             // aspect ratio (arbitrary values)
             "aspect" => Some(&["aspect-ratio"][..]),
@@ -1424,6 +1470,7 @@ impl UtilityMap {
             "decoration" if value.parse::<u32>().is_ok() => {
                 Some(&["text-decoration-thickness"][..])
             }
+            "decoration" if is_named_color_value(value) => Some(&["text-decoration-color"][..]),
             // underline offset
             "underline-offset" => Some(&["text-underline-offset"][..]),
 
@@ -2087,6 +2134,28 @@ fn is_color_like_value(value: &str) -> bool {
     is_color_value(value) || value == "current" || value.starts_with('(')
 }
 
+/// Denylist fallback for Tailwind v4 `--color-*` theme keys
+///
+/// After every known non-color form of a color-capable prefix is excluded, an unknown named value
+/// such as `muted`, `muted-foreground`, `chart-1`, or `lightPrimary` is assumed to be a theme key
+/// Values arrive opacity-stripped because `parse_utility_parts` strips from the first `/`, so
+/// `bg-card/90` is seen as `card`
+fn is_named_color_value(value: &str) -> bool {
+    let Some((first, remaining)) = value.as_bytes().split_first() else {
+        return false;
+    };
+
+    first.is_ascii_alphabetic()
+        && remaining
+            .iter()
+            .all(|byte| byte.is_ascii_alphanumeric() || *byte == b'-')
+        && !value.ends_with('-')
+        && !matches!(
+            value,
+            "auto" | "none" | "initial" | "unset" | "revert" | "revert-layer" | "inherit"
+        )
+}
+
 fn is_flex_value(value: &str) -> bool {
     matches!(value, "auto" | "initial" | "none")
         || is_numeric_value(value)
@@ -2422,6 +2491,76 @@ mod tests {
     }
 
     #[test]
+    fn test_named_design_system_colors() {
+        let map = UtilityMap::new();
+        let cases: &[(&str, &[&str])] = &[
+            ("bg-muted", &["background-color"]),
+            ("bg-card/90", &["background-color"]),
+            ("text-foreground", &["color"]),
+            ("text-muted-foreground", &["color"]),
+            ("border-input", &["border-color"]),
+            ("border-t-input", &["border-top-color"]),
+            ("border-b-border", &["border-bottom-color"]),
+            ("ring-ring", &["--tw-ring-color"]),
+            ("ring-offset-background", &["--tw-ring-offset-color"]),
+            ("inset-ring-primary", &["--tw-inset-ring-color"]),
+            ("outline-ring", &["outline-color"]),
+            ("accent-primary", &["accent-color"]),
+            ("caret-primary", &["caret-color"]),
+            ("placeholder-muted", &["placeholder-color"]),
+            ("fill-muted", &["fill"]),
+            ("stroke-muted", &["stroke"]),
+            ("divide-border", &["divide-color"]),
+            ("divide-x-border", &["--tw-divide-color-sort"]),
+            ("from-background", &["--tw-gradient-from"]),
+            ("via-muted", &["--tw-gradient-via"]),
+            ("to-primary", &["--tw-gradient-to"]),
+            ("decoration-primary", &["text-decoration-color"]),
+            ("bg-sidebar-primary-foreground", &["background-color"]),
+            ("bg-chart-1", &["background-color"]),
+            // color-capable prefixes accept project-defined palette names
+            ("from-alternative", &["--tw-gradient-from"]),
+            ("decoration-charcoal-500", &["text-decoration-color"]),
+        ];
+
+        for &(utility, properties) in cases {
+            assert_eq!(map.get_properties(utility), Some(properties), "{utility}");
+        }
+    }
+
+    #[test]
+    fn test_named_color_fallback_exclusions() {
+        let map = UtilityMap::new();
+        let cases: &[(&str, &[&str])] = &[
+            ("bg-clip-border", &["background-clip"]),
+            ("bg-gradient-to-b", &["background-image"]),
+            ("bg-cover", &["background-size"]),
+            ("bg-fixed", &["background-attachment"]),
+            ("border-2", &["border-width"]),
+            ("border-b", &["border-bottom-width"]),
+            ("border-t-[3px]", &["border-top-width"]),
+            ("border-dashed", &["border-style"]),
+            ("text-sm", &["font-size"]),
+            ("text-center", &["text-align"]),
+            ("font-display", &["font-family"]),
+            ("font-bold", &["font-weight"]),
+            ("inset-shadow-custom", &["--tw-inset-shadow"]),
+            ("stroke-2", &["stroke-width"]),
+            ("decoration-wavy", &["text-decoration-style"]),
+            ("from-10%", &["--tw-gradient-from-position"]),
+            ("outline-none", &["outline-style"]),
+        ];
+
+        for &(utility, properties) in cases {
+            assert_eq!(map.get_properties(utility), Some(properties), "{utility}");
+        }
+
+        assert_eq!(map.get_properties("shadow-card"), None);
+        assert_eq!(map.get_properties("text-shadow-custom"), None);
+        assert_eq!(map.get_properties("drop-shadow-glow"), None);
+    }
+
+    #[test]
     fn test_arbitrary_values() {
         let map = UtilityMap::new();
 
@@ -2461,8 +2600,6 @@ mod tests {
         assert_eq!(map.get_properties("unknown-utility"), None);
         assert_eq!(map.get_properties("fake-class"), None);
         assert_eq!(map.get_properties("flex-center"), None);
-        assert_eq!(map.get_properties("from-alternative"), None);
-        assert_eq!(map.get_properties("decoration-charcoal-500"), None);
         assert_eq!(map.get_properties("text-shadow-custom"), None);
         assert_eq!(map.get_properties("stroke-1.5"), None);
         assert_eq!(map.get_properties("will-change"), None);
@@ -2490,6 +2627,25 @@ mod tests {
         assert!(!is_color_value("4"));
         assert!(!is_color_value("auto"));
         assert!(!is_color_value(""));
+    }
+
+    #[test]
+    fn test_is_named_color_value() {
+        assert!(is_named_color_value("muted"));
+        assert!(is_named_color_value("muted-foreground"));
+        assert!(is_named_color_value("chart-1"));
+        assert!(is_named_color_value("lightPrimary"));
+
+        assert!(!is_named_color_value(""));
+        assert!(!is_named_color_value("[#fff]"));
+        assert!(!is_named_color_value("(--x)"));
+        assert!(!is_named_color_value("2"));
+        assert!(!is_named_color_value("1.5"));
+        assert!(!is_named_color_value("2xl"));
+        assert!(!is_named_color_value("10%"));
+        assert!(!is_named_color_value("auto"));
+        assert!(!is_named_color_value("none"));
+        assert!(!is_named_color_value("foo-"));
     }
 
     #[test]

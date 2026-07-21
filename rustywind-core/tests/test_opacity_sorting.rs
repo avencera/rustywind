@@ -5,12 +5,13 @@ use rustywind_core::pattern_sorter::sort_classes;
 fn test_opacity_slash_recognition() {
     // Test which opacity classes are recognized as known vs unknown
     let test_cases = vec![
-        ("text-white/60", true),      // Standard color + opacity → KNOWN
-        ("bg-black/25", true),        // Standard color + opacity → KNOWN
-        ("bg-red-500/50", true),      // Standard color shade + opacity → KNOWN
-        ("to-stroke/0", false),       // custom gradient color + opacity → UNKNOWN
-        ("bg-primary/20", false),     // Custom color + opacity → UNKNOWN
-        ("from-stroke/0", false),     // custom gradient color + opacity → UNKNOWN
+        ("text-white/60", true), // Standard color + opacity → KNOWN
+        ("bg-black/25", true),   // Standard color + opacity → KNOWN
+        ("bg-red-500/50", true), // Standard color shade + opacity → KNOWN
+        // named design-system values resolve through the named-color fallback
+        ("to-stroke/0", true),        // named gradient color + opacity → KNOWN
+        ("bg-primary/20", true),      // named color + opacity → KNOWN
+        ("from-stroke/0", true),      // named gradient color + opacity → KNOWN
         ("border-gray-300/50", true), // Standard color shade + opacity → KNOWN
     ];
 

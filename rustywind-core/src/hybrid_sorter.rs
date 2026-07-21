@@ -343,6 +343,77 @@ mod tests {
     }
 
     #[test]
+    fn test_named_colors_sort_as_known() {
+        let sorter = HybridSorter::new();
+        let classes = vec!["bg-muted", "flex", "unknown-class"];
+
+        assert_eq!(
+            sorter.sort_classes(&classes),
+            vec!["unknown-class", "flex", "bg-muted"]
+        );
+    }
+
+    #[test]
+    fn test_named_color_ordering_matches_prettier() {
+        let sorter = HybridSorter::new();
+
+        let classes = vec![
+            "bg-red-500",
+            "bg-muted",
+            "bg-primary",
+            "bg-primary-foreground",
+            "bg-card",
+            "bg-card/90",
+            "bg-chart-2",
+            "bg-chart-1",
+            "text-foreground",
+            "border-input",
+        ];
+        assert_eq!(
+            sorter.sort_classes(&classes),
+            vec![
+                "border-input",
+                "bg-card",
+                "bg-card/90",
+                "bg-chart-1",
+                "bg-chart-2",
+                "bg-muted",
+                "bg-primary",
+                "bg-primary-foreground",
+                "bg-red-500",
+                "text-foreground",
+            ]
+        );
+
+        let classes = vec!["bg-card/90", "bg-card"];
+        assert_eq!(sorter.sort_classes(&classes), vec!["bg-card", "bg-card/90"]);
+
+        let classes = vec!["bg-primary-foreground", "bg-primary"];
+        assert_eq!(
+            sorter.sort_classes(&classes),
+            vec!["bg-primary", "bg-primary-foreground"]
+        );
+
+        let classes = vec!["bg-muted", "bg-red-500", "bg-background"];
+        assert_eq!(
+            sorter.sort_classes(&classes),
+            vec!["bg-background", "bg-muted", "bg-red-500"]
+        );
+
+        let classes = vec!["hover:bg-muted", "hover:flex", "bg-muted", "flex"];
+        assert_eq!(
+            sorter.sort_classes(&classes),
+            vec!["flex", "bg-muted", "hover:flex", "hover:bg-muted"]
+        );
+
+        let classes = vec!["text-muted-foreground", "text-sm", "line-clamp-2"];
+        assert_eq!(
+            sorter.sort_classes(&classes),
+            vec!["line-clamp-2", "text-sm", "text-muted-foreground"]
+        );
+    }
+
+    #[test]
     fn test_relative_order_preserved_for_unknown_classes() {
         // test that unknown classes maintain their relative order
         // instead of being alphabetized

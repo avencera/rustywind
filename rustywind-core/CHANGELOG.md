@@ -24,6 +24,12 @@
 
 ### Changed
 
+- Classify arbitrary named design-system values in color-capable utility-map
+  families, including opacity-stripped values such as `bg-card/90`, so they
+  receive color properties instead of remaining unknown;
+  `border-{t,r,b,l,x,y,s,e}-<name>` now maps to side border color instead of
+  border width, while shadow-family named values remain unclassified because
+  they are ambiguous with custom `--shadow-*` sizes
 - Parse known markup languages with Winnow and extract typed class-attribute spans directly instead
   of scanning every regular-expression match against every tag
 - Parse template expressions, arbitrary-value brackets, comments, strings, and regular expressions
