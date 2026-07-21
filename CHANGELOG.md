@@ -16,13 +16,14 @@
 - Sort arbitrary named design-system colors such as `bg-muted`,
   `text-foreground`, `border-input`, and `bg-card/90` as color utilities instead
   of unknown classes; `border-{t,r,b,l,x,y,s,e}-<name>` now resolves to side
-  border color instead of border width, while shadow-family named values stay
-  unclassified because they are ambiguous with custom `--shadow-*` sizes; the
-  parity harness stylesheet now defines a shadcn-style semantic palette so
-  these tokens are graded against Prettier
+  border color instead of border width, while shadow-family named values still
+  sort as unknown classes because they are ambiguous with custom `--shadow-*`
+  sizes
 - Verify sorting parity against Tailwind CSS 4.3.3 and
   prettier-plugin-tailwindcss 0.8.1 with zero ordering divergences across all
-  pinned comparison corpora and fuzz rounds; the comparison and fuzz harnesses
+  pinned comparison corpora and fuzz rounds; the comparison harness stylesheet
+  now defines a shadcn-style semantic palette so named design-system colors are
+  graded against Prettier; the comparison and fuzz harnesses
   now pin that toolchain, and the fuzz harness resolves Tailwind v4 ordering
   through a `tailwindStylesheet` entry point instead of the plugin's bundled
   fallback
