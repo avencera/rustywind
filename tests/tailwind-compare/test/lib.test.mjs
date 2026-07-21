@@ -304,7 +304,7 @@ test("classifies nonconvergent Prettier output before RustyWind ordering", () =>
   );
 });
 
-test("pins per-attribute Svelte each-else Prettier convergence", async () => {
+test("pins Svelte each-else branch sorting under Prettier", async () => {
   const source =
     '{#each items as item}<div class="flex p-4">{item}</div>{:else}<div class="grid m-2">empty</div>{/each}';
   const scrambledSource = scrambleAttributes(source, "svelte");
@@ -326,9 +326,12 @@ test("pins per-attribute Svelte each-else Prettier convergence", async () => {
     "svelte",
   ).map(splitClassTokens);
 
+  // since prettier-plugin-tailwindcss 0.8.1 the plugin sorts class
+  // attributes inside {:else} branches, so both runs converge on the
+  // sorted order (margin precedes display in Tailwind's property order)
   assert.deepEqual(prettierOriginal, [
     ["flex", "p-4"],
-    ["grid", "m-2"],
+    ["m-2", "grid"],
   ]);
   assert.deepEqual(prettierScrambled, [
     ["flex", "p-4"],
@@ -340,9 +343,9 @@ test("pins per-attribute Svelte each-else Prettier convergence", async () => {
       scrambled: ["m-2", "grid"],
       prettierOriginal: prettierOriginal[1],
       prettierScrambled: prettierScrambled[1],
-      rustywind: ["grid", "m-2"],
+      rustywind: ["m-2", "grid"],
     }),
-    "prettier-nonconvergent",
+    "exact",
   );
 });
 

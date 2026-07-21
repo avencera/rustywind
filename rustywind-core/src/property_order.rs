@@ -27,6 +27,8 @@ pub const PROPERTY_ORDER: &[&str] = &[
     // exact original 341-property order that achieved 96% pass rate
     // this order was empirically tuned through extensive fuzz testing
     // source: Pre-Tailwind v4 sync (commit before 3758006)
+    // verified parity: tailwindcss 4.3.3 / prettier-plugin-tailwindcss 0.8.1
+    // (zero divergences across xtask compare corpora and fuzz runs, 2026-07-21)
     //
     // WARNING: Do NOT modify property positions without thorough testing!
     // index shifts of even a few positions can cause 10%+ pass rate drops

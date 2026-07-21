@@ -6,6 +6,7 @@ This folder tracks high-level notes for keeping RustyWind close to `prettier-plu
 
 - The tracked Rust tests cover parser behavior, property ordering, variant ordering, arbitrary values, and regressions from fuzz failures.
 - `tests/fuzz` provides direct runtime comparisons against Prettier.
+- The oracle is `prettier-plugin-tailwindcss` 0.8.x with Tailwind v4 ordering, driven by the `tailwindStylesheet` option pointing at `tests/fuzz/tailwind.css`. Earlier baselines used the plugin's bundled v3-era sorting, so historical pass rates and failure notes may not carry over.
 - Run `cargo xtask fuzz run 25` before release to refresh the pass-rate baseline and write failure summaries to `tests/fuzz/tools/output/`.
 
 ## Known Risk Areas

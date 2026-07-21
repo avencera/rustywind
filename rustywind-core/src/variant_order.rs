@@ -31,6 +31,7 @@
 /// ```
 pub const VARIANT_ORDER: &[&str] = &[
     // Tailwind's variant order, aligned with the current Prettier plugin defaults
+    // verified parity: tailwindcss 4.3.3 / prettier-plugin-tailwindcss 0.8.1
     "read-write",        // 0
     "*",                 // 1
     "**",                // 2

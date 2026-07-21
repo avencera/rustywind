@@ -11,6 +11,15 @@
 - Bare `rustywind --json PATH` behaves like `--dry-run --json` and never writes
   files; dry-run JSON includes the full formatted content of each changed file
 
+### Changed
+
+- Verify sorting parity against Tailwind CSS 4.3.3 and
+  prettier-plugin-tailwindcss 0.8.1 with zero ordering divergences across all
+  pinned comparison corpora and fuzz rounds; the comparison and fuzz harnesses
+  now pin that toolchain, and the fuzz harness resolves Tailwind v4 ordering
+  through a `tailwindStylesheet` entry point instead of the plugin's bundled
+  fallback
+
 ### Fixed
 
 - Replace the panic on unreadable stdin with a normal error message
