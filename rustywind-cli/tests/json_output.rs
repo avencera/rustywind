@@ -1,3 +1,4 @@
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
@@ -6,8 +7,25 @@ use serde_json::Value;
 use tempfile::TempDir;
 
 fn command(current_dir: &Path) -> Command {
-    let mut command = Command::new(assert_cmd::cargo::cargo_bin!("rustywind"));
+    let binary = assert_cmd::cargo::cargo_bin!("rustywind");
+    let mut command = target_command(binary, std::env::var_os("CROSS_TARGET_RUNNER"));
     command.current_dir(current_dir);
+    command
+}
+
+fn target_command(binary: &Path, runner: Option<OsString>) -> Command {
+    let Some(runner) = runner else {
+        return Command::new(binary);
+    };
+    let runner = runner
+        .into_string()
+        .expect("target runner should be valid Unicode");
+    let parts = shlex::split(&runner).expect("target runner should have valid shell quoting");
+    let Some((program, args)) = parts.split_first() else {
+        panic!("target runner should not be empty");
+    };
+    let mut command = Command::new(program);
+    command.args(args).arg(binary);
     command
 }
 
@@ -44,6 +62,24 @@ fn json_stdout(output: &Output) -> Value {
 
 fn write_unsorted(path: impl AsRef<Path>) {
     fs::write(path, r#"<div class="p-4 m-4"></div>"#).unwrap();
+}
+
+#[test]
+fn target_command_wraps_binary_with_configured_runner() {
+    let command = target_command(
+        Path::new("/target/debug/rustywind"),
+        Some(OsString::from("/linux-runner aarch64 'runner option'")),
+    );
+
+    assert_eq!(command.get_program(), OsStr::new("/linux-runner"));
+    assert_eq!(
+        command.get_args().collect::<Vec<_>>(),
+        [
+            OsStr::new("aarch64"),
+            OsStr::new("runner option"),
+            OsStr::new("/target/debug/rustywind")
+        ]
+    );
 }
 
 #[test]

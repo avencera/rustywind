@@ -98,26 +98,45 @@ enum WriteStatus {
     Failed(String),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+struct JsonPath(String);
+
+impl From<String> for JsonPath {
+    fn from(path: String) -> Self {
+        #[cfg(windows)]
+        let path = path.replace('\\', "/");
+
+        Self(path)
+    }
+}
+
+impl From<&str> for JsonPath {
+    fn from(path: &str) -> Self {
+        Self::from(path.to_string())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 struct FormattingFile {
-    path: String,
+    path: JsonPath,
     unsorted_classes: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 struct ProposedChange {
-    path: String,
+    path: JsonPath,
     content: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 struct WrittenFile {
-    path: String,
+    path: JsonPath,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 struct ErrorEntry {
-    path: String,
+    path: JsonPath,
     message: String,
 }
 
@@ -194,7 +213,7 @@ fn run_stdin(options: &Options, reader: impl Read) -> bool {
             unsorted_classes: 0,
             content: String::new(),
             errors: vec![ErrorEntry {
-                path: "<stdin>".to_string(),
+                path: "<stdin>".into(),
                 message: error.to_string(),
             }],
         },
@@ -490,7 +509,7 @@ fn resolve_display_paths<'a>(
     paths: impl Iterator<Item = &'a PathInfo>,
     starting_paths: &[PathBuf],
     current_dir: &Path,
-) -> HashMap<PathBuf, String> {
+) -> HashMap<PathBuf, JsonPath> {
     let mut representatives = BTreeMap::<PathBuf, PathInfo>::new();
     for path in paths {
         let identity = path.identity(current_dir);
@@ -509,7 +528,7 @@ fn resolve_display_paths<'a>(
         .map(|(identity, path)| {
             (
                 identity.clone(),
-                super::get_file_name(&path.original, starting_paths),
+                super::get_file_name(&path.original, starting_paths).into(),
             )
         })
         .collect::<HashMap<_, _>>();
@@ -517,6 +536,7 @@ fn resolve_display_paths<'a>(
         cwd_relative(&path.original, current_dir)
             .display()
             .to_string()
+            .into()
     });
     replace_collisions(&mut displays, &representatives, |path| {
         path.canonical
@@ -524,17 +544,18 @@ fn resolve_display_paths<'a>(
             .unwrap_or_else(|| absolute_path(&path.original, current_dir))
             .display()
             .to_string()
+            .into()
     });
 
     displays
 }
 
 fn replace_collisions(
-    displays: &mut HashMap<PathBuf, String>,
+    displays: &mut HashMap<PathBuf, JsonPath>,
     representatives: &BTreeMap<PathBuf, PathInfo>,
-    replacement: impl Fn(&PathInfo) -> String,
+    replacement: impl Fn(&PathInfo) -> JsonPath,
 ) {
-    let mut groups = HashMap::<String, Vec<PathBuf>>::new();
+    let mut groups = HashMap::<JsonPath, Vec<PathBuf>>::new();
     for (identity, display) in displays.iter() {
         groups
             .entry(display.clone())
@@ -615,11 +636,11 @@ mod tests {
             mode: "dry-run",
             ok: false,
             files_needing_formatting: vec![FormattingFile {
-                path: "input.html".to_string(),
+                path: "input.html".into(),
                 unsorted_classes: 1,
             }],
             proposed_changes: vec![ProposedChange {
-                path: "input.html".to_string(),
+                path: "input.html".into(),
                 content: "sorted".to_string(),
             }],
             errors: Vec::new(),
@@ -739,7 +760,7 @@ mod tests {
     #[test]
     fn error_entry_wire_fields_are_required() {
         let value = serde_json::to_value(ErrorEntry {
-            path: "missing.html".to_string(),
+            path: "missing.html".into(),
             message: "not found".to_string(),
         })
         .unwrap();
@@ -750,17 +771,17 @@ mod tests {
     #[test]
     fn file_entry_wire_fields_are_required() {
         let formatting = serde_json::to_value(FormattingFile {
-            path: "input.html".to_string(),
+            path: "input.html".into(),
             unsorted_classes: 2,
         })
         .unwrap();
         let proposed = serde_json::to_value(ProposedChange {
-            path: "input.html".to_string(),
+            path: "input.html".into(),
             content: "content".to_string(),
         })
         .unwrap();
         let written = serde_json::to_value(WrittenFile {
-            path: "input.html".to_string(),
+            path: "input.html".into(),
         })
         .unwrap();
 
