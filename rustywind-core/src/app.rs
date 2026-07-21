@@ -38,6 +38,15 @@ enum SortableClassValue<'a> {
     Wrapped(WrappedClassList<'a>),
 }
 
+/// Result of sorting a source document
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SortReport<'a> {
+    /// Sorted source contents
+    pub contents: Cow<'a, str>,
+    /// Number of class groups whose final text changed
+    pub changed_class_groups: usize,
+}
+
 /// A validated comma-separated list of quoted static class tokens
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WrappedClassList<'a> {
@@ -219,27 +228,45 @@ impl RustyWind {
     /// Embedded expressions are preserved byte-for-byte, and sorting or
     /// deduplication never crosses an expression boundary
     pub fn sort_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
+        self.sort_document_with_report(document).contents
+    }
+
+    /// Sorts a language-aware source document and reports changed class groups
+    ///
+    /// A class group is one structured attribute value or one regular-expression
+    /// capture, regardless of how many static runs it contains
+    pub fn sort_document_with_report<'a>(&self, document: SourceDocument<'a>) -> SortReport<'a> {
         if matches!(self.regex, FinderRegex::DefaultRegex)
             && document.language().attribute_parser_profile().is_some()
         {
             return self.sort_structured_document(document);
         }
 
-        self.extraction_regex()
-            .replace_all(document.text(), |captures: &Captures| {
-                let Some(capture) = self.sortable_capture(captures, document) else {
-                    return captures[0].to_string();
-                };
+        let mut changed_class_groups = 0;
+        let contents =
+            self.extraction_regex()
+                .replace_all(document.text(), |captures: &Captures| {
+                    let Some(capture) = self.sortable_capture(captures, document) else {
+                        return captures[0].to_string();
+                    };
 
-                let sorted_classes =
-                    self.sort_source_value(capture.classes_match.as_str(), &capture.value);
-                splice_capture(
-                    capture.full_match.as_str(),
-                    &capture.full_match,
-                    &capture.classes_match,
-                    &sorted_classes,
-                )
-            })
+                    let sorted_classes =
+                        self.sort_source_value(capture.classes_match.as_str(), &capture.value);
+                    if sorted_classes != capture.classes_match.as_str() {
+                        changed_class_groups += 1;
+                    }
+                    splice_capture(
+                        capture.full_match.as_str(),
+                        &capture.full_match,
+                        &capture.classes_match,
+                        &sorted_classes,
+                    )
+                });
+
+        SortReport {
+            contents,
+            changed_class_groups,
+        }
     }
 
     /// Sorts a validated static class list and normalizes its whitespace
@@ -309,33 +336,44 @@ impl RustyWind {
         Some((range, value))
     }
 
-    fn sort_structured_document<'a>(&self, document: SourceDocument<'a>) -> Cow<'a, str> {
+    fn sort_structured_document<'a>(&self, document: SourceDocument<'a>) -> SortReport<'a> {
         let Some(attributes) = class_attributes(document) else {
-            return Cow::Borrowed(document.text());
+            return SortReport {
+                contents: Cow::Borrowed(document.text()),
+                changed_class_groups: 0,
+            };
         };
         let sortable = attributes
             .iter()
             .filter_map(|attribute| self.sortable_attribute(attribute, document))
             .collect::<Vec<_>>();
         if sortable.is_empty() {
-            return Cow::Borrowed(document.text());
+            return SortReport {
+                contents: Cow::Borrowed(document.text()),
+                changed_class_groups: 0,
+            };
         }
 
         let mut output = document.text().to_string();
-        let mut changed = false;
+        let mut changed_class_groups = 0;
         for (range, value) in sortable.into_iter().rev() {
             let original = &document.text()[range.clone()];
             let sorted = self.sort_source_value(original, &value);
             if sorted != original {
                 output.replace_range(range, &sorted);
-                changed = true;
+                changed_class_groups += 1;
             }
         }
 
-        if changed {
+        let contents = if changed_class_groups > 0 {
             Cow::Owned(output)
         } else {
             Cow::Borrowed(document.text())
+        };
+
+        SortReport {
+            contents,
+            changed_class_groups,
         }
     }
 
@@ -729,6 +767,118 @@ mod tests {
             app.sort_document(SourceDocument::new(source, SourceLanguage::Unknown)),
             r#"<div class="m-4 flex p-4"></div>"#
         );
+    }
+
+    #[test]
+    fn report_keeps_unchanged_content_borrowed() {
+        let source = r#"<div class="m-4 flex p-4"></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Html));
+
+        assert!(matches!(report.contents, Cow::Borrowed(_)));
+        assert_eq!(report.contents, source);
+        assert_eq!(report.changed_class_groups, 0);
+    }
+
+    #[test]
+    fn report_counts_one_changed_structured_attribute() {
+        let source = r#"<div class="p-4 m-4 flex"></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Html));
+
+        assert_eq!(report.contents, r#"<div class="m-4 flex p-4"></div>"#);
+        assert_eq!(report.changed_class_groups, 1);
+    }
+
+    #[test]
+    fn report_counts_multiple_changed_structured_attributes() {
+        let source = r#"<div class="p-4 m-4"></div><span className="p-2 m-2"></span>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Html));
+
+        assert_eq!(report.changed_class_groups, 2);
+    }
+
+    #[test]
+    fn report_counts_duplicate_removal_without_reordering() {
+        let source = r#"<div class="flex flex"></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Html));
+
+        assert_eq!(report.contents, r#"<div class="flex"></div>"#);
+        assert_eq!(report.changed_class_groups, 1);
+    }
+
+    #[test]
+    fn report_counts_whitespace_normalization() {
+        let source = r#"<div class="  flex   p-4  "></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Html));
+
+        assert_eq!(report.contents, r#"<div class="flex p-4"></div>"#);
+        assert_eq!(report.changed_class_groups, 1);
+    }
+
+    #[test]
+    fn report_counts_changed_template_static_runs_as_one_group() {
+        let source = r#"<div class="p-4 m-4 {active} p-2 m-2"></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Svelte));
+
+        assert_eq!(
+            report.contents,
+            r#"<div class="m-4 p-4 {active} m-2 p-2"></div>"#
+        );
+        assert_eq!(report.changed_class_groups, 1);
+    }
+
+    #[test]
+    fn report_does_not_count_opaque_values() {
+        let source = r#"<div class="p-4 m-4 {missing"></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Svelte));
+
+        assert_eq!(report.contents, source);
+        assert_eq!(report.changed_class_groups, 0);
+    }
+
+    #[test]
+    fn report_uses_structured_counting_for_jsx() {
+        let source = r#"<div className="p-4 m-4" />"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Jsx));
+
+        assert_eq!(report.contents, r#"<div className="m-4 p-4" />"#);
+        assert_eq!(report.changed_class_groups, 1);
+    }
+
+    #[test]
+    fn report_uses_regex_counting_for_profileless_languages() {
+        let source = r#"<div class="p-4 m-4"></div>"#;
+        let report = RUSTYWIND_DEFAULT
+            .sort_document_with_report(SourceDocument::new(source, SourceLanguage::Unknown));
+
+        assert_eq!(report.contents, r#"<div class="m-4 p-4"></div>"#);
+        assert_eq!(report.changed_class_groups, 1);
+    }
+
+    #[test]
+    fn report_uses_regex_counting_for_wrapped_custom_captures() {
+        let extractor = crate::sorter::CustomClassExtractor::new(
+            Regex::new(r#"classes\((?P<classes>[^)]*)\)"#).unwrap(),
+        )
+        .unwrap();
+        let app = RustyWind {
+            regex: FinderRegex::CustomRegex(extractor),
+            class_wrapping: ClassWrapping::CommaSingleQuotes,
+            ..RUSTYWIND_DEFAULT
+        };
+        let source = "classes('p-4', 'm-4')";
+        let report =
+            app.sort_document_with_report(SourceDocument::new(source, SourceLanguage::Unknown));
+
+        assert_eq!(report.contents, "classes('m-4', 'p-4')");
+        assert_eq!(report.changed_class_groups, 1);
     }
 
     #[test_case("data-class" ; "data attribute")]
