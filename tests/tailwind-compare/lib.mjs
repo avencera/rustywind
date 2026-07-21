@@ -1,11 +1,13 @@
 import { createHash } from "node:crypto";
 
 import { parse as parseAstro } from "@astrojs/compiler/sync";
+import { parsers as babelParsers } from "prettier/plugins/babel";
 import { parsers as typescriptParsers } from "prettier/plugins/typescript";
 import { parse as parseSvelte } from "svelte/compiler";
 
 export const kinds = Object.freeze({
   astro: { extension: ".astro", parser: "astro" },
+  jsx: { extension: ".jsx", parser: "babel" },
   svelte: { extension: ".svelte", parser: "svelte" },
   tsx: { extension: ".tsx", parser: "typescript" },
 });
@@ -34,21 +36,28 @@ function isClassAttributeName(name) {
   return name === "class" || name === "className";
 }
 
-function findTsxAttributes(source) {
-  const ast = typescriptParsers.typescript.parse(source, {
-    filepath: "source.tsx",
-  });
+function findReactAttributes(source, kind) {
+  const ast =
+    kind === "jsx"
+      ? babelParsers.babel.parse(source, { filepath: "source.jsx" })
+      : typescriptParsers.typescript.parse(source, {
+          filepath: "source.tsx",
+        });
   const attributes = [];
   walk(ast, (node) => {
+    const valueType = kind === "jsx" ? "StringLiteral" : "Literal";
     if (
       node.type !== "JSXAttribute" ||
       !isClassAttributeName(node.name?.name) ||
-      node.value?.type !== "Literal" ||
+      node.value?.type !== valueType ||
       typeof node.value.value !== "string"
     ) {
       return;
     }
-    const [start, end] = node.value.range;
+    const [start, end] =
+      kind === "jsx"
+        ? [node.value.start, node.value.end]
+        : node.value.range;
     const quote = source[start];
     if ((quote !== '"' && quote !== "'") || source[end - 1] !== quote) return;
     attributes.push({ end: end - 1, start: start + 1 });
@@ -56,7 +65,7 @@ function findTsxAttributes(source) {
   return attributes;
 }
 
-function findSvelteAttributes(source) {
+function findStaticSvelteAttributes(source) {
   const ast = parseSvelte(source, { modern: true });
   const attributes = [];
   walk(ast.fragment, (node) => {
@@ -72,6 +81,27 @@ function findSvelteAttributes(source) {
     const quote = source[start - 1];
     if ((quote !== '"' && quote !== "'") || source[end] !== quote) return;
     attributes.push({ end, start });
+  });
+  return attributes;
+}
+
+function findQuotedSvelteAttributes(source) {
+  const ast = parseSvelte(source, { modern: true });
+  const attributes = [];
+  walk(ast.fragment, (node) => {
+    if (node.type !== "Attribute" || !isClassAttributeName(node.name)) return;
+    const valueStart = source.indexOf("=", node.name_loc.end.character) + 1;
+    if (valueStart === 0 || valueStart >= node.end) return;
+    const quoteStart = source
+      .slice(valueStart, node.end)
+      .search(/[^\s]/u);
+    if (quoteStart === -1) return;
+    const start = valueStart + quoteStart;
+    const quote = source[start];
+    if ((quote !== '"' && quote !== "'") || source[node.end - 1] !== quote) {
+      return;
+    }
+    attributes.push({ end: node.end - 1, start: start + 1 });
   });
   return attributes;
 }
@@ -148,10 +178,10 @@ function findAstroAttributes(source) {
 
 function findStaticAttributes(source, kind) {
   let attributes;
-  if (kind === "tsx") {
-    attributes = findTsxAttributes(source);
+  if (kind === "jsx" || kind === "tsx") {
+    attributes = findReactAttributes(source, kind);
   } else if (kind === "svelte") {
-    attributes = findSvelteAttributes(source);
+    attributes = findStaticSvelteAttributes(source);
   } else if (kind === "astro") {
     attributes = findAstroAttributes(source);
   } else {
@@ -160,6 +190,43 @@ function findStaticAttributes(source, kind) {
   return attributes
     .filter(({ start, end }) => isStaticCandidate(source.slice(start, end)))
     .sort((left, right) => left.start - right.start);
+}
+
+export function preservesSourceOutsideAttributes(before, after, kind) {
+  const beforeAttributes = findQuotedAttributes(before, kind);
+  const afterAttributes = findQuotedAttributes(after, kind);
+  if (beforeAttributes.length !== afterAttributes.length) return false;
+
+  const beforeSegments = sourceSegments(before, beforeAttributes);
+  const afterSegments = sourceSegments(after, afterAttributes);
+  return beforeSegments.every(
+    (segment, index) => segment === afterSegments[index],
+  );
+}
+
+function findQuotedAttributes(source, kind) {
+  let attributes;
+  if (kind === "jsx" || kind === "tsx") {
+    attributes = findReactAttributes(source, kind);
+  } else if (kind === "svelte") {
+    attributes = findQuotedSvelteAttributes(source);
+  } else if (kind === "astro") {
+    attributes = findAstroAttributes(source);
+  } else {
+    throw new Error(`Unsupported source kind: ${kind}`);
+  }
+  return attributes.sort((left, right) => left.start - right.start);
+}
+
+function sourceSegments(source, attributes) {
+  const segments = [];
+  let cursor = 0;
+  for (const { start, end } of attributes) {
+    segments.push(source.slice(cursor, start));
+    cursor = end;
+  }
+  segments.push(source.slice(cursor));
+  return segments;
 }
 
 export function extractAttributes(source, kind) {

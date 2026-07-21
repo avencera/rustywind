@@ -12,6 +12,7 @@ import {
   corpusFingerprint,
   extractAttributes,
   orderCandidates,
+  preservesSourceOutsideAttributes,
   scrambleAttributes,
   splitClassTokens,
 } from "../lib.mjs";
@@ -29,6 +30,74 @@ test("extracts only static quoted class attributes", () => {
     "grid gap-2",
     "before:content-['{']",
   ]);
+});
+
+test("converts Astro byte offsets after multibyte source text", () => {
+  const source = `---
+---
+<div>·</div>
+<div class="flex p-4"></div>
+`;
+  const changed = source.replace("flex p-4", "p-4 flex");
+
+  assert.deepEqual(extractAttributes(source, "astro"), ["flex p-4"]);
+  assert.equal(preservesSourceOutsideAttributes(source, changed, "astro"), true);
+});
+
+test("extracts JSX through the Babel parser", () => {
+  const source = `
+    const sample = '<div className="fake string">';
+    export const view = <><div className="flex p-4" /><span class='grid gap-2' /></>;
+  `;
+
+  assert.deepEqual(extractAttributes(source, "jsx"), [
+    "flex p-4",
+    "grid gap-2",
+  ]);
+});
+
+test("permits changes only inside real quoted class attributes", () => {
+  const source = `
+    const sample = '<div className="fake string">';
+    const view = <div className="p-4 flex" className={dynamic} />;
+  `;
+
+  assert.equal(
+    preservesSourceOutsideAttributes(
+      source,
+      source.replace('className="p-4 flex"', 'className="flex p-4"'),
+      "tsx",
+    ),
+    true,
+  );
+  assert.equal(
+    preservesSourceOutsideAttributes(
+      source,
+      source.replace("fake string", "string fake"),
+      "tsx",
+    ),
+    false,
+  );
+  assert.equal(
+    preservesSourceOutsideAttributes(
+      source,
+      source.replace("className={dynamic}", "className={changed}"),
+      "tsx",
+    ),
+    false,
+  );
+});
+
+test("preserves dynamic quoted Svelte attributes without scrambling them", () => {
+  const source = '<div class="p-4 {active ? \'flex\' : \'grid\'}"></div>';
+  const changed = source.replace("p-4", "m-4");
+
+  assert.deepEqual(extractAttributes(source, "svelte"), []);
+  assert.equal(scrambleAttributes(source, "svelte"), source);
+  assert.equal(
+    preservesSourceOutsideAttributes(source, changed, "svelte"),
+    true,
+  );
 });
 
 test("ignores markup text in source comments and string literals", () => {

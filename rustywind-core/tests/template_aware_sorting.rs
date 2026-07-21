@@ -241,6 +241,34 @@ fn astro_expressions_distinguish_program_strings_from_nested_markup() {
 }
 
 #[test]
+fn jsx_and_tsx_sort_only_direct_quoted_class_attributes() {
+    let source = r#"const fake = '<div className="p-4 flex" />';
+// <div class="p-4 flex" />
+type Props<T> = { value: T };
+const Component = <T,>({ value }: Props<T>) => (
+  <>
+    <div className="p-4 flex" data-class="p-4 flex">
+      {value ? <span class='m-4 grid' /> : <span className={classes} />}
+    </div>
+  </>
+);"#;
+    let expected = r#"const fake = '<div className="p-4 flex" />';
+// <div class="p-4 flex" />
+type Props<T> = { value: T };
+const Component = <T,>({ value }: Props<T>) => (
+  <>
+    <div className="flex p-4" data-class="p-4 flex">
+      {value ? <span class='m-4 grid' /> : <span className={classes} />}
+    </div>
+  </>
+);"#;
+
+    for path in ["Component.jsx", "Component.tsx"] {
+        assert_eq!(sort_path(source, path), expected);
+    }
+}
+
+#[test]
 fn relational_expressions_are_not_treated_as_markup() {
     let astro = r#"{a<b && className="p-4 m-4" > c}<div class="p-4 m-4"></div>"#;
     assert_eq!(

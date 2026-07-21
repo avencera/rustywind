@@ -7,9 +7,10 @@ use winnow::{
     token::{any, literal, take_till, take_until, take_while},
 };
 
+use crate::attribute_parser::ClassAttribute;
 use crate::source::{
-    MarkupDialect, MarkupProfile, SourceDocument, StatelessTemplateSyntax, TemplateIslandEnd,
-    TemplateIslandSyntax, template_island_end_at,
+    MarkupDialect, MarkupProfile, StatelessTemplateSyntax, TemplateIslandEnd, TemplateIslandSyntax,
+    template_island_end_at,
 };
 use crate::template_parser::{
     ExpressionSyntax, SvelteBlockKind, SvelteBraceContext, SvelteBraceEvent, SvelteBraceScan,
@@ -18,18 +19,11 @@ use crate::template_parser::{
 
 type Input<'a> = LocatingSlice<&'a str>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ClassAttribute(Range<usize>);
-
-impl ClassAttribute {
-    pub(crate) fn value_range(&self) -> Range<usize> {
-        self.0.clone()
-    }
-}
-
-pub(crate) fn class_attributes(document: SourceDocument<'_>) -> Option<Vec<ClassAttribute>> {
-    let profile = document.language().markup_profile()?;
-    MarkupParser::new(document.text(), profile).parse()
+pub(crate) fn class_attributes(
+    source: &str,
+    profile: MarkupProfile,
+) -> Option<Vec<ClassAttribute>> {
+    MarkupParser::new(source, profile).parse()
 }
 
 struct MarkupParser<'a> {
@@ -219,7 +213,7 @@ impl<'a> MarkupParser<'a> {
                 || attribute.name == "className")
                 && let Some(value) = attribute.quoted_value
             {
-                self.attributes.push(ClassAttribute(value));
+                self.attributes.push(ClassAttribute::new(value));
             }
         }
     }
@@ -598,10 +592,10 @@ fn consume_slice(input: &mut Input<'_>, slice: &str) -> Option<()> {
 #[cfg(test)]
 mod tests {
     use super::class_attributes;
-    use crate::source::{SourceDocument, SourceLanguage};
+    use crate::source::SourceLanguage;
 
     fn values(source: &str, language: SourceLanguage) -> Option<Vec<&str>> {
-        class_attributes(SourceDocument::new(source, language)).map(|attributes| {
+        class_attributes(source, language.markup_profile()?).map(|attributes| {
             attributes
                 .into_iter()
                 .map(|attribute| &source[attribute.value_range()])

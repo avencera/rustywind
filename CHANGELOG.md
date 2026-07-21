@@ -5,7 +5,9 @@
 ### Added
 
 - Add language-aware class extraction for HTML, Svelte, Django, Jinja, Twig,
-  Liquid, Handlebars, ERB, EJS, PHP, Blade, Lit, and Ruby
+  Liquid, Handlebars, ERB, EJS, PHP, Blade, Lit, Ruby, JSX, and TSX
+- Parse JSX and TSX with Winnow so only directly quoted `class` and `className`
+  attributes in real JSX elements are sorted
 - Add `--language` to override source-language inference and
   `--stdin-filename` to infer the language of standard input
 - Preserve template expressions as opaque boundaries while independently
@@ -44,6 +46,8 @@
 - Recognized markup languages only sort literal `class` and `className`
   attributes in actual tags. Class-like text in comments, raw-text elements,
   program strings, and dynamic or namespaced attributes is no longer rewritten
+- `SourceLanguage` now includes a `Jsx` variant used for both JSX and TSX.
+  Downstream exhaustive matches must handle it
 
 ## [0.25.2] - 2026-07-08
 

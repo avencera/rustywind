@@ -34,6 +34,8 @@ pub enum SourceLanguage {
     Svelte,
     /// Astro components
     Astro,
+    /// JSX syntax embedded in JavaScript or TypeScript
+    Jsx,
     /// Django templates
     Django,
     /// Jinja templates
@@ -92,6 +94,7 @@ impl SourceLanguage {
             Some("html" | "htm") => Self::Html,
             Some("svelte") => Self::Svelte,
             Some("astro") => Self::Astro,
+            Some("jsx" | "tsx") => Self::Jsx,
             Some("django" | "djhtml") => Self::Django,
             Some("jinja" | "jinja2" | "j2") => Self::Jinja,
             Some("twig") => Self::Twig,
@@ -110,6 +113,22 @@ impl SourceLanguage {
     pub(crate) const fn markup_profile(self) -> Option<MarkupProfile> {
         SourceProfile::new(self).markup
     }
+
+    pub(crate) const fn attribute_parser_profile(self) -> Option<AttributeParserProfile> {
+        match self {
+            Self::Jsx => Some(AttributeParserProfile::Jsx),
+            _ => match self.markup_profile() {
+                Some(profile) => Some(AttributeParserProfile::Markup(profile)),
+                None => None,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AttributeParserProfile {
+    Markup(MarkupProfile),
+    Jsx,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,7 +140,7 @@ struct SourceProfile {
 impl SourceProfile {
     const fn new(language: SourceLanguage) -> Self {
         let markup = match language {
-            SourceLanguage::Unknown => None,
+            SourceLanguage::Jsx | SourceLanguage::Unknown => None,
             SourceLanguage::Html => Some(MarkupProfile::new(
                 MarkupDialect::Html,
                 TemplateIslandSyntax::Stateless(StatelessTemplateSyntax::None),
@@ -183,9 +202,10 @@ impl SourceProfile {
             )),
         };
         let class_values = match language {
-            SourceLanguage::Html | SourceLanguage::Astro | SourceLanguage::Unknown => {
-                ClassValueSyntax::Unspecified
-            }
+            SourceLanguage::Html
+            | SourceLanguage::Astro
+            | SourceLanguage::Jsx
+            | SourceLanguage::Unknown => ClassValueSyntax::Unspecified,
             SourceLanguage::Svelte => ClassValueSyntax::Balanced {
                 opener: "{",
                 expression: ExpressionSyntax::JavaScript,
@@ -492,6 +512,8 @@ mod tests {
             ("index.HTML", SourceLanguage::Html),
             ("component.svelte", SourceLanguage::Svelte),
             ("component.astro", SourceLanguage::Astro),
+            ("component.jsx", SourceLanguage::Jsx),
+            ("component.TSX", SourceLanguage::Jsx),
             ("page.django.html", SourceLanguage::Django),
             ("page.jinja2", SourceLanguage::Jinja),
             ("page.twig", SourceLanguage::Twig),

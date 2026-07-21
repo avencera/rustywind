@@ -1,8 +1,8 @@
 # Tailwind comparison engine
 
 This package compares RustyWind's ordering of static quoted class attributes
-with Prettier's Tailwind CSS plugin across a pinned external corpus. It supports
-TSX, Svelte, and Astro sources. The engine reverses eligible class lists in
+with Prettier's Tailwind CSS plugin across pinned external corpora. It supports
+JSX, TSX, Svelte, and Astro sources. The engine reverses eligible class lists in
 memory, formats both the original and scrambled source with Prettier, and runs
 RustyWind on the scrambled source. This avoids false agreement from
 already-sorted source while detecting formatter output that depends on input
@@ -41,6 +41,10 @@ The process exits nonzero for invalid arguments, missing inputs, and a failed
 Tailwind classification probe. Source parse errors and RustyWind failures are
 recorded in the report for the caller to interpret alongside ordering and
 extraction findings.
+
+RustyWind may only change bytes inside real quoted `class` and `className`
+attribute values. Any change to program text, comments, dynamic attributes, or
+other source bytes is recorded as a failing source-preservation error.
 
 Schema version 2 classifies each attribute independently. Attribute-count and
 token-multiset mismatches take precedence. When both Prettier runs preserve the

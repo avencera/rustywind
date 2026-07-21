@@ -25,6 +25,7 @@ import {
   extractAttributes,
   kinds,
   orderCandidates,
+  preservesSourceOutsideAttributes,
   same,
   scrambleAttributes,
   splitClassTokens,
@@ -41,6 +42,7 @@ const ignoredDirectories = new Set([
 ]);
 const syntaxPlugins = {
   astro: [astroPlugin],
+  jsx: [],
   svelte: [sveltePlugin],
   tsx: [],
 };
@@ -49,7 +51,7 @@ function usage() {
   return [
     "usage: node compare.mjs",
     "  --corpus NAME --repo PATH --revision REVISION --scope PATH",
-    "  --kind tsx|svelte|astro --limit COUNT --rustywind PATH",
+    "  --kind jsx|tsx|svelte|astro --limit COUNT --rustywind PATH",
     "  --stylesheet PATH --output PATH",
   ].join("\n");
 }
@@ -228,6 +230,7 @@ function prettierOptions(configuration, file) {
     filepath: file,
     parser: kinds[configuration.kind].parser,
     plugins: [...syntaxPlugins[configuration.kind], tailwindPlugin],
+    tailwindPreserveDuplicates: true,
     tailwindStylesheet: configuration.stylesheet,
   };
 }
@@ -249,7 +252,13 @@ function scrubError(error, configuration) {
 function runRustywind(configuration, candidate) {
   const result = spawnSync(
     configuration.rustywind,
-    ["--stdin", "--stdin-filename", candidate.file, "--quiet"],
+    [
+      "--stdin",
+      "--stdin-filename",
+      candidate.file,
+      "--allow-duplicates",
+      "--quiet",
+    ],
     {
       encoding: "utf8",
       input: candidate.scrambledSource,
@@ -312,6 +321,7 @@ export async function probeKnownClasses(tokens, stylesheet) {
 async function validatePrettier(configuration) {
   const fixtures = {
     astro: '---\n---\n<div class="p-4 flex"></div>\n',
+    jsx: '<div className="p-4 flex" />;\n',
     svelte: '<div class="p-4 flex"></div>\n',
     tsx: '<div className="p-4 flex" />;\n',
   };
@@ -425,6 +435,31 @@ async function compareCandidates(configuration, candidates) {
       failures.push({
         path: candidate.path,
         stage: "rustywind",
+        error: scrubError(error, configuration),
+      });
+      continue;
+    }
+
+    try {
+      if (
+        !preservesSourceOutsideAttributes(
+          candidate.scrambledSource,
+          rustywindOutput,
+          configuration.kind,
+        )
+      ) {
+        failures.push({
+          path: candidate.path,
+          stage: "rustywind-source-preservation",
+          error:
+            "RustyWind changed source outside quoted class attribute values",
+        });
+        continue;
+      }
+    } catch (error) {
+      failures.push({
+        path: candidate.path,
+        stage: "rustywind-source-preservation",
         error: scrubError(error, configuration),
       });
       continue;

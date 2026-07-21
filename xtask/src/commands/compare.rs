@@ -22,6 +22,8 @@ pub(crate) enum CorpusName {
     #[value(name = "shadcn-ui")]
     ShadcnUi,
     Tremor,
+    #[value(name = "horizon-ui")]
+    HorizonUi,
     #[value(name = "shadcn-svelte")]
     ShadcnSvelte,
     #[value(name = "flowbite-svelte")]
@@ -36,6 +38,7 @@ impl CorpusName {
         match self {
             Self::ShadcnUi => "shadcn-ui",
             Self::Tremor => "tremor",
+            Self::HorizonUi => "horizon-ui",
             Self::ShadcnSvelte => "shadcn-svelte",
             Self::FlowbiteSvelte => "flowbite-svelte",
             Self::Astrowind => "astrowind",
@@ -52,6 +55,7 @@ impl fmt::Display for CorpusName {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CorpusKind {
+    Jsx,
     Tsx,
     Svelte,
     Astro,
@@ -60,6 +64,7 @@ enum CorpusKind {
 impl CorpusKind {
     fn as_str(self) -> &'static str {
         match self {
+            Self::Jsx => "jsx",
             Self::Tsx => "tsx",
             Self::Svelte => "svelte",
             Self::Astro => "astro",
@@ -137,6 +142,19 @@ const CORPORA: &[CorpusSpec] = &[
             files: 40,
             attributes: 560,
             fingerprint: "2b1c2815ba2f41173d6a2c5b3f95e790671ba56a1e699949c27cc437ee85f13e",
+        },
+    ),
+    CorpusSpec::new(
+        CorpusName::HorizonUi,
+        "horizon-ui/horizon-tailwind-react",
+        "8f17779f2b45419112f32541bb555817dabc5b7c",
+        "src",
+        CorpusKind::Jsx,
+        40,
+        ExpectedCorpus {
+            files: 40,
+            attributes: 670,
+            fingerprint: "9a648ab9c1f7722c8bda8eeca5cef2c3dda3e3742bb80486f48f629bfa14355c",
         },
     ),
     CorpusSpec::new(
@@ -1650,6 +1668,7 @@ mod tests {
             vec![
                 CorpusName::ShadcnUi,
                 CorpusName::Tremor,
+                CorpusName::HorizonUi,
                 CorpusName::ShadcnSvelte,
                 CorpusName::FlowbiteSvelte,
                 CorpusName::Astrowind,
@@ -1662,13 +1681,18 @@ mod tests {
     fn explicit_selection_is_deduplicated_and_uses_canonical_order() {
         let selected = select_corpora(&[
             CorpusName::Astrowind,
+            CorpusName::HorizonUi,
             CorpusName::ShadcnUi,
             CorpusName::Astrowind,
         ]);
 
         assert_eq!(
             selected.iter().map(|spec| spec.name).collect::<Vec<_>>(),
-            vec![CorpusName::ShadcnUi, CorpusName::Astrowind]
+            vec![
+                CorpusName::ShadcnUi,
+                CorpusName::HorizonUi,
+                CorpusName::Astrowind
+            ]
         );
     }
 

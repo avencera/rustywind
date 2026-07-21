@@ -657,7 +657,7 @@ impl ExpressionParser {
     }
 }
 
-fn consume_line_comment(input: &mut Input<'_>, opener: &str) -> Option<()> {
+pub(crate) fn consume_line_comment(input: &mut Input<'_>, opener: &str) -> Option<()> {
     literal::<_, _, winnow::error::ContextError>(opener)
         .void()
         .parse_next(input)
@@ -672,7 +672,7 @@ fn consume_line_comment(input: &mut Input<'_>, opener: &str) -> Option<()> {
         .ok()
 }
 
-fn consume_block_comment(input: &mut Input<'_>) -> Option<()> {
+pub(crate) fn consume_block_comment(input: &mut Input<'_>) -> Option<()> {
     (
         literal::<_, _, winnow::error::ContextError>("/*"),
         winnow::token::take_until::<_, _, winnow::error::ContextError>(0.., "*/"),
@@ -694,7 +694,11 @@ fn consume_html_comment(input: &mut Input<'_>) -> Option<()> {
         .ok()
 }
 
-fn consume_quoted(input: &mut Input<'_>, quote: char, rejected: Option<&str>) -> Option<()> {
+pub(crate) fn consume_quoted(
+    input: &mut Input<'_>,
+    quote: char,
+    rejected: Option<&str>,
+) -> Option<()> {
     consume_character(input, quote)?;
     loop {
         let source = remaining(input);
@@ -715,7 +719,7 @@ fn consume_quoted(input: &mut Input<'_>, quote: char, rejected: Option<&str>) ->
     }
 }
 
-fn consume_escape(input: &mut Input<'_>) -> Option<()> {
+pub(crate) fn consume_escape(input: &mut Input<'_>) -> Option<()> {
     consume_character(input, '\\')?;
     any::<_, winnow::error::ContextError>
         .void()
@@ -723,7 +727,7 @@ fn consume_escape(input: &mut Input<'_>) -> Option<()> {
         .ok()
 }
 
-fn consume_regex(input: &mut Input<'_>) -> Option<()> {
+pub(crate) fn consume_regex(input: &mut Input<'_>) -> Option<()> {
     consume_character(input, '/')?;
     let mut in_character_class = false;
     loop {
@@ -765,7 +769,7 @@ fn consume_character(input: &mut Input<'_>, expected: char) -> Option<()> {
     (character == expected).then_some(())
 }
 
-fn expression_keyword_allows_regex(identifier: &str) -> bool {
+pub(crate) fn expression_keyword_allows_regex(identifier: &str) -> bool {
     matches!(
         identifier,
         "await"

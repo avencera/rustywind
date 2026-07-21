@@ -10,7 +10,8 @@ This crate provides developer automation tools for the RustyWind project, replac
 
 ### compare run
 
-Compare RustyWind against immutable snapshots of real-world Tailwind projects.
+Compare RustyWind against immutable snapshots of real-world JSX, TSX, Svelte,
+and Astro Tailwind projects.
 
 ```bash
 # compare every corpus
