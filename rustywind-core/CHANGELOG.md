@@ -8,6 +8,9 @@
   sorted contents together with the number of class groups (attribute values or
   custom-regex captures) whose text changed; `sort_document` is now a thin
   wrapper over the report
+- Add `RustyWind::sort_class_value`, which sorts a bare class attribute value
+  with template awareness, for tools that locate class attributes with their
+  own parser and only need the value sorted
 
 ## [0.5.0] - 2026-07-21
 
