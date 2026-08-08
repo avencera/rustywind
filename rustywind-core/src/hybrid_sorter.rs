@@ -25,7 +25,7 @@ use quick_cache::sync::Cache;
 
 use crate::pattern_sorter::{PatternSorter, SortKey};
 
-pub const DEFAULT_CACHE_SIZE: usize = 7500;
+pub const DEFAULT_CACHE_SIZE: usize = 10_000;
 
 /// Hybrid sorter combining LRU cache and pattern-based sorting
 ///
@@ -45,7 +45,7 @@ pub struct HybridSorter {
 }
 
 impl HybridSorter {
-    /// Create a new hybrid sorter with default cache size (5000 entries)
+    /// Create a new hybrid sorter with the default cache size ([`DEFAULT_CACHE_SIZE`])
     pub fn new() -> Self {
         Self::with_cache_size(DEFAULT_CACHE_SIZE)
     }
