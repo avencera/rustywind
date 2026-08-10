@@ -8,7 +8,8 @@ use crate::{
     markup_parser::is_attribute_name_character,
     sorter::{FinderRegex, Sorter},
     source::{
-        ClassValueAnalysis, SourceDocument, StaticRuns, analyze_class_value, is_plain_class_list,
+        ClassValueAnalysis, SourceDocument, SourceLanguage, StaticRuns, analyze_class_value,
+        is_plain_class_list,
     },
     tailwind_prefix::{normalize_tailwind_prefix, normalize_tailwind_prefix_value},
 };
@@ -274,8 +275,35 @@ impl RustyWind {
         self.sort_class_run(class_list.as_str())
     }
 
+    /// Sorts a bare class attribute value with template awareness
+    ///
+    /// Handles one value like [`RustyWind::sort_document`] handles the
+    /// attribute values it discovers itself, for tools that locate class
+    /// attributes with their own parser
+    pub fn sort_class_value<'a>(&self, value: &'a str, language: SourceLanguage) -> Cow<'a, str> {
+        match self.sortable_class_value(value, language) {
+            Some(sortable) => self.sort_source_value(value, &sortable),
+            None => Cow::Borrowed(value),
+        }
+    }
+
     fn extraction_regex(&self) -> &Regex {
         &self.regex
+    }
+
+    fn sortable_class_value<'a>(
+        &self,
+        value: &'a str,
+        language: SourceLanguage,
+    ) -> Option<SortableClassValue<'a>> {
+        if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
+            match analyze_class_value(value, language) {
+                ClassValueAnalysis::Sortable(runs) => Some(SortableClassValue::Static(runs)),
+                ClassValueAnalysis::Opaque => None,
+            }
+        } else {
+            WrappedClassList::parse(value, self.class_wrapping).map(SortableClassValue::Wrapped)
+        }
     }
 
     fn sortable_capture<'a>(
@@ -296,17 +324,7 @@ impl RustyWind {
             FinderRegex::CustomRegex(extractor) => extractor.classes(captures)?,
         };
 
-        let value = if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
-            match analyze_class_value(classes_match.as_str(), document.language()) {
-                ClassValueAnalysis::Sortable(runs) => SortableClassValue::Static(runs),
-                ClassValueAnalysis::Opaque => return None,
-            }
-        } else {
-            SortableClassValue::Wrapped(WrappedClassList::parse(
-                classes_match.as_str(),
-                self.class_wrapping,
-            )?)
-        };
+        let value = self.sortable_class_value(classes_match.as_str(), document.language())?;
 
         Some(SortableCapture {
             full_match,
@@ -321,17 +339,8 @@ impl RustyWind {
         document: SourceDocument<'a>,
     ) -> Option<(Range<usize>, SortableClassValue<'a>)> {
         let range = attribute.value_range();
-        let value = if matches!(self.class_wrapping, ClassWrapping::NoWrapping) {
-            match analyze_class_value(&document.text()[range.clone()], document.language()) {
-                ClassValueAnalysis::Sortable(runs) => SortableClassValue::Static(runs),
-                ClassValueAnalysis::Opaque => return None,
-            }
-        } else {
-            SortableClassValue::Wrapped(WrappedClassList::parse(
-                &document.text()[range.clone()],
-                self.class_wrapping,
-            )?)
-        };
+        let value =
+            self.sortable_class_value(&document.text()[range.clone()], document.language())?;
 
         Some((range, value))
     }

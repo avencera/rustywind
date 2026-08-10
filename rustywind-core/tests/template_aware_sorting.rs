@@ -725,3 +725,67 @@ fn plain_class_lists_reject_source_syntax_and_unbalanced_brackets() {
     let parsed = PlainClassList::parse(arbitrary).expect("balanced arbitrary values are static");
     assert_eq!(parsed.as_str(), arbitrary);
 }
+
+#[test]
+fn class_values_sort_static_runs_and_preserve_expressions() {
+    let sorter = RustyWind::default();
+
+    for (value, expected) in [
+        // Plain values sort like a static class list
+        ("p-4 flex m-4", "m-4 flex p-4"),
+        // Static runs on each side of an expression sort independently
+        (
+            "text-white p-4 {% if active %}flex{% endif %} bg-blue-700",
+            "p-4 text-white {% if active %}flex{% endif %} bg-blue-700",
+        ),
+        // Expression-attached tokens are opaque and pin their position,
+        // while the static run before them still sorts
+        (
+            "gap-2 badge badge-{{ item.status|status_color }} whitespace-nowrap",
+            "badge gap-2 badge-{{ item.status|status_color }} whitespace-nowrap",
+        ),
+        // Duplicates are removed within a run but never across an expression
+        (
+            "p-4 m-4 p-4 {{ extra }} p-4 m-4 p-4",
+            "m-4 p-4 {{ extra }} m-4 p-4",
+        ),
+        // Fully dynamic values are returned unchanged
+        ("{{ button_classes }}", "{{ button_classes }}"),
+        // Malformed template syntax is left alone rather than scrambled
+        ("p-4 {{ unclosed", "p-4 {{ unclosed"),
+    ] {
+        assert_eq!(
+            sorter.sort_class_value(value, SourceLanguage::Django),
+            expected
+        );
+    }
+}
+
+#[test]
+fn class_values_follow_the_configured_wrapping() {
+    let sorter = RustyWind {
+        class_wrapping: ClassWrapping::CommaSingleQuotes,
+        ..RustyWind::default()
+    };
+
+    assert_eq!(
+        sorter.sort_class_value("'p-4', 'flex', 'm-4'", SourceLanguage::Django),
+        "'m-4', 'flex', 'p-4'"
+    );
+}
+
+#[test]
+fn class_value_sorting_matches_document_sorting() {
+    let sorter = RustyWind::default();
+    let value = "input validator {% if field.errors %}input-error{% endif %} w-full {{ class }}";
+    let document = format!(r#"<div class="{value}"></div>"#);
+
+    let document_sorted =
+        sorter.sort_document(SourceDocument::new(&document, SourceLanguage::Django));
+    let value_sorted = sorter.sort_class_value(value, SourceLanguage::Django);
+
+    assert_eq!(
+        document_sorted.into_owned(),
+        format!(r#"<div class="{value_sorted}"></div>"#)
+    );
+}
