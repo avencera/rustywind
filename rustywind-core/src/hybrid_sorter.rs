@@ -25,7 +25,7 @@ use quick_cache::sync::Cache;
 
 use crate::pattern_sorter::{PatternSorter, SortKey};
 
-pub const DEFAULT_CACHE_SIZE: usize = 7500;
+pub const DEFAULT_CACHE_SIZE: usize = 10_000;
 
 /// Hybrid sorter combining LRU cache and pattern-based sorting
 ///
@@ -39,11 +39,13 @@ pub struct HybridSorter {
     /// LRU cache for dynamically computed sort keys
     /// Capacity: DEFAULT_CACHE_SIZE entries (covers most real-world usage)
     /// Uses CompactString keys for memory efficiency (24 bytes inline, no heap for typical classes)
-    cache: Arc<Cache<compact_str::CompactString, SortKey>>,
+    /// Stores `None` for unknown classes too: re-running the exhaustive pattern scan for every
+    /// occurrence of a non-Tailwind class dominates sorting time on real-world files.
+    cache: Arc<Cache<compact_str::CompactString, Option<SortKey>>>,
 }
 
 impl HybridSorter {
-    /// Create a new hybrid sorter with default cache size (5000 entries)
+    /// Create a new hybrid sorter with the default cache size ([`DEFAULT_CACHE_SIZE`])
     pub fn new() -> Self {
         Self::with_cache_size(DEFAULT_CACHE_SIZE)
     }
@@ -110,19 +112,15 @@ impl HybridSorter {
         // tier 1: check LRU cache for previously computed classes (fast)
         // CompactString has efficient conversion from &str
         let class_compact = compact_str::CompactString::new(class);
-        if let Some(cached_key) = self.cache.get(&class_compact) {
-            return Some(cached_key);
+        if let Some(cached) = self.cache.get(&class_compact) {
+            return cached;
         }
 
-        // tier 2: compute using pattern sorter and cache the result
-        if let Some(sort_key) = self.pattern_sorter.get_sort_key(class) {
-            // cache the computed result for future lookups
-            // CompactString stores most classes inline (24 bytes) avoiding heap allocations
-            self.cache.insert(class_compact, sort_key.clone());
-            return Some(sort_key);
-        }
-
-        None
+        // tier 2: compute using pattern sorter and cache the result, negative outcomes included
+        // CompactString stores most classes inline (24 bytes) avoiding heap allocations
+        let sort_key = self.pattern_sorter.get_sort_key(class);
+        self.cache.insert(class_compact, sort_key.clone());
+        sort_key
     }
 
     /// Sort a list of Tailwind CSS classes according to the canonical ordering
@@ -256,6 +254,18 @@ mod tests {
         let key2 = sorter.get_sort_key("m-4").unwrap();
 
         assert_eq!(key1, key2);
+    }
+
+    #[test]
+    fn test_unknown_classes_are_cached() {
+        let sorter = HybridSorter::new();
+
+        assert!(sorter.get_sort_key("not-a-tailwind-class").is_none());
+
+        // the negative result is cached so repeat lookups skip the pattern scan
+        let (entries, _) = sorter.cache_stats();
+        assert_eq!(entries, 1);
+        assert!(sorter.get_sort_key("not-a-tailwind-class").is_none());
     }
 
     #[test]
