@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-08-10
+
 ### Added
 
+- Add `RustyWind::sort_class_value` for template-aware sorting of bare class
+  attribute values, [#151](https://github.com/avencera/rustywind/pull/151)
 - Add `--json` to the check, dry-run, bare, write, and stdin modes to emit one
   machine-readable JSON document with changed files, changed class-group counts,
   proposed or written content, and structured `{path, message}` errors for
@@ -23,6 +27,11 @@
 ### Fixed
 
 - Replace the panic on unreadable stdin with a normal error message
+
+### Performance
+
+- Cache sort-key misses to avoid repeated scans for unknown classes and increase
+  the default cache capacity, [#152](https://github.com/avencera/rustywind/pull/152)
 
 ## [0.26.0] - 2026-07-21
 
