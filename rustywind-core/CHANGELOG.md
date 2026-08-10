@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.6.0] - 2026-08-10
+
 ### Added
 
 - Add `SortReport` and `RustyWind::sort_document_with_report`, which return the
@@ -11,6 +13,11 @@
 - Add `RustyWind::sort_class_value`, which sorts a bare class attribute value
   with template awareness, for tools that locate class attributes with their
   own parser and only need the value sorted
+
+### Performance
+
+- Cache sort-key misses to avoid repeated pattern scans for unknown classes and
+  increase the default cache capacity
 
 ## [0.5.0] - 2026-07-21
 
