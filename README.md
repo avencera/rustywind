@@ -151,6 +151,9 @@ Options:
       --allow-duplicates
           When set, RustyWind will not delete duplicated classes
 
+      --preserve-whitespace
+          When set, RustyWind will keep the original whitespace between classes, e.g. multiline class lists
+
       --config-file <CONFIG_FILE>
           When set, RustyWind will use the config file to derive configurations. The config file current only supports json with one property sortOrder, e.g. { "sortOrder": ["class1", ...] }
 
