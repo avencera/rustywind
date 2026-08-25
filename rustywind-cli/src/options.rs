@@ -132,6 +132,7 @@ impl Options {
             allow_duplicates: cli.allow_duplicates,
             class_wrapping: get_class_wrapping_from_cli(&cli),
             tailwind_prefix: cli.tailwind_prefix.clone(),
+            preserve_whitespace: cli.preserve_whitespace,
         };
 
         Ok(Options {

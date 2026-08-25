@@ -165,6 +165,8 @@ pub struct RustyWind {
     pub class_wrapping: ClassWrapping,
     /// Tailwind prefix normalized while computing sort order
     pub tailwind_prefix: Option<String>,
+    /// Preserve the original whitespace around classes when sorting
+    pub preserve_whitespace: bool,
 }
 
 impl Default for RustyWind {
@@ -175,6 +177,7 @@ impl Default for RustyWind {
             allow_duplicates: false,
             class_wrapping: ClassWrapping::NoWrapping,
             tailwind_prefix: None,
+            preserve_whitespace: false,
         }
     }
 }
@@ -204,6 +207,7 @@ impl RustyWind {
             allow_duplicates,
             class_wrapping,
             tailwind_prefix,
+            preserve_whitespace: false,
         }
     }
 
@@ -418,13 +422,18 @@ impl RustyWind {
     }
 
     fn sort_class_run(&self, class_string: &str) -> String {
-        let mut sorted = self.sort_classes_vec(split_class_tokens(class_string).into_iter());
+        let tokens = split_class_tokens(class_string);
+        let mut sorted = self.sort_classes_vec(tokens.iter().copied());
 
         if !self.allow_duplicates {
             deduplicate_classes(&mut sorted);
         }
 
-        sorted.join(" ")
+        if self.preserve_whitespace {
+            interleave_separators(class_string, &tokens, &sorted)
+        } else {
+            sorted.join(" ")
+        }
     }
 
     fn sort_wrapped_classes(&self, class_list: &WrappedClassList<'_>) -> String {
@@ -696,6 +705,34 @@ fn split_class_tokens(class_string: &str) -> Vec<&str> {
     tokens
 }
 
+/// Join the sorted classes of a run, reusing the original whitespace instead of single spaces.
+///
+/// Whitespace is reused positionally: the Nth sorted class is preceded by the whitespace that preceded
+/// the Nth original class, and the trailing whitespace is kept as-is. A class list spread over several
+/// indented lines thus keeps its exact line structure — only the class names move between the slots.
+///
+/// When deduplication dropped classes, `sorted` is shorter than `tokens` and the surplus slots are
+/// dropped along with their separators.
+fn interleave_separators(original: &str, tokens: &[&str], sorted: &[&str]) -> String {
+    // `tokens` are subslices of `original`, so an offset marks the end of the preceding whitespace.
+    let offset = |token: &str| token.as_ptr() as usize - original.as_ptr() as usize;
+    debug_assert!(sorted.len() <= tokens.len());
+
+    // The output is a subset of the original separators and tokens, so this capacity never reallocates.
+    let mut out = String::with_capacity(original.len());
+    let mut pos = 0;
+    let mut replacements = sorted.iter();
+    for token in tokens {
+        if let Some(replacement) = replacements.next() {
+            out.push_str(&original[pos..offset(token)]);
+            out.push_str(replacement);
+        }
+        pos = offset(token) + token.len();
+    }
+    out.push_str(&original[pos..]);
+    out
+}
+
 fn deduplicate_classes(classes: &mut Vec<&str>) {
     let mut seen = HashSet::new();
     classes.retain(|class| is_ellipsis_placeholder(class) || seen.insert(*class));
@@ -718,6 +755,7 @@ mod tests {
         allow_duplicates: false,
         class_wrapping: ClassWrapping::NoWrapping,
         tailwind_prefix: None,
+        preserve_whitespace: false,
     };
 
     trait TestRustyWindExt {
@@ -1008,6 +1046,7 @@ mod tests {
             regex: FinderRegex::DefaultRegex,
             class_wrapping: ClassWrapping::NoWrapping,
             tailwind_prefix: None,
+            preserve_whitespace: false,
         };
 
         let input = r#"<div class="flex flex m-4 m-4"></div>"#;
@@ -1347,6 +1386,7 @@ mod tests {
             allow_duplicates: false,
             class_wrapping,
             tailwind_prefix: None,
+            preserve_whitespace: false,
         };
 
         assert_eq!(app.sort_file_contents(input), output);
@@ -1360,12 +1400,77 @@ mod tests {
             allow_duplicates: false,
             class_wrapping: ClassWrapping::NoWrapping,
             tailwind_prefix: None,
+            preserve_whitespace: false,
         };
         let input = "even-columns empty-state hovercraft event.status status_color even:flex";
 
         assert_eq!(
             app.sort_classes(input),
             "even:flex even-columns empty-state hovercraft event.status status_color"
+        );
+    }
+
+    #[test]
+    /// The one-class-per-line layout from avencera/rustywind#25, which default
+    /// sorting flattens to a single line.
+    fn preserve_whitespace_keeps_one_class_per_line() {
+        let app = RustyWind {
+            preserve_whitespace: true,
+            ..RustyWind::default()
+        };
+        let input = r#"<div
+  class="
+    grid
+    border
+    fixed
+    top-0
+    right-0
+    z-20
+    grid-flow-col
+    gap-2
+    justify-start
+    my-12
+    mx-8
+    text-red-800
+    bg-red-50
+    rounded
+    border-red-100
+    shadow-2xl
+  "
+>"#;
+        let expected = r#"<div
+  class="
+    fixed
+    top-0
+    right-0
+    z-20
+    mx-8
+    my-12
+    grid
+    grid-flow-col
+    justify-start
+    gap-2
+    rounded
+    border
+    border-red-100
+    bg-red-50
+    text-red-800
+    shadow-2xl
+  "
+>"#;
+        assert_eq!(app.sort_file_contents(input), expected);
+    }
+
+    #[test]
+    fn preserve_whitespace_drops_surplus_separators_on_dedup() {
+        let app = RustyWind {
+            preserve_whitespace: true,
+            ..RustyWind::default()
+        };
+        let input = "<div class=\"flex\n    flex p-4\"></div>";
+        assert_eq!(
+            app.sort_file_contents(input),
+            "<div class=\"flex\n    p-4\"></div>"
         );
     }
 }

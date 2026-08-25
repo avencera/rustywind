@@ -93,6 +93,7 @@ fn rustywind_flag_preserves_original_prefixed_classes_in_output() {
         allow_duplicates: false,
         class_wrapping: Default::default(),
         tailwind_prefix: Some("tw".to_string()),
+        preserve_whitespace: false,
     };
 
     let input = r#"<div class="tw:p-4 tw:bg-white tw:md:text-xl tw:hover:-mr-4"></div>"#;
@@ -117,6 +118,7 @@ fn custom_sorter_uses_normalized_prefixed_fallback_after_exact_lookup() {
         allow_duplicates: false,
         class_wrapping: Default::default(),
         tailwind_prefix: Some("tw".to_string()),
+        preserve_whitespace: false,
     };
 
     assert_eq!(
@@ -141,6 +143,7 @@ fn custom_sorter_variant_fallback_keeps_v3_prefixed_exact_order() {
         allow_duplicates: false,
         class_wrapping: Default::default(),
         tailwind_prefix: Some("tw".to_string()),
+        preserve_whitespace: false,
     };
 
     assert_eq!(
@@ -161,6 +164,7 @@ fn custom_sorter_variant_fallback_keeps_v4_prefixed_exact_order() {
         allow_duplicates: false,
         class_wrapping: Default::default(),
         tailwind_prefix: Some("tw".to_string()),
+        preserve_whitespace: false,
     };
 
     assert_eq!(

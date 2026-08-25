@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- Add `RustyWind::preserve_whitespace`, which reuses the original separators
+  between classes instead of rejoining a sorted run with single spaces, so
+  multiline class lists keep their line structure
+
+### Changed
+
+- **Breaking**: `RustyWind` gained the `preserve_whitespace` field, so
+  exhaustive struct literals no longer compile; build them with
+  `..RustyWind::default()` or the `RustyWind::new*` constructors, which keep the
+  previous behavior
+
 ## [0.6.0] - 2026-08-10
 
 ### Added

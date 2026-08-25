@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add `--preserve-whitespace` to keep the original whitespace between classes
+  instead of collapsing a sorted class list onto a single line,
+  [#153](https://github.com/avencera/rustywind/pull/153)
+
 ## [0.27.0] - 2026-08-10
 
 ### Added

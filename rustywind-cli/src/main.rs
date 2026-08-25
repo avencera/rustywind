@@ -69,6 +69,9 @@ pub struct Cli {
     /// When set, RustyWind will not delete duplicated classes.
     #[arg(long)]
     allow_duplicates: bool,
+    /// When set, RustyWind will keep the original whitespace between classes, e.g. multiline class lists.
+    #[arg(long)]
+    preserve_whitespace: bool,
     /// When set, RustyWind will use the config file to derive configurations. The config file
     /// current only supports json with one property sortOrder, e.g.
     /// { "sortOrder": ["class1", ...] }.
