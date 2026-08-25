@@ -2,18 +2,26 @@
 
 ## Unreleased
 
+## [0.7.0] - 2026-08-25
+
 ### Added
 
 - Add `RustyWind::preserve_whitespace`, which reuses the original separators
   between classes instead of rejoining a sorted run with single spaces, so
-  multiline class lists keep their line structure
+  multiline class lists keep their line structure,
+  [#153](https://github.com/avencera/rustywind/pull/153), thanks
+  [@UnknownPlatypus](https://github.com/UnknownPlatypus)
+- Add a `runtime-rng` feature (on by default) that forwards to
+  `ahash/runtime-rng`. WebAssembly targets can build with
+  `default-features = false` to drop `getrandom`,
+  [#154](https://github.com/avencera/rustywind/pull/154), thanks
+  [@UnknownPlatypus](https://github.com/UnknownPlatypus)
 
-### Changed
+### Breaking changes
 
-- **Breaking**: `RustyWind` gained the `preserve_whitespace` field, so
-  exhaustive struct literals no longer compile; build them with
-  `..RustyWind::default()` or the `RustyWind::new*` constructors, which keep the
-  previous behavior
+- `RustyWind` gained the `preserve_whitespace` field, so exhaustive struct
+  literals no longer compile. Build them with `..RustyWind::default()` or the
+  `RustyWind::new*` constructors, which keep the previous behavior
 
 ## [0.6.0] - 2026-08-10
 

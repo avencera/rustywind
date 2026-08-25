@@ -2,11 +2,25 @@
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-08-25
+
 ### Added
 
 - Add `--preserve-whitespace` to keep the original whitespace between classes
   instead of collapsing a sorted class list onto a single line,
-  [#153](https://github.com/avencera/rustywind/pull/153)
+  [#153](https://github.com/avencera/rustywind/pull/153), thanks
+  [@UnknownPlatypus](https://github.com/UnknownPlatypus)
+- Add a `runtime-rng` feature on `rustywind_core` (on by default) so WebAssembly
+  builds can disable `getrandom` with `default-features = false`,
+  [#154](https://github.com/avencera/rustywind/pull/154), thanks
+  [@UnknownPlatypus](https://github.com/UnknownPlatypus)
+
+### Breaking changes
+
+- `RustyWind` now includes a `preserve_whitespace` field. Code that constructs
+  `RustyWind` with an exhaustive struct literal must set
+  `preserve_whitespace: false`, or use `..RustyWind::default()` or the
+  `RustyWind::new*` constructors
 
 ## [0.27.0] - 2026-08-10
 
