@@ -22,7 +22,7 @@ rustywind_vite = { path = "../rustywind-vite", version = "=0.6.0" }
 # utils
 regex = { workspace = true }
 once_cell = { workspace = true }
-ahash = { workspace = true }
+ahash = { workspace = true, features = ["runtime-rng"] }
 
 # logging
 env_logger = { workspace = true }
