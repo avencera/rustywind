@@ -9,6 +9,12 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[features]
+default = ["runtime-rng"]
+# Keep the default unless you target wasm32-unknown-unknown,
+# where this feature's getrandom dependency doesn't build.
+runtime-rng = ["ahash/runtime-rng"]
+
 [dependencies]
 once_cell = { workspace = true }
 quick_cache = { workspace = true }

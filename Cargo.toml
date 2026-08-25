@@ -16,7 +16,9 @@ quick_cache = "0.7"
 compact_str = "0.10"
 
 # hashmap
-ahash = "0.8"
+# Lowest common denominator: the `runtime-rng` default needs getrandom, which doesn't build
+# on wasm32-unknown-unknown. Members that want stock ahash re-enable default features.
+ahash = { version = "0.8", default-features = false, features = ["std", "no-rng"] }
 
 # errors
 eyre = "0.6"
