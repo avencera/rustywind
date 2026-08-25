@@ -31,6 +31,9 @@ log = "0.4"
 # regex
 regex = "1.11"
 
+[profile.dev]
+debug = "line-tables-only"
+
 [profile.release]
 codegen-units = 1
 lto = "fat"
