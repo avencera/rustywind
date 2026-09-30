@@ -77,7 +77,7 @@ pub struct Cli {
     /// { "sortOrder": ["class1", ...] }.
     #[arg(long, conflicts_with_all = &["output_css_file"])]
     config_file: Option<String>,
-    /// When set RustyWind will determine the sort order by the order the class appear in the the given css file.
+    /// When set RustyWind will determine the sort order by the order the class appear in the given CSS file.
     #[arg(long, conflicts_with_all = &["config_file", "vite_css"])]
     output_css_file: Option<String>,
     /// When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates.
