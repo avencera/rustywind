@@ -2,10 +2,10 @@ name: rustfmt
 on: [push, pull_request]
 jobs:
   rustfmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install stable toolchain with rustfmt availableA
         uses: actions-rust-lang/setup-rust-toolchain@v1
