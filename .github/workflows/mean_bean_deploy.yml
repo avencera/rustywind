@@ -11,34 +11,10 @@ env:
   BIN: rustywind
 
 jobs:
-  # This job downloads and stores `cross` as an artifact, so that it can be
-  # re-downloaded across all of the jobs. Currently this copied pasted between
-  # `mean_bean_ci.yml` and `mean_bean_deploy.yml`. Make sure to update both places when making
-  # changes.
-  install-cross:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - uses: XAMPPRocky/get-github-release@v1
-        id: cross
-        with:
-          owner: rust-embedded
-          repo: cross
-          matches: ${{ matrix.platform }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cross-${{ matrix.platform }}
-          path: ${{ steps.cross.outputs.install_path }}
-    strategy:
-      matrix:
-        platform: [linux-musl]
-
   windows:
     runs-on: windows-latest
-    needs: install-cross
+    permissions:
+      contents: write
     strategy:
       matrix:
         target:
@@ -49,11 +25,7 @@ jobs:
           # - i686-pc-windows-gnu
           # - x86_64-pc-windows-gnu
     steps:
-      - name: Get tag
-        id: tag
-        uses: dawidd6/action-get-tag@v1
-
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: bash ci/set_rust_version.bash stable ${{ matrix.target }}
       - run: bash ci/build.bash cargo ${{ matrix.target }} RELEASE
       - run: |
@@ -61,32 +33,25 @@ jobs:
           7z a "${{ env.BIN }}.zip" "${{ env.BIN }}.exe"
           mv "${{ env.BIN }}.zip" $GITHUB_WORKSPACE
         shell: bash
-        # We're using using a fork of `actions/create-release` that detects
-        # whether a release is already available or not first.
-      - uses: XAMPPRocky/create-release@v1.0.2
-        id: create_release
+      - name: Create release and upload asset
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          # Draft should **always** be false. GitHub doesn't provide a way to
-          # get draft releases from its API, so there's no point using it.
-          draft: false
-          prerelease: false
-
-      - uses: actions/upload-release-asset@v1
-        id: upload-release-asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.BIN }}.zip
-          asset_name: ${{ env.BIN }}-${{steps.tag.outputs.tag}}-${{ matrix.target }}.zip
-          asset_content_type: application/zip
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # sibling matrix jobs race to create the release, so tolerate losing
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --notes "" \
+            || gh release view "$TAG" > /dev/null
+          # the asset name comes from the uploaded file name
+          ASSET="$BIN-$TAG-${{ matrix.target }}.zip"
+          cp "$BIN.zip" "$ASSET"
+          gh release upload "$TAG" "$ASSET"
 
   macos:
     runs-on: macos-latest
+    permissions:
+      contents: write
     strategy:
       matrix:
         target:
@@ -100,16 +65,12 @@ jobs:
           # - i386-apple-ios
           # - x86_64-apple-ios
     steps:
-      - name: Get tag
-        id: tag
-        uses: dawidd6/action-get-tag@v1
-
       - name: Setup | Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Cache files between builds
       - name: Setup | Cache Cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -126,29 +87,24 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
 
       - run: tar -czvf ${{ env.BIN }}.tar.gz --directory=target/${{ matrix.target }}/release ${{ env.BIN }}
-      - uses: XAMPPRocky/create-release@v1.0.2
-        id: create_release
+      - name: Create release and upload asset
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-      - uses: actions/upload-release-asset@v1
-        id: upload-release-asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.BIN }}.tar.gz
-          asset_name: ${{ env.BIN }}-${{steps.tag.outputs.tag}}-${{ matrix.target }}.tar.gz
-          asset_content_type: application/gzip
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # sibling matrix jobs race to create the release, so tolerate losing
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --notes "" \
+            || gh release view "$TAG" > /dev/null
+          # the asset name comes from the uploaded file name
+          ASSET="$BIN-$TAG-${{ matrix.target }}.tar.gz"
+          cp "$BIN.tar.gz" "$ASSET"
+          gh release upload "$TAG" "$ASSET"
 
   linux:
-    runs-on: ubuntu-latest
-    needs: install-cross
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     strategy:
       matrix:
         target:
@@ -193,51 +149,38 @@ jobs:
           # - thumbv7em-none-eabihf
           # - thumbv7m-none-eabi
     steps:
-      - name: Get tag
-        id: tag
-        uses: dawidd6/action-get-tag@v1
-
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: taiki-e/install-action@v2
         with:
-          name: cross-linux-musl
-          path: /tmp/
-      - run: chmod +x /tmp/cross
+          tool: cross
 
       - run: ci/set_rust_version.bash stable ${{ matrix.target }}
-      - run: ci/build.bash /tmp/cross ${{ matrix.target }} RELEASE
+      - run: ci/build.bash cross ${{ matrix.target }} RELEASE
       - run: tar -czvf ${{ env.BIN }}.tar.gz --directory=target/${{ matrix.target }}/release ${{ env.BIN }}
-      - uses: XAMPPRocky/create-release@v1.0.2
-        id: create_release
+      - name: Create release and upload asset
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.BIN }}.tar.gz
-          asset_name: ${{ env.BIN }}-${{steps.tag.outputs.tag}}-${{ matrix.target }}.tar.gz
-          asset_content_type: application/gzip
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # sibling matrix jobs race to create the release, so tolerate losing
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --notes "" \
+            || gh release view "$TAG" > /dev/null
+          # the asset name comes from the uploaded file name
+          ASSET="$BIN-$TAG-${{ matrix.target }}.tar.gz"
+          cp "$BIN.tar.gz" "$ASSET"
+          gh release upload "$TAG" "$ASSET"
   docker:
     needs: linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     name: Build Docker image for tagged release
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -258,30 +201,30 @@ jobs:
             type=sha
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to DockerHub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           platforms: linux/amd64,linux/arm64
           context: .

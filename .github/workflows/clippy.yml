@@ -2,15 +2,15 @@ name: clippy
 on: [push, pull_request]
 jobs:
   clippy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
           components: clippy
           override: true
-      - uses: clechasseur/rs-clippy-check@v4
+      - uses: clechasseur/rs-clippy-check@v6.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
