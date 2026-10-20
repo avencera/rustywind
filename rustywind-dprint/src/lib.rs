@@ -119,8 +119,8 @@ impl SyncPluginHandler<Configuration> for RustyWindPluginHandler {
 pub fn format_text(file_path: &Path, text: &str, config: &Configuration) -> Option<String> {
     // `dprint-ignore` exempts the next node, which only the claiming plugin's
     // parser can delimit, so the whole file is skipped rather than risk sorting
-    // excluded classes. The prefix also covers `-file`, `-start`, and `-end`
-    if text.contains("dprint-ignore") {
+    // excluded classes
+    if has_ignore_directive(text) {
         return None;
     }
 
@@ -130,6 +130,22 @@ pub fn format_text(file_path: &Path, text: &str, config: &Configuration) -> Opti
         .sort_document(SourceDocument::new(text, language));
 
     (sorted != text).then(|| sorted.into_owned())
+}
+
+/// Comment openers across the supported languages, where `*` also covers `/*`,
+/// JSX `{/*`, and block comment continuation lines, and `#` covers Ruby, ERB
+/// `<%#`, and Jinja or Twig `{#`
+const COMMENT_OPENERS: &[&str] = &["//", "*", "<!--", "{{!--", "{{--", "{{!", "#"];
+
+// a directive must open a comment, so prose or a class named `dprint-ignore`
+// keeps sorting. The prefix also covers `-file`, `-start`, and `-end`
+fn has_ignore_directive(text: &str) -> bool {
+    text.match_indices("dprint-ignore").any(|(index, _)| {
+        let before = text[..index].trim_end_matches([' ', '\t']);
+        COMMENT_OPENERS
+            .iter()
+            .any(|opener| before.ends_with(opener))
+    })
 }
 
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]

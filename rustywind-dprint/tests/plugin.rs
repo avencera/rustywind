@@ -226,7 +226,7 @@ fn skips_ranges_unreadable_input_and_null_options() {
 }
 
 #[test]
-fn leaves_files_with_dprint_ignore_directives_unchanged() {
+fn leaves_files_with_dprint_ignore_comments_unchanged() {
     for (file_path, text) in [
         (
             "Card.tsx",
@@ -234,14 +234,30 @@ fn leaves_files_with_dprint_ignore_directives_unchanged() {
         ),
         (
             "Card.tsx",
-            "// dprint-ignore\nexport const Card = () => <div className=\"p-4 flex m-2\">hi</div>;",
+            "export const Card = () => (\n  <>\n    {/* dprint-ignore */}\n    <div className=\"p-4 flex\" />\n  </>\n);",
         ),
         (
             "page.html",
             "<!-- dprint-ignore-start -->\n<div class=\"p-4 flex\"></div>\n<!-- dprint-ignore-end -->",
         ),
+        (
+            "card.blade.php",
+            "{{-- dprint-ignore --}}\n<div class=\"p-4 flex\"></div>",
+        ),
+        (
+            "card.twig",
+            "{# dprint-ignore #}\n<div class=\"p-4 flex\"></div>",
+        ),
     ] {
         assert_eq!(format(&[], file_path, text), None, "{text}");
+    }
+
+    // only a directive that opens a comment disables sorting
+    for text in [
+        "<p>Add dprint-ignore to skip a node</p>\n<div class=\"p-4 flex\"></div>",
+        "<div class=\"dprint-ignore p-4 flex\"></div>",
+    ] {
+        assert!(format(&[], "page.html", text).is_some(), "{text}");
     }
 }
 
