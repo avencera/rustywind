@@ -132,20 +132,29 @@ pub fn format_text(file_path: &Path, text: &str, config: &Configuration) -> Opti
     (sorted != text).then(|| sorted.into_owned())
 }
 
-/// Comment openers across the supported languages, where `*` also covers `/*`,
-/// JSX `{/*`, and block comment continuation lines, and `#` covers Ruby, ERB
-/// `<%#`, and Jinja or Twig `{#`
-const COMMENT_OPENERS: &[&str] = &["//", "*", "<!--", "{{!--", "{{--", "{{!", "#"];
+/// Block comment openers across the supported languages, where `*` also covers
+/// `/*`, JSX `{/*`, and block comment continuation lines
+const BLOCK_COMMENT_OPENERS: &[&str] = &["*", "<!--", "{{!--", "{{--", "{{!", "{#", "<%#"];
+
+/// Line comment openers, where `#` is a Ruby comment
+const LINE_COMMENT_OPENERS: &[&str] = &["//", "#"];
 
 // a directive must open a comment, so prose or a class named `dprint-ignore`
 // keeps sorting. The prefix also covers `-file`, `-start`, and `-end`
 fn has_ignore_directive(text: &str) -> bool {
     text.match_indices("dprint-ignore").any(|(index, _)| {
-        // a block comment can put the directive on its own line after the opener
-        let before = text[..index].trim_end();
-        COMMENT_OPENERS
+        let before = &text[..index];
+        // a block comment can put the directive on its own line after the
+        // opener, while a line comment ends at the line break
+        let before_block = before.trim_end();
+        let before_line = before.trim_end_matches([' ', '\t']);
+
+        BLOCK_COMMENT_OPENERS
             .iter()
-            .any(|opener| before.ends_with(opener))
+            .any(|opener| before_block.ends_with(opener))
+            || LINE_COMMENT_OPENERS
+                .iter()
+                .any(|opener| before_line.ends_with(opener))
     })
 }
 

@@ -264,6 +264,7 @@ fn leaves_files_with_dprint_ignore_comments_unchanged() {
     for text in [
         "<p>Add dprint-ignore to skip a node</p>\n<div class=\"p-4 flex\"></div>",
         "<div class=\"dprint-ignore p-4 flex\"></div>",
+        "<p>\n  comments start with //\n  dprint-ignore skips a node\n</p>\n<div class=\"p-4 flex\"></div>",
     ] {
         assert!(format(&[], "page.html", text).is_some(), "{text}");
     }
