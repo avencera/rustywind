@@ -141,7 +141,8 @@ const COMMENT_OPENERS: &[&str] = &["//", "*", "<!--", "{{!--", "{{--", "{{!", "#
 // keeps sorting. The prefix also covers `-file`, `-start`, and `-end`
 fn has_ignore_directive(text: &str) -> bool {
     text.match_indices("dprint-ignore").any(|(index, _)| {
-        let before = text[..index].trim_end_matches([' ', '\t']);
+        // a block comment can put the directive on its own line after the opener
+        let before = text[..index].trim_end();
         COMMENT_OPENERS
             .iter()
             .any(|opener| before.ends_with(opener))

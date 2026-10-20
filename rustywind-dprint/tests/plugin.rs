@@ -248,6 +248,14 @@ fn leaves_files_with_dprint_ignore_comments_unchanged() {
             "card.twig",
             "{# dprint-ignore #}\n<div class=\"p-4 flex\"></div>",
         ),
+        (
+            "page.html",
+            "<!--\n  dprint-ignore\n-->\n<div class=\"p-4 flex\"></div>",
+        ),
+        (
+            "Card.tsx",
+            "/*\n * dprint-ignore-file\n */\nexport const Card = () => <div className=\"p-4 flex\" />;",
+        ),
     ] {
         assert_eq!(format(&[], file_path, text), None, "{text}");
     }
