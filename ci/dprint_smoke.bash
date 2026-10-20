@@ -5,7 +5,8 @@
 set -euo pipefail
 
 DPRINT_VERSION=0.63.0
-TYPESCRIPT_PLUGIN=https://plugins.dprint.dev/typescript-0.95.13.wasm
+# the checksum makes dprint reject a plugin that changed upstream
+TYPESCRIPT_PLUGIN=https://plugins.dprint.dev/typescript-0.95.13.wasm@d353247b160c1e81eb043930de6f940adcd3d713651221d3a0284d4c30ea43c4
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SMOKE="$ROOT/rustywind-dprint/tests/smoke"
 

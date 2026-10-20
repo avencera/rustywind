@@ -176,12 +176,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Rust toolchain
         run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
 
-      - name: Build and smoke test the wasm plugin
-        run: bash ci/dprint_smoke.bash
+      # the smoke test runs in tests.yml instead, so this job with write access
+      # never executes the npm and dprint plugin downloads it needs
+      - name: Build the wasm plugin
+        run: cargo build -p dprint-plugin-rustywind --release --target wasm32-unknown-unknown
 
       - name: Create release and upload asset
         env:

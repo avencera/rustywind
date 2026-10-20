@@ -19,8 +19,12 @@ jobs:
 
   dprint-plugin:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Rust toolchain
         run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
