@@ -16,3 +16,18 @@ jobs:
 
       - name: Test all packages in the workspace
         run: cargo test --workspace
+
+  dprint-plugin:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust toolchain
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+
+      - name: Format smoke fixtures with the wasm plugin
+        run: bash ci/dprint_smoke.bash

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add a [dprint](https://dprint.dev) Wasm plugin, published as
+  `dprint-plugin-rustywind.wasm` on each GitHub release. It sorts classes in
+  addition to the plugin that formats each file,
+  [#48](https://github.com/avencera/rustywind/issues/48)
+
 ## [0.28.0] - 2026-08-25
 
 ### Added

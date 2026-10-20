@@ -10,7 +10,7 @@ tag=v$version
 ## Checklist
 
 1. Update versions and changelogs.
-   - Bump `rustywind-cli/Cargo.toml`.
+   - Bump `rustywind-cli/Cargo.toml` and `rustywind-dprint/Cargo.toml` to the same version.
    - Bump `rustywind-core/Cargo.toml` and `rustywind-vite/Cargo.toml` only when those crates change.
    - Keep path dependency versions in sync.
    - Update `CHANGELOG.md`.
@@ -27,13 +27,14 @@ cargo xtask npm update-version "$version"
 just fmt
 just clippy
 cargo test -p xtask
+just dprint-plugin
 ```
 
 3. Commit the release prep.
 
 ```sh
 git status --short
-git add CHANGELOG.md Cargo.lock rustywind-cli/Cargo.toml rustywind-core/Cargo.toml rustywind-core/CHANGELOG.md rustywind-vite/Cargo.toml npm/packages
+git add CHANGELOG.md Cargo.lock rustywind-cli/Cargo.toml rustywind-dprint/Cargo.toml rustywind-core/Cargo.toml rustywind-core/CHANGELOG.md rustywind-vite/Cargo.toml npm/packages
 git commit -m "Release $tag"
 git push
 ```
@@ -59,7 +60,7 @@ git tag "$tag"
 git push origin "$tag"
 ```
 
-Pushing the tag starts `.github/workflows/mean_bean_deploy.yml`, which creates the GitHub release, uploads binaries, builds Docker images, and publishes npm packages.
+Pushing the tag starts `.github/workflows/mean_bean_deploy.yml`, which creates the GitHub release, uploads binaries and the dprint plugin, builds Docker images, and publishes npm packages.
 
 6. Watch the GitHub release workflow.
 
