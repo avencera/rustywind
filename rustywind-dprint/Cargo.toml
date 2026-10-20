@@ -1,0 +1,26 @@
+[package]
+name = "dprint-plugin-rustywind"
+version = "0.28.0"
+description = "A dprint plugin to sort tailwind CSS classes"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+# distributed as a .wasm release asset rather than through crates.io
+publish = false
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+# the runtime-rng default needs getrandom, which doesn't build on wasm32-unknown-unknown
+rustywind_core = { path = "../rustywind-core", version = "=0.7.0", default-features = false }
+
+dprint-core = { version = "0.71", default-features = false, features = ["wasm"] }
+serde = { version = "1.0", features = ["derive"] }
+
+regex = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = "1.4"

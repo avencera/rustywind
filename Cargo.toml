@@ -1,5 +1,5 @@
 [workspace]
-members = ["rustywind-cli", "rustywind-core", "rustywind-vite", "xtask"]
+members = ["rustywind-cli", "rustywind-core", "rustywind-dprint", "rustywind-vite", "xtask"]
 default-members = ["rustywind-cli"]
 resolver = "2"
 

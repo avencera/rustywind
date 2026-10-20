@@ -202,6 +202,54 @@ Options:
           Print version
 ```
 
+## dprint plugin
+
+RustyWind is also available as a [dprint](https://dprint.dev) Wasm plugin. Each GitHub release
+includes `dprint-plugin-rustywind.wasm`; add it to the `plugins` in your `dprint.json`:
+
+```json
+{
+  "rustywind": {},
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.95.13.wasm",
+    "https://github.com/avencera/rustywind/releases/download/v0.29.0/dprint-plugin-rustywind.wasm"
+  ]
+}
+```
+
+The plugin sorts classes in addition to whichever plugin formats the file, so `.tsx` files can be
+formatted by the TypeScript plugin and then have their classes sorted. Plugins run in the order
+they are listed, so list RustyWind last. This requires dprint 0.58.0 or later; older versions treat
+it as a regular plugin that competes with other plugins for the same files.
+
+`dprint config update` does not update this plugin, so change the release tag in the URL to
+upgrade.
+
+The plugin sorts files with these extensions: `astro`, `blade`, `django`, `djhtml`, `ejs`, `erb`,
+`handlebars`, `hbs`, `htm`, `html`, `j2`, `jinja`, `jinja2`, `jsx`, `liquid`, `lit`, `php`,
+`phtml`, `rb`, `svelte`, `tsx`, and `twig`. The template language is inferred from the file name
+the same way as the CLI. Add `associations` to sort other files, such as `"associations":
+["**/*.{js,vue}"]`.
+
+All options are optional:
+
+```json
+{
+  "rustywind": {
+    "allowDuplicates": false,
+    "preserveWhitespace": false,
+    "tailwindPrefix": "tw-",
+    "customRegex": "classes\\(([^)]*)\\)",
+    "classWrapping": "comma-single-quotes",
+    "sortOrder": ["flex", "p-4"]
+  }
+}
+```
+
+These match the CLI's `--allow-duplicates`, `--preserve-whitespace`, `--tailwind-prefix`,
+`--custom-regex`, `--class-wrapping`, and the `sortOrder` of `--config-file`. The plugin cannot
+read files or make network requests, so `--output-css-file` and `--vite-css` are not available.
+
 ## What
 
 Inspired by [Ryan Heybourn's](https://github.com/heybourn) [headwind](https://github.com/heybourn/headwind)

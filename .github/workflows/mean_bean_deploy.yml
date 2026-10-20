@@ -170,6 +170,31 @@ jobs:
           ASSET="$BIN-$TAG-${{ matrix.target }}.tar.gz"
           cp "$BIN.tar.gz" "$ASSET"
           gh release upload "$TAG" "$ASSET"
+  dprint-plugin:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Rust toolchain
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+
+      - name: Build and smoke test the wasm plugin
+        run: bash ci/dprint_smoke.bash
+
+      - name: Create release and upload asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # sibling jobs race to create the release, so tolerate losing
+          gh release view "$TAG" > /dev/null 2>&1 \
+            || gh release create "$TAG" --title "$TAG" --notes "" \
+            || gh release view "$TAG" > /dev/null
+          # dprint loads plugins from a url ending in .wasm, so keep the name stable across releases
+          cp target/wasm32-unknown-unknown/release/dprint_plugin_rustywind.wasm dprint-plugin-rustywind.wasm
+          gh release upload "$TAG" dprint-plugin-rustywind.wasm
   docker:
     needs: linux
     runs-on: ubuntu-24.04
