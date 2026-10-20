@@ -114,7 +114,16 @@ impl SyncPluginHandler<Configuration> for RustyWindPluginHandler {
 }
 
 /// Sorts the classes in `text`, returning `None` when nothing changes
+///
+/// Files containing a dprint ignore directive are left unchanged
 pub fn format_text(file_path: &Path, text: &str, config: &Configuration) -> Option<String> {
+    // `dprint-ignore` exempts the next node, which only the claiming plugin's
+    // parser can delimit, so the whole file is skipped rather than risk sorting
+    // excluded classes. The prefix also covers `-file`, `-start`, and `-end`
+    if text.contains("dprint-ignore") {
+        return None;
+    }
+
     let language = SourceLanguage::from_path(file_path);
     let sorted = config
         .rustywind

@@ -225,6 +225,10 @@ it as a regular plugin that competes with other plugins for the same files.
 `dprint config update` does not update this plugin, so change the release tag in the URL to
 upgrade.
 
+Files that contain a `dprint-ignore`, `dprint-ignore-file`, or `dprint-ignore-start` comment are
+left unchanged. The plugin can't tell which part of the file such a comment excludes, so it skips
+the whole file.
+
 The plugin sorts files with these extensions: `astro`, `blade`, `django`, `djhtml`, `ejs`, `erb`,
 `handlebars`, `hbs`, `htm`, `html`, `j2`, `jinja`, `jinja2`, `jsx`, `liquid`, `lit`, `php`,
 `phtml`, `rb`, `svelte`, `tsx`, and `twig`. The template language is inferred from the file name

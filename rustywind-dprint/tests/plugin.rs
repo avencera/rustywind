@@ -210,6 +210,26 @@ fn skips_ranges_unreadable_input_and_null_options() {
     );
 }
 
+#[test]
+fn leaves_files_with_dprint_ignore_directives_unchanged() {
+    for (file_path, text) in [
+        (
+            "Card.tsx",
+            "// dprint-ignore-file\nexport const Card = () => <div className=\"p-4 flex m-2\">hi</div>;",
+        ),
+        (
+            "Card.tsx",
+            "// dprint-ignore\nexport const Card = () => <div className=\"p-4 flex m-2\">hi</div>;",
+        ),
+        (
+            "page.html",
+            "<!-- dprint-ignore-start -->\n<div class=\"p-4 flex\"></div>\n<!-- dprint-ignore-end -->",
+        ),
+    ] {
+        assert_eq!(format(&[], file_path, text), None, "{text}");
+    }
+}
+
 // the wasm is uploaded to the CLI's GitHub release, so the plugin version
 // dprint reports must match that release tag
 #[test]
