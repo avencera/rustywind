@@ -80,6 +80,21 @@ fn sorts_language_aware_documents_and_reports_unchanged_files() {
 
 #[test]
 fn applies_cli_equivalent_options() {
+    let multiline = "<div class=\"p-4\n    flex\tm-2\"></div>";
+    assert_eq!(
+        format(&[], "page.html", multiline).as_deref(),
+        Some("<div class=\"m-2 flex p-4\"></div>")
+    );
+    assert_eq!(
+        format(
+            &[("preserveWhitespace", ConfigKeyValue::Bool(true))],
+            "page.html",
+            multiline,
+        )
+        .as_deref(),
+        Some("<div class=\"m-2\n    flex\tp-4\"></div>")
+    );
+
     assert_eq!(
         format(
             &[
