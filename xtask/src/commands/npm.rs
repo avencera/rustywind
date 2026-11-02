@@ -307,7 +307,7 @@ pub fn prepare_binaries(version: &str, token: Option<&str>) -> Result<()> {
 
             for i in 0..archive.len() {
                 let mut file = archive.by_index(i)?;
-                if file.name().ends_with(binary_name) {
+                if file.name()?.ends_with(binary_name) {
                     let mut outfile = fs::File::create(&binary_path)?;
                     std::io::copy(&mut file, &mut outfile)?;
                     extracted = true;

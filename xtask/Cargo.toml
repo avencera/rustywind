@@ -47,5 +47,5 @@ chrono = "0.4"
 # npm binary handling
 flate2 = "1"
 tar = "0.4"
-zip = "8"
+zip = "9.2"
 ureq = "3"
