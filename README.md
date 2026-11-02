@@ -158,7 +158,7 @@ Options:
           When set, RustyWind will use the config file to derive configurations. The config file current only supports json with one property sortOrder, e.g. { "sortOrder": ["class1", ...] }
 
       --output-css-file <OUTPUT_CSS_FILE>
-          When set RustyWind will determine the sort order by the order the class appear in the the given css file
+          When set RustyWind will determine the sort order by the order the class appear in the given CSS file
 
       --vite-css <VITE_CSS>
           When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates.
