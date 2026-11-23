@@ -601,7 +601,18 @@ pub fn publish(dry_run: bool) -> Result<()> {
     // Platform packages first
     for pkg_dir in target_map.values() {
         let pkg_path = packages_dir.join(pkg_dir);
-        println!("Publishing rustywind-{}...", pkg_dir);
+        let pkg = read_package_json(&pkg_path.join("package.json"))?;
+
+        // a rerun after a partial release skips what already went up, since npm rejects a republished version
+        if npm_version_published(&pkg.name, &current_version)? {
+            println!(
+                "{}@{} is already on npm, skipping",
+                pkg.name, current_version
+            );
+            continue;
+        }
+
+        println!("Publishing {}...", pkg.name);
 
         let status = npm_publish_cmd(&pkg_path, tag.as_deref(), dry_run).status()?;
         if !status.success() {
@@ -610,6 +621,12 @@ pub fn publish(dry_run: bool) -> Result<()> {
     }
 
     // Main package last
+    if npm_version_published("rustywind", &current_version)? {
+        println!("rustywind@{current_version} is already on npm, skipping");
+        println!("\nAll packages published successfully");
+        return Ok(());
+    }
+
     println!("Publishing rustywind (main package)...");
     let main_pkg_path = packages_dir.join("rustywind");
 
@@ -635,6 +652,29 @@ pub fn publish(dry_run: bool) -> Result<()> {
 
     println!("\nAll packages published successfully");
     Ok(())
+}
+
+/// Whether `name@version` is already on the npm registry
+fn npm_version_published(name: &str, version: &str) -> Result<bool> {
+    let output = Command::new("npm")
+        .args(["view", &format!("{name}@{version}"), "version"])
+        .output()
+        .wrap_err("Failed to run npm view")?;
+
+    // an existing package without that version prints nothing, and a package that was never published is E404
+    if output.status.success() {
+        return Ok(!String::from_utf8_lossy(&output.stdout).trim().is_empty());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if stderr.contains("E404") {
+        return Ok(false);
+    }
+
+    Err(color_eyre::eyre::eyre!(
+        "npm view {name}@{version} failed: {}",
+        stderr.trim()
+    ))
 }
 
 /// Get the current version from the main rustywind package.json
