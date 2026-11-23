@@ -8,6 +8,10 @@
   "files": [
     "rustywind"
   ],
+  "libc": [
+    "glibc",
+    "musl"
+  ],
   "license": "MIT",
   "os": [
     "linux"
