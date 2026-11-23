@@ -1,0 +1,465 @@
+# Builds and publishes a release from a version tag; RELEASE.md has the full checklist
+#
+# A pushed v* tag is checked first: the rustywind crate, the dprint plugin and every npm package must carry the
+# tag's version, and CHANGELOG.md needs a dated entry for it. The binaries and the dprint plugin are then built into
+# a draft GitHub release whose notes are that entry, the release is published once every file is attached, and then
+# crates.io, npm and Docker Hub receive it. crates.io and npm trust this workflow and its crates-io and npm
+# environments through OIDC, so no registry token is stored. Each registry publish skips versions that are already
+# up, so "Re-run failed jobs" finishes a partial release
+#
+# Running the workflow by hand with an existing tag publishes only crates.io and npm, from that tag's published
+# GitHub release, for a release whose registry publish never ran in this workflow
+#
+# The registries trust this file by name, so renaming it means updating every trusted publisher. Third-party
+# actions are pinned to commit SHAs, since these jobs publish the release; the trailing comment names the version
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish to crates.io and npm, such as v0.28.1
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# a release run is never cancelled, so a second run for the same tag waits instead of racing its publishes
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  BIN: rustywind
+  TAG: ${{ inputs.tag || github.ref_name }}
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-check:
+    name: Check the tag
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # qualified, since checkout prefers a branch over a tag with the same name
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+
+      # the release notes come from parse-changelog, so the same parser checks the entry here
+      - name: Install parse-changelog
+        uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
+        with:
+          tool: parse-changelog
+
+      - name: Check the versions and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "$TAG is not a vX.Y.Z release tag"
+            exit 1
+          fi
+
+          version="${TAG#v}"
+
+          # cargo's own reading of each manifest, so the check sees the version cargo publish would
+          packages="$(cargo metadata --no-deps --format-version 1 --locked)"
+          for crate in rustywind dprint-plugin-rustywind; do
+            crate_version="$(jq -r --arg name "$crate" '.packages[] | select(.name == $name) | .version' <<< "$packages")"
+            if [ "$crate_version" != "$version" ]; then
+              echo "$crate is ${crate_version:-missing} but the tag is $TAG"
+              exit 1
+            fi
+          done
+
+          # cargo xtask npm update-version sets these, including the main package's optionalDependencies
+          for manifest in npm/packages/*/package.json; do
+            if ! jq -e --arg v "$version" '.version == $v and ([.optionalDependencies // {} | .[]] | all(. == $v))' \
+              "$manifest" > /dev/null; then
+              echo "$manifest does not carry $version everywhere; run cargo xtask npm update-version $version"
+              exit 1
+            fi
+          done
+
+          # an entry still under "Unreleased" has not been given its date
+          title="$(parse-changelog CHANGELOG.md --title "$version")"
+          if ! [[ "$title" =~ ^\[${version//./\\.}\]\ -\ [0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "the CHANGELOG.md heading for $version is \"$title\"; it needs \"[$version] - YYYY-MM-DD\""
+            exit 1
+          fi
+
+          if [ -z "$(parse-changelog CHANGELOG.md "$version")" ]; then
+            echo "the CHANGELOG.md entry for $version is empty"
+            exit 1
+          fi
+
+      # a manual run publishes the registries without building, and the npm, Homebrew and cargo-binstall installs
+      # download the binaries from the release, so it must already be published
+      - name: Check the release is published
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != false ]; then
+            echo "the $TAG release is not published; push the tag or rerun its release run instead"
+            exit 1
+          fi
+
+  # the release stays a draft until every file is attached, so installers that read the latest release never see
+  # one without its binaries
+  create-release:
+    name: Create the draft release
+    needs: release-check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install parse-changelog
+        uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
+        with:
+          tool: parse-changelog
+
+      # a rerun refreshes a draft's notes and leaves a published release alone
+      - name: Create or update the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          parse-changelog CHANGELOG.md "$version" > notes.md
+
+          if draft="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2> view.err)"; then
+            if [ "$draft" = true ]; then
+              gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+            else
+              echo "the $TAG release is already published"
+            fi
+            exit 0
+          fi
+
+          # any other failure could hide a release that already exists
+          if ! grep -q 'release not found' view.err; then
+            cat view.err >&2
+            exit 1
+          fi
+
+          prerelease=()
+          if [[ "$version" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft "${prerelease[@]}" \
+            --title "$TAG" --notes-file notes.md
+
+  windows:
+    needs: create-release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        target:
+          - i686-pc-windows-msvc
+          - x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - run: bash ci/set_rust_version.bash stable ${{ matrix.target }}
+      - run: bash ci/build.bash cargo ${{ matrix.target }} RELEASE
+      - run: |
+          cd ./target/${{ matrix.target }}/release/
+          7z a "${{ env.BIN }}.zip" "${{ env.BIN }}.exe"
+          mv "${{ env.BIN }}.zip" "$GITHUB_WORKSPACE"
+        shell: bash
+
+      # --clobber replaces a file a failed run already attached
+      - name: Upload to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # the asset name comes from the uploaded file name
+          ASSET="$BIN-$TAG-${{ matrix.target }}.zip"
+          cp "$BIN.zip" "$ASSET"
+          gh release upload "$TAG" "$ASSET" --clobber --repo "$GITHUB_REPOSITORY"
+
+  macos:
+    needs: create-release
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # no cache: a release binary must not build from a cache that another run could have written
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          cache: false
+
+      - run: cargo build --release --target ${{ matrix.target }}
+      - run: tar -czvf ${{ env.BIN }}.tar.gz --directory=target/${{ matrix.target }}/release ${{ env.BIN }}
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ASSET="$BIN-$TAG-${{ matrix.target }}.tar.gz"
+          cp "$BIN.tar.gz" "$ASSET"
+          gh release upload "$TAG" "$ASSET" --clobber --repo "$GITHUB_REPOSITORY"
+
+  linux:
+    needs: create-release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        target:
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl
+          - arm-unknown-linux-gnueabi
+          - arm-unknown-linux-gnueabihf
+          - armv7-unknown-linux-gnueabihf
+          - i686-unknown-linux-musl
+          - x86_64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: taiki-e/install-action@fe3acb53a98b62c772db35de75ce0e4595e7ca8c # v2.90.8
+        with:
+          tool: cross
+
+      - run: ci/set_rust_version.bash stable ${{ matrix.target }}
+      - run: ci/build.bash cross ${{ matrix.target }} RELEASE
+      - run: tar -czvf ${{ env.BIN }}.tar.gz --directory=target/${{ matrix.target }}/release ${{ env.BIN }}
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ASSET="$BIN-$TAG-${{ matrix.target }}.tar.gz"
+          cp "$BIN.tar.gz" "$ASSET"
+          gh release upload "$TAG" "$ASSET" --clobber --repo "$GITHUB_REPOSITORY"
+
+  dprint-plugin:
+    needs: create-release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal --target wasm32-unknown-unknown
+
+      # the smoke test runs in tests.yml instead, so this job with write access
+      # never executes the npm and dprint plugin downloads it needs
+      - name: Build the wasm plugin
+        run: cargo build -p dprint-plugin-rustywind --release --target wasm32-unknown-unknown
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # dprint loads plugins from a url ending in .wasm, so keep the name stable across releases
+          cp target/wasm32-unknown-unknown/release/dprint_plugin_rustywind.wasm dprint-plugin-rustywind.wasm
+          gh release upload "$TAG" dprint-plugin-rustywind.wasm --clobber --repo "$GITHUB_REPOSITORY"
+
+  publish-release:
+    name: Publish the release
+    needs: [windows, macos, linux, dprint-plugin]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Publish the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+
+  # crates.io's trusted publishing can't create a crate, so a new crate's first version goes up by hand. The npm
+  # and Homebrew installs download the release's binaries, and cargo-binstall finds them through
+  # [package.metadata.binstall], so the registries wait for the published release
+  crates-publish:
+    name: Publish to crates.io
+    needs: [release-check, publish-release]
+    # a manual run has no publish-release, while a failed build on a tag push must still stop the registries
+    if: >-
+      !cancelled() && needs.release-check.result == 'success'
+      && (github.event_name == 'workflow_dispatch' || needs.publish-release.result == 'success')
+    runs-on: ubuntu-24.04
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/rustywind
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      # rustywind_core and rustywind_vite keep their own versions and only change in some releases
+      - name: Find the crates crates.io lacks
+        id: pending
+        shell: bash
+        run: |
+          set -euo pipefail
+          packages="$(cargo metadata --no-deps --format-version 1 --locked)"
+          pending=()
+          # dependencies before the crate that uses them
+          for crate in rustywind_core rustywind_vite rustywind; do
+            version="$(jq -r --arg name "$crate" '.packages[] | select(.name == $name) | .version' <<< "$packages")"
+            status="$(curl -sS -o /dev/null -w '%{http_code}' -A 'rustywind-release (github.com/avencera/rustywind)' \
+              "https://crates.io/api/v1/crates/$crate/$version")"
+            case "$status" in
+              200) echo "$crate $version is already on crates.io" ;;
+              404) pending+=("$crate") ;;
+              *) echo "crates.io answered HTTP $status for $crate $version" >&2; exit 1 ;;
+            esac
+          done
+          echo "crates=${pending[*]}" >> "$GITHUB_OUTPUT"
+
+      - name: Get a crates.io token
+        if: steps.pending.outputs.crates != ''
+        id: auth
+        uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
+
+      - name: Publish
+        if: steps.pending.outputs.crates != ''
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          CRATES: ${{ steps.pending.outputs.crates }}
+        run: |
+          for crate in $CRATES; do
+            cargo publish --locked -p "$crate"
+          done
+
+  # xtask downloads each binary from the published release, checks it against the tag, and publishes the platform
+  # packages before the main package, skipping versions npm already has
+  npm-publish:
+    name: Publish to npm
+    needs: [release-check, publish-release]
+    if: >-
+      !cancelled() && needs.release-check.result == 'success'
+      && (github.event_name == 'workflow_dispatch' || needs.publish-release.result == 'success')
+    runs-on: ubuntu-24.04
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/rustywind
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        # no registry-url: its placeholder token in .npmrc would be sent with xtask's npm view lookups, and the
+        # trusted publishing exchange needs no .npmrc
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      # trusted publishing needs npm 11.5.1 or newer, which some Node 24 releases predate
+      - name: Install npm
+        run: npm install -g npm@11.21.3
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Prepare the platform packages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: cargo xtask npm prepare-binaries "$TAG"
+
+      - name: Publish
+        run: cargo xtask npm publish
+
+  docker:
+    name: Build Docker image for tagged release
+    needs: linux
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: |
+            avencera/rustywind
+            ghcr.io/avencera/rustywind
+          tags: |
+            type=semver,pattern={{raw}}
+            type=semver,pattern={{major}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+            type=semver,pattern=v{{major}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
+            type=sha
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          platforms: linux/amd64,linux/arm64
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
