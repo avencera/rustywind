@@ -611,7 +611,7 @@ dependencies = [
 
 [[package]]
 name = "dprint-plugin-rustywind"
-version = "0.28.0"
+version = "0.28.1"
 dependencies = [
  "dprint-core",
  "pretty_assertions",
@@ -1521,7 +1521,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustywind"
-version = "0.28.0"
+version = "0.28.1"
 dependencies = [
  "ahash",
  "anstyle",

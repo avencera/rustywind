@@ -1,6 +1,6 @@
 [package]
 name = "dprint-plugin-rustywind"
-version = "0.28.0"
+version = "0.28.1"
 description = "A dprint plugin to sort tailwind CSS classes"
 authors.workspace = true
 edition.workspace = true
