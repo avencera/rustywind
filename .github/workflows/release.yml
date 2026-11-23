@@ -46,7 +46,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.TAG }}
+          # qualified, since checkout prefers a branch over a tag with the same name
+          ref: refs/tags/${{ env.TAG }}
           persist-credentials: false
 
       # the release notes come from parse-changelog, so the same parser checks the entry here
@@ -94,6 +95,18 @@ jobs:
 
           if [ -z "$(parse-changelog CHANGELOG.md "$version")" ]; then
             echo "the CHANGELOG.md entry for $version is empty"
+            exit 1
+          fi
+
+      # a manual run publishes the registries without building, and the npm, Homebrew and cargo-binstall installs
+      # download the binaries from the release, so it must already be published
+      - name: Check the release is published
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != false ]; then
+            echo "the $TAG release is not published; push the tag or rerun its release run instead"
             exit 1
           fi
 
@@ -307,7 +320,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.TAG }}
+          ref: refs/tags/${{ env.TAG }}
           persist-credentials: false
 
       - name: Install Rust toolchain
@@ -366,7 +379,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.TAG }}
+          ref: refs/tags/${{ env.TAG }}
           persist-credentials: false
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0

@@ -603,8 +603,9 @@ pub fn publish(dry_run: bool) -> Result<()> {
         let pkg_path = packages_dir.join(pkg_dir);
         let pkg = read_package_json(&pkg_path.join("package.json"))?;
 
-        // a rerun after a partial release skips what already went up, since npm rejects a republished version
-        if npm_version_published(&pkg.name, &current_version)? {
+        // a rerun after a partial release skips what already went up, since npm rejects a republished version; a
+        // dry run still packs every package
+        if !dry_run && npm_version_published(&pkg.name, &current_version)? {
             println!(
                 "{}@{} is already on npm, skipping",
                 pkg.name, current_version
@@ -621,7 +622,7 @@ pub fn publish(dry_run: bool) -> Result<()> {
     }
 
     // Main package last
-    if npm_version_published("rustywind", &current_version)? {
+    if !dry_run && npm_version_published("rustywind", &current_version)? {
         println!("rustywind@{current_version} is already on npm, skipping");
         println!("\nAll packages published successfully");
         return Ok(());

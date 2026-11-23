@@ -153,9 +153,10 @@ Once a release has published through the workflow, set each package's publishing
 
 ## Publishing by hand
 
-If the workflow can't publish, publish crates in dependency order, skipping unchanged crates:
+If the workflow can't publish, check out the tag first, so the published source is the tagged release, then publish crates in dependency order, skipping unchanged crates:
 
 ```sh
+git switch --detach "$tag"
 cargo publish -p rustywind_core
 cargo publish -p rustywind_vite
 cargo publish -p rustywind
