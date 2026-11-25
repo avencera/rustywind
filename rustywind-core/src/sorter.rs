@@ -93,13 +93,31 @@ impl Deref for FinderRegex {
     }
 }
 
-/// Uses either pattern-based sorting or a custom sorter from a CSS file
+/// Uses either pattern-based sorting or a sorter from a class list or a CSS file
 #[derive(Debug, Clone)]
 pub enum Sorter {
     /// Pattern-based sorting matching Tailwind CSS v4's canonical algorithm
     PatternSorter,
-    /// Custom sorter loaded from a CSS file
+    /// Custom sorter from a list of classes, such as the `sortOrder` of a config file. A class
+    /// that is not in the list goes after the classes of the list.
     CustomSorter(HashMap<String, usize>),
+    /// Sorter loaded from a CSS file that Tailwind generated.
+    ///
+    /// A class that the file does not name is unknown. Unknown classes go before the classes of
+    /// the file, in input order, as in prettier-plugin-tailwindcss. The placeholders `...` and `…`
+    /// go last.
+    ///
+    /// The sorter looks up the whole class first. A class that the file names itself, such as
+    /// `hover:bg-w` in Tailwind CSS output, keeps its own position.
+    ///
+    /// A class with a built-in variant prefix, such as `hover:` or `md:`, that the file does not
+    /// name itself is not unknown when the file names the part after the prefix. `hover:flex` is
+    /// then known when the file names `flex` but not `hover:flex`. It goes after the classes of
+    /// the file, with the variants. Only the first prefix counts:
+    /// `md:hover:flex` is known when the file names `hover:flex`. A class with another prefix,
+    /// such as `max-md:flex` or `peer-hover:flex`, is unknown unless the file names the whole
+    /// class.
+    CssSorter(HashMap<String, usize>),
 }
 
 impl Deref for Sorter {
@@ -110,20 +128,24 @@ impl Deref for Sorter {
             Self::PatternSorter => {
                 panic!("PatternSorter should not be used with HashMap-based sorting")
             }
-            Self::CustomSorter(sorter) => sorter,
+            Self::CustomSorter(sorter) | Self::CssSorter(sorter) => sorter,
         }
     }
 }
 
 impl Sorter {
-    /// Creates a custom sorter from class positions
+    /// Creates a [`Sorter::CustomSorter`] from class positions
+    ///
+    /// A class that the map lacks goes after the classes of the map. To put such classes first,
+    /// wrap the map in [`Sorter::CssSorter`] instead.
     pub fn new(sorter: HashMap<String, usize>) -> Self {
         Self::CustomSorter(sorter)
     }
 
-    /// Creates the sorter from a [File]
+    /// Creates a [`Sorter::CssSorter`] from a [File]
     ///
-    /// See [`Sorter::new_from_reader`] for the order of the classes.
+    /// See [`Sorter::new_from_reader`] for the order of the classes, and [`Sorter::CssSorter`]
+    /// for the order of unknown classes.
     ///
     /// # Errors
     ///
@@ -134,11 +156,13 @@ impl Sorter {
         Self::new_from_reader(css_reader)
     }
 
-    /// Creates the sorter from any [BufReader]
+    /// Creates a [`Sorter::CssSorter`] from any [BufReader]
     ///
     /// The order is the order of the first rule that names a class. Each selector gives one class:
     /// the longest one with a `:` in its name, else the first class of its last compound selector
     /// that holds a class. A prelude with `&` and an at-rule prelude give none.
+    ///
+    /// See [`Sorter::CssSorter`] for the order of unknown classes.
     ///
     /// # Errors
     ///
@@ -154,7 +178,7 @@ impl Sorter {
             classes.entry(class).or_insert(next);
         }
 
-        Ok(Self::new(classes))
+        Ok(Self::CssSorter(classes))
     }
 }
 

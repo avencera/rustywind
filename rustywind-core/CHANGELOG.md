@@ -25,6 +25,18 @@
 - Read a rule written without a space before `{`, such as `.a{`. The line regex
   skipped it.
 
+### Breaking changes
+
+- A sorter built from a CSS file puts the classes that the file does not name
+  first, in their input order, as the built-in sorter (`Sorter::PatternSorter`)
+  and `prettier-plugin-tailwindcss` do. They came last before. The placeholders
+  `...` and `…` still go last. `Sorter::CssSorter` documents the exceptions for
+  classes with a variant prefix.
+- `Sorter` has a new variant, `CssSorter`, which `Sorter::new_from_reader` and
+  `Sorter::new_from_file` return. Code that matches `Sorter` exhaustively must
+  handle it. `Sorter::CustomSorter` keeps the old order: classes that the list
+  does not name come last.
+
 ## [0.7.0] - 2026-08-25
 
 ### Added
