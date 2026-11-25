@@ -24,6 +24,8 @@ static PREFIXED_PATTERN_SORTERS: LazyLock<RwLock<HashMap<String, Arc<HybridSorte
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
 struct SortCandidate<'a> {
+    /// Index of the class in the class list, to restore the input order of unknown classes
+    position: usize,
     original: &'a str,
     lookup: Cow<'a, str>,
 }
@@ -460,16 +462,26 @@ impl RustyWind {
         }
 
         // otherwise, use the old HashMap-based approach
-        let candidates = classes.map(|class| SortCandidate {
+        let candidates = classes.enumerate().map(|(position, class)| SortCandidate {
+            position,
             original: class,
             lookup: normalize_tailwind_prefix(class, self.tailwind_prefix.as_deref()),
         });
 
+        let puts_unknown_classes_first = matches!(self.sorter, Sorter::CssSorter(_));
         let mut tailwind_classes: Vec<(&str, &usize)> = vec![];
-        let mut custom_classes: Vec<&str> = vec![];
+        let mut custom_classes: Vec<(usize, &str)> = vec![];
+        let mut placeholders: Vec<&str> = vec![];
         let mut variants: HashMap<&str, Vec<SortCandidate>> = HashMap::new();
 
         for candidate in candidates {
+            // The placeholders `...` and `…` stay last, as in the built-in sorter, also when
+            // the CSS file names one of them as a class.
+            if puts_unknown_classes_first && is_ellipsis_placeholder(candidate.original) {
+                placeholders.push(candidate.original);
+                continue;
+            }
+
             match self
                 .sorter
                 .get(candidate.original)
@@ -486,7 +498,7 @@ impl RustyWind {
                             let prefix = VARIANTS[prefix_match.pattern()];
                             variants.entry(prefix).or_default().push(candidate)
                         }
-                        None => custom_classes.push(candidate.original),
+                        None => custom_classes.push((candidate.position, candidate.original)),
                     }
                 }
             }
@@ -494,12 +506,10 @@ impl RustyWind {
 
         tailwind_classes.sort_by_key(|&(_class, class_placement)| class_placement);
 
-        let sorted_tailwind_classes: Vec<&str> = tailwind_classes
+        let mut known: Vec<&str> = tailwind_classes
             .iter()
             .map(|(class, _index)| *class)
             .collect();
-
-        let mut sorted_variant_classes = vec![];
 
         for key in VARIANTS.iter() {
             let (mut sorted_classes, new_custom_classes) = self.sort_variant_classes(
@@ -508,24 +518,32 @@ impl RustyWind {
                 key.len() + 1,
             );
 
-            sorted_variant_classes.append(&mut sorted_classes);
+            known.append(&mut sorted_classes);
             custom_classes = new_custom_classes
         }
 
-        [
-            &sorted_tailwind_classes[..],
-            &sorted_variant_classes[..],
-            &custom_classes[..],
-        ]
-        .concat()
+        if puts_unknown_classes_first {
+            // Unknown classes keep their input order, as in prettier-plugin-tailwindcss.
+            custom_classes.sort_by_key(|&(position, _class)| position);
+            let mut sorted: Vec<&str> = custom_classes
+                .into_iter()
+                .map(|(_position, class)| class)
+                .collect();
+            sorted.extend(known);
+            sorted.extend(placeholders);
+            sorted
+        } else {
+            known.extend(custom_classes.into_iter().map(|(_position, class)| class));
+            known
+        }
     }
 
     fn sort_variant_classes<'a>(
         &self,
         classes: Vec<SortCandidate<'a>>,
-        mut custom_classes: Vec<&'a str>,
+        mut custom_classes: Vec<(usize, &'a str)>,
         class_after: usize,
-    ) -> (Vec<&'a str>, Vec<&'a str>) {
+    ) -> (Vec<&'a str>, Vec<(usize, &'a str)>) {
         let mut tailwind_classes = Vec::with_capacity(classes.len());
 
         for candidate in classes {
@@ -557,7 +575,7 @@ impl RustyWind {
                 Some(class_placement) => {
                     tailwind_classes.push((candidate.original, class_placement))
                 }
-                None => custom_classes.push(candidate.original),
+                None => custom_classes.push((candidate.position, candidate.original)),
             }
         }
 
@@ -1415,6 +1433,91 @@ mod tests {
             sorter: Sorter::new_from_reader(std::io::BufReader::new(css.as_bytes())).unwrap(),
             ..RUSTYWIND_DEFAULT
         }
+    }
+
+    #[test]
+    fn css_sorter_puts_unknown_classes_first_and_custom_sorter_puts_them_last() {
+        let input = "p-4 zebra custom flex hover:custom";
+        let custom_app = RustyWind {
+            sorter: Sorter::new(HashMap::from([
+                ("flex".to_string(), 0),
+                ("p-4".to_string(), 1),
+            ])),
+            ..RUSTYWIND_DEFAULT
+        };
+        let css_app = css_sorter_app(".flex {\n}\n.p-4 {\n}\n");
+
+        assert_eq!(
+            custom_app.sort_classes(input),
+            "flex p-4 zebra custom hover:custom"
+        );
+        assert_eq!(
+            css_app.sort_classes(input),
+            "zebra custom hover:custom flex p-4"
+        );
+    }
+
+    #[test]
+    fn css_sorter_keeps_unknown_variant_classes_in_input_order() {
+        let app = css_sorter_app(".flex {\n}\n");
+
+        // `hover:custom` is a variant class that the CSS lacks. It must not move behind `zebra`.
+        assert_eq!(
+            app.sort_classes("hover:custom zebra flex"),
+            "hover:custom zebra flex"
+        );
+    }
+
+    #[test]
+    fn css_sorter_sorts_a_variant_of_a_known_class_with_the_variants() {
+        let app = css_sorter_app(".flex {\n}\n.p-4 {\n}\n");
+
+        // `hover:flex` is not in the CSS, but its base class `flex` is, so it is no unknown class.
+        // It goes after the known classes, in the variant group.
+        assert_eq!(
+            app.sort_classes("hover:flex zebra p-4 flex"),
+            "zebra flex p-4 hover:flex"
+        );
+    }
+
+    #[test]
+    fn css_sorter_removes_a_duplicate_unknown_class_when_duplicates_are_not_allowed() {
+        let app = RustyWind {
+            allow_duplicates: false,
+            ..css_sorter_app(".flex {\n}\n")
+        };
+
+        assert_eq!(app.sort_classes("zebra flex yak zebra"), "zebra yak flex");
+    }
+
+    #[test]
+    fn css_sorter_keeps_ellipsis_placeholders_last() {
+        let app = css_sorter_app(".flex {\n}\n.p-4 {\n}\n");
+
+        assert_eq!(
+            app.sort_classes("p-4 … zebra ... flex"),
+            "zebra flex p-4 … ..."
+        );
+
+        // A CSS file can name `…` as a class. It stays a placeholder.
+        let app = css_sorter_app(".… {\n}\n.flex {\n}\n");
+        assert_eq!(app.sort_classes("flex … zebra"), "zebra flex …");
+    }
+
+    #[test]
+    fn css_sorter_treats_only_one_built_in_variant_prefix_as_a_known_class() {
+        let app = css_sorter_app(".flex {\n}\n.p-4 {\n}\n");
+
+        // `max-md:` is no built-in variant prefix, so `max-md:flex` is unknown and goes first.
+        assert_eq!(
+            app.sort_classes("p-4 max-md:flex flex"),
+            "max-md:flex flex p-4"
+        );
+        // Only one prefix is stripped, so a stacked `md:hover:flex` is unknown as well.
+        assert_eq!(
+            app.sort_classes("p-4 md:hover:flex flex"),
+            "md:hover:flex flex p-4"
+        );
     }
 
     #[test]

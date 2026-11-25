@@ -27,6 +27,16 @@
 - Read a rule written without a space before `{`, such as `.a{`. The line regex
   skipped it.
 
+### Breaking changes
+
+- In `--output-css-file` and `--vite-css`, classes that the CSS file does not
+  define now come first, in their input order, as in the built-in sorter and in
+  `prettier-plugin-tailwindcss`. They came last before. The placeholders `...`
+  and `…` still go last. The output of these options changes, so
+  `--check-formatted` reports files with custom classes after the upgrade, until
+  you run `--write`. `Sorter::CssSorter` documents the exceptions for classes
+  with a variant prefix.
+
 ## [0.28.1] - 2026-11-23
 
 ### Added
