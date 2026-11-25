@@ -32,7 +32,7 @@
 - In `--output-css-file` and `--vite-css`, classes that the CSS file does not
   define now come first, in their input order, as in the built-in sorter and in
   `prettier-plugin-tailwindcss`. They came last before. The placeholders `...`
-  and `…` still go last. The output of these options changes, so
+  and `…` now go last. The output of these options changes, so
   `--check-formatted` reports files with custom classes after the upgrade, until
   you run `--write`. `Sorter::CssSorter` documents the exceptions for classes
   with a variant prefix.

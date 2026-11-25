@@ -93,8 +93,8 @@ mod tests {
 
     #[test]
     fn decodes_a_unicode_escape_of_the_javascript_string_literal() {
-        // The module line is literal text: `é` is the escape for `é`.
-        let sorter = sorter_from_module(r#"const __vite__css = ".é { }""#).unwrap();
+        // The module line is literal text: `\u00e9` is the JSON escape for `é`.
+        let sorter = sorter_from_module(r#"const __vite__css = ".\u00e9 { }""#).unwrap();
 
         assert_eq!(sorter.get("é"), Some(&0));
         assert_eq!(sorter.len(), 1);

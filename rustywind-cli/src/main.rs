@@ -78,11 +78,13 @@ pub struct Cli {
     #[arg(long, conflicts_with_all = &["output_css_file"])]
     config_file: Option<String>,
     /// When set RustyWind will determine the sort order by the order the class appear in the given CSS file.
-    /// Classes that the CSS does not define go first, in input order.
+    /// Classes that the CSS does not define go first, in input order. A class with one built-in variant
+    /// prefix, such as `hover:flex`, whose base class the CSS defines goes after the defined classes.
     #[arg(long, conflicts_with_all = &["config_file", "vite_css"])]
     output_css_file: Option<String>,
     /// When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates.
-    /// Classes that the CSS does not define go first, in input order.
+    /// Classes that the CSS does not define go first, in input order. A class with one built-in variant
+    /// prefix, such as `hover:flex`, whose base class the CSS defines goes after the defined classes.
     ///
     /// Please provide the full URL to the CSS file ex: `rustywind --vite-css "http://127.0.0.1:5173/src/assets/main.css" . --dry-run`
     ///
