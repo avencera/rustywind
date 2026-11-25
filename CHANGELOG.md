@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.29.0] - 2026-11-25
 
 ### Changed
 
@@ -18,7 +18,9 @@
   with `.class {`, such as `:where(.divide-y > :not(:last-child)) {`, and of
   selectors that end in a pseudo-class, such as `.hover\:bg-well:hover {`.
   Tailwind CSS 4.3.3 and later emit these flat rules in unminified output,
-  [#167](https://github.com/avencera/rustywind/issues/167)
+  [#167](https://github.com/avencera/rustywind/issues/167),
+  [#168](https://github.com/avencera/rustywind/pull/168), thanks
+  [@NoobInTheNet](https://github.com/NoobInTheNet)
 - Decode the JSON string that Vite puts around the CSS (the output of
   `JSON.stringify`) in `--vite-css` before reading the class order. The line
   regex read only the first rule of that one-line text.
@@ -34,8 +36,11 @@
   `prettier-plugin-tailwindcss`. They came last before. The placeholders `...`
   and `…` now go last. The output of these options changes, so
   `--check-formatted` reports files with custom classes after the upgrade, until
-  you run `--write`. `Sorter::CssSorter` documents the exceptions for classes
-  with a variant prefix.
+  you run `--write`. A class such as `hover:flex` that the CSS does not define,
+  but whose part after the first built-in variant prefix it does, goes after
+  the defined classes,
+  [#169](https://github.com/avencera/rustywind/pull/169), thanks
+  [@NoobInTheNet](https://github.com/NoobInTheNet)
 
 ## [0.28.1] - 2026-11-23
 

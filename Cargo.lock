@@ -622,7 +622,7 @@ dependencies = [
 
 [[package]]
 name = "dprint-plugin-rustywind"
-version = "0.28.1"
+version = "0.29.0"
 dependencies = [
  "dprint-core",
  "pretty_assertions",
@@ -1547,7 +1547,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustywind"
-version = "0.28.1"
+version = "0.29.0"
 dependencies = [
  "ahash",
  "anstyle",
@@ -1572,7 +1572,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind_core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "ahash",
  "aho-corasick",
@@ -1591,7 +1591,7 @@ dependencies = [
 
 [[package]]
 name = "rustywind_vite"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "color-eyre",
  "eyre",
