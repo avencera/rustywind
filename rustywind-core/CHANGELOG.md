@@ -36,6 +36,8 @@
   `Sorter::new_from_file` return. Code that matches `Sorter` exhaustively must
   handle it. `Sorter::CustomSorter` keeps the old order: classes that the list
   does not name come last.
+- `Sorter` is now `#[non_exhaustive]`, so a later variant is not a breaking
+  change. A `match` on `Sorter` outside this crate needs a wildcard arm.
 
 ## [0.7.0] - 2026-08-25
 

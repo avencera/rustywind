@@ -95,6 +95,7 @@ impl Deref for FinderRegex {
 
 /// Uses either pattern-based sorting or a sorter from a class list or a CSS file
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum Sorter {
     /// Pattern-based sorting matching Tailwind CSS v4's canonical algorithm
     PatternSorter,
