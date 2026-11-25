@@ -7,7 +7,7 @@ This directory contains CSS fixtures for testing the Tailwind CSS class extracto
 ### tailwind.css
 - **Version**: Tailwind CSS v3.1.4
 - **Size**: 2,266 lines
-- **Classes**: 305 unique utility classes
+- **Classes**: 304 unique utility classes
 - **Source**: Official Tailwind CSS v3.1.4 output
 
 ### tailwind-v4.css
@@ -26,33 +26,8 @@ This directory contains CSS fixtures for testing the Tailwind CSS class extracto
 
 ## Verifying Class Counts
 
-To verify the number of classes extracted from each fixture, use this Python script:
-
-```python
-#!/usr/bin/env python3
-import re
-import sys
-
-# Same regex pattern as Rust code: r"^\s*(\.[^\s]+)[ ]"
-pattern = re.compile(r'^\s*(\.[^\s]+)[ ]')
-
-classes = set()
-with open(sys.argv[1], 'r') as f:
-    for line in f:
-        match = pattern.search(line)
-        if match:
-            # Extract class name, remove leading dot and backslashes (like Rust does)
-            class_name = match.group(1)[1:].replace('\\', '')
-            classes.add(class_name)
-
-print(f"Total unique classes: {len(classes)}")
-```
-
-**Usage:**
-```bash
-python3 count_classes.py tailwind.css    # Output: 305
-python3 count_classes.py tailwind-v4.css # Output: 152
-```
+The tests in `rustywind-core/src/sorter.rs` assert the counts above. The module doc of `rustywind-core/src/css_class_order.rs` states the rule
+that picks one class from each selector.
 
 ## Test Coverage
 
@@ -73,8 +48,7 @@ The test suite (`src/sorter.rs`) verifies:
 ## CSS Escape Sequences
 
 Note: CSS escape sequences are handled by the extractor:
-- `\32xl\:block` → `32xl:block` (CSS escape `\32` for digit '2' becomes '32')
+- `\32xl\:block` → `2xl:block` (CSS escape `\32` is the digit '2')
 - `\.mr-0\.5` → `mr-0.5`
-- `\:hover\:bg-blue` → `:hover:bg-blue` → `hover:bg-blue`
 
-This is correct behavior - the backslashes are stripped during extraction.
+The extractor decodes the escapes as a CSS parser does. It does not only strip the backslashes.

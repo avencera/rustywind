@@ -1,20 +1,16 @@
 //! The module that sorts the classes in the file contents.
-use std::collections::hash_map::Entry;
 use std::fmt;
 use std::fs::File;
-use std::io::{BufRead as _, BufReader, Read};
+use std::io::{BufReader, Read};
 use std::ops::Deref;
 
 use ahash::AHashMap as HashMap;
 
 use regex::{Captures, Match, Regex};
-use std::sync::LazyLock;
 
+use crate::css_class_order::class_names_in_order;
 use crate::defaults::RE;
 use eyre::Result;
-
-pub(crate) static SORTER_EXTRACTOR_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^\s*(\.[^\s]+)[ ]").unwrap());
 
 /// A custom class extractor with one class-list capture
 #[derive(Debug, Clone)]
@@ -126,26 +122,36 @@ impl Sorter {
     }
 
     /// Creates the sorter from a [File]
+    ///
+    /// See [`Sorter::new_from_reader`] for the order of the classes.
+    ///
+    /// # Errors
+    ///
+    /// Returns the errors of [`Sorter::new_from_reader`]. The file is open already, so this
+    /// method has no error of its own.
     pub fn new_from_file(css_file: File) -> Result<Self> {
         let css_reader = BufReader::new(css_file);
         Self::new_from_reader(css_reader)
     }
 
     /// Creates the sorter from any [BufReader]
-    pub fn new_from_reader<T: Read>(css_file: BufReader<T>) -> Result<Self> {
-        let css_reader = BufReader::new(css_file);
+    ///
+    /// The order is the order of the first rule that names a class. Each selector gives one class:
+    /// the longest one with a `:` in its name, else the first class of its last compound selector
+    /// that holds a class. A prelude with `&` and an at-rule prelude give none.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when reading fails, or when the input is not valid UTF-8
+    /// ([`Read::read_to_string`]).
+    pub fn new_from_reader<T: Read>(mut css_file: BufReader<T>) -> Result<Self> {
+        let mut css = String::new();
+        css_file.read_to_string(&mut css)?;
+
         let mut classes: HashMap<String, usize> = HashMap::new();
-
-        let mut index = 0_usize;
-        for line in css_reader.lines() {
-            if let Some(captures) = SORTER_EXTRACTOR_RE.captures(&line?) {
-                let class = captures[1].trim_start_matches('.').replace('\\', "");
-
-                if let Entry::Vacant(entry) = classes.entry(class) {
-                    entry.insert(index);
-                    index += 1;
-                }
-            }
+        for class in class_names_in_order(&css) {
+            let next = classes.len();
+            classes.entry(class).or_insert(next);
         }
 
         Ok(Self::new(classes))
@@ -178,7 +184,11 @@ mod tests {
         let classes = Sorter::new_from_file(css_file).unwrap();
 
         assert_eq!(classes.get("container"), Some(&0));
-        assert_eq!(classes.len(), 305);
+        // A class with a pseudo-class, such as `.hover\:bg-blue-500:hover`, is one name. The
+        // fixture holds 304 unique utility names.
+        assert!(classes.contains_key("hover:bg-blue-500"));
+        assert!(classes.contains_key("placeholder-gray-400"));
+        assert_eq!(classes.len(), 304);
     }
 
     #[test]
@@ -315,7 +325,14 @@ mod tests {
     }
 
     #[test]
-    fn ignores_classes_without_space_before_brace() {
+    fn rejects_css_that_is_not_valid_utf8() {
+        let reader = BufReader::new(&[0xff_u8][..]);
+
+        assert!(Sorter::new_from_reader(reader).is_err());
+    }
+
+    #[test]
+    fn extracts_classes_without_space_before_brace() {
         let css_content = r#".with-space {
             color: red;
         }
@@ -326,10 +343,9 @@ mod tests {
         let reader = BufReader::new(css_content.as_bytes());
         let classes = Sorter::new_from_reader(reader).unwrap();
 
-        // only class with space should be extracted
         assert_eq!(classes.get("with-space"), Some(&0));
-        assert_eq!(classes.get("no-space"), None);
-        assert_eq!(classes.len(), 1);
+        assert_eq!(classes.get("no-space"), Some(&1));
+        assert_eq!(classes.len(), 2);
     }
 
     #[test]
@@ -410,10 +426,10 @@ mod tests {
             "Should extract xl:hidden"
         );
 
-        // note: CSS escape \32 for digit '2' becomes '32' when backslash is removed
+        // the CSS escape `\32` is the digit '2', so `.\32xl\:block` is the class `2xl:block`
         assert!(
-            classes.contains_key("32xl:block"),
-            "Should extract 32xl:block (CSS escape \\32xl becomes 32xl)"
+            classes.contains_key("2xl:block"),
+            "Should extract 2xl:block (CSS escape \\32xl is 2xl)"
         );
 
         // test state variants

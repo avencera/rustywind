@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Changed
+
+- Sort a class with a pseudo-class variant, such as `hover:bg-w`, by its own
+  position in the CSS file when the sorter comes from `Sorter::new_from_reader`
+  or `Sorter::new_from_file`. It no longer goes in the variant group after the
+  known classes.
+- Read hand-written CSS with the same rule. `.card .title {` now gives the key
+  `title`. It gave `card` before. `.btn:hover {` now gives the key `btn`. It
+  gave `btn:hover` before.
+
+### Fixed
+
+- Read the class order in `Sorter::new_from_reader` and
+  `Sorter::new_from_file` with a CSS scan instead of a line regex. The scan
+  finds the classes of rules that do not start with `.class {`, such as
+  `:where(.divide-y > :not(:last-child)) {`, which Tailwind CSS 4.3.3 and later
+  emit in unminified output,
+  [#167](https://github.com/avencera/rustywind/issues/167)
+- Decode hexadecimal CSS escapes in the keys of the `Sorter`. `.\32xl\:block`
+  now gives the key `2xl:block`. It gave `32xl:block` before.
+- Read a rule written without a space before `{`, such as `.a{`. The line regex
+  skipped it.
+
 ## [0.7.0] - 2026-08-25
 
 ### Added
