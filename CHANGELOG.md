@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Sort a class with a pseudo-class variant, such as `hover:bg-w`, by its own
+  position in the CSS file in `--output-css-file` and `--vite-css`. It no longer
+  goes in the variant group after the known classes.
+- Read hand-written CSS with the same rule. `.card .title {` now registers
+  `title`. It registered `card` before. `.btn:hover {` now registers `btn`. It
+  registered `btn:hover` before.
+
+### Fixed
+
+- Read the class order in `--output-css-file` and `--vite-css` with a CSS scan
+  instead of a line regex. The scan finds the classes of rules that do not start
+  with `.class {`, such as `:where(.divide-y > :not(:last-child)) {`, and of
+  selectors that end in a pseudo-class, such as `.hover\:bg-well:hover {`.
+  Tailwind CSS 4.3.3 and later emit these flat rules in unminified output,
+  [#167](https://github.com/avencera/rustywind/issues/167)
+- Decode the JSON string that Vite puts around the CSS (the output of
+  `JSON.stringify`) in `--vite-css` before reading the class order. The line
+  regex read only the first rule of that one-line text.
+- Decode hexadecimal CSS escapes in the class names. `.\32xl\:block` now gives
+  `2xl:block`. It gave `32xl:block` before.
+- Read a rule written without a space before `{`, such as `.a{`. The line regex
+  skipped it.
+
 ## [0.28.1] - 2026-11-23
 
 ### Added

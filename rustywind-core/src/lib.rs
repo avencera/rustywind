@@ -7,6 +7,7 @@ mod attribute_parser;
 mod class_name;
 pub mod class_wrapping;
 pub mod consts;
+mod css_class_order;
 pub mod defaults;
 pub mod parser;
 pub mod sorter;

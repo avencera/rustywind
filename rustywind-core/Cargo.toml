@@ -25,6 +25,8 @@ eyre = { workspace = true }
 
 # parsing
 aho-corasick = "1.0"
+# For `cssparser` only: its default features add a proc-macro build step and `phf` for speed that the scan does not need.
+cssparser = { version = "0.38", default-features = false }
 winnow = { version = "1.0", features = ["simd"] }
 
 [dev-dependencies]

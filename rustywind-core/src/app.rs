@@ -1410,6 +1410,25 @@ mod tests {
         );
     }
 
+    fn css_sorter_app(css: &str) -> RustyWind {
+        RustyWind {
+            sorter: Sorter::new_from_reader(std::io::BufReader::new(css.as_bytes())).unwrap(),
+            ..RUSTYWIND_DEFAULT
+        }
+    }
+
+    #[test]
+    fn css_sorter_orders_classes_by_their_position_in_the_css() {
+        let app = css_sorter_app(
+            ".flex {\n}\n:where(.divide-y > :not(:last-child)) {\n}\n.bg-w {\n}\n@media (hover: hover) {\n  .hover\\:bg-w:hover {\n  }\n  .hover\\:flex:hover {\n  }\n}\n",
+        );
+
+        assert_eq!(
+            app.sort_classes("hover:flex hover:bg-w bg-w divide-y flex"),
+            "flex divide-y bg-w hover:bg-w hover:flex"
+        );
+    }
+
     #[test]
     /// The one-class-per-line layout from avencera/rustywind#25, which default
     /// sorting flattens to a single line.
