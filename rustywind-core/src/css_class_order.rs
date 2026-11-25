@@ -34,6 +34,12 @@
 //!
 //! - The scan suits the selectors that Tailwind CSS emits. For hand-written component CSS such
 //!   as `.card .title { }`, it registers `title`, and `card` stays unknown.
+//! - A utility whose only rule styles a descendant class, such as `@utility btn { & .icon { } }`,
+//!   compiles to `.btn .icon` and registers `icon`. `btn` stays unknown. A utility with
+//!   declarations of its own also emits `.btn { }`, which registers `btn`.
+//! - A custom variant whose selector names a class with a colon that is longer than the
+//!   candidate, such as `@custom-variant x (&:where(.md\:grid-cols-2 *))`, registers
+//!   `md:grid-cols-2` for that rule instead of `x:flex`.
 //! - A nested rule without `&`, in the form `.a { .b { } }` or `.a { > .b { } }`, registers `a`
 //!   and `b`. Tailwind CSS does not emit this form.
 //! - `cssparser` allows 75 nested blocks, and the block of a rule counts as one. The scan skips a
