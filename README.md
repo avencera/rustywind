@@ -158,10 +158,10 @@ Options:
           When set, RustyWind will use the config file to derive configurations. The config file current only supports json with one property sortOrder, e.g. { "sortOrder": ["class1", ...] }
 
       --output-css-file <OUTPUT_CSS_FILE>
-          When set RustyWind will determine the sort order by the order the class appear in the given CSS file. Classes that the CSS does not define go first, in input order. A class with one built-in variant prefix, such as `hover:flex`, whose base class the CSS defines goes after the defined classes
+          When set RustyWind will determine the sort order by the order the class appear in the given CSS file. Classes that the CSS does not define go first, in input order. A class such as `hover:flex` that the CSS does not define, but whose part after the first built-in variant prefix it does, goes after the defined classes
 
       --vite-css <VITE_CSS>
-          When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates. Classes that the CSS does not define go first, in input order. A class with one built-in variant prefix, such as `hover:flex`, whose base class the CSS defines goes after the defined classes.
+          When set RustyWind will determine the sort order by the order the class appear in the CSS file that vite generates. Classes that the CSS does not define go first, in input order. A class such as `hover:flex` that the CSS does not define, but whose part after the first built-in variant prefix it does, goes after the defined classes.
 
           Please provide the full URL to the CSS file ex: `rustywind --vite-css "http://127.0.0.1:5173/src/assets/main.css" . --dry-run`
 
